@@ -381,8 +381,19 @@
             color: #666;
         }
 
-        /* Mobile responsive */
-        @media (max-width: 768px) {
+        /* Medium screens - horizontal scroll */
+        @media (max-width: 1024px) {
+            .tab-content {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            table {
+                min-width: 700px;
+            }
+        }
+
+        /* Mobile responsive - card layout */
+        @media (max-width: 600px) {
             body {
                 padding: 10px;
             }
@@ -406,6 +417,14 @@
             .tab-button {
                 padding: 10px 14px;
                 font-size: 14px;
+            }
+
+            /* Override the medium-screen scroll, use cards instead */
+            .tab-content {
+                overflow-x: visible;
+            }
+            table {
+                min-width: unset;
             }
 
             /* Hide table headers on mobile */
