@@ -661,7 +661,7 @@
                 contactsData = await response.json();
                 renderContacts();
                 document.getElementById('loading').style.display = 'none';
-                document.getElementById('active-tab').style.display = 'block';
+                document.getElementById('active-tab').classList.add('active');
             } catch (error) {
                 console.error('Error loading contacts:', error);
                 document.getElementById('loading').innerHTML = '<p style="color: #dc3545;">Error loading contacts from API.</p>';
