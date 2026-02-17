@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSC Sales Contact List</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            background-color: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        header {
+            border-bottom: 3px solid #0066cc;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #0066cc;
+            margin: 0 0 15px 0;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .stat-card {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #0066cc;
+        }
+        .stat-card strong {
+            display: block;
+            font-size: 24px;
+            color: #0066cc;
+            margin-bottom: 5px;
+        }
+        .stat-card span {
+            font-size: 14px;
+            color: #666;
+        }
+
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+        }
+        .tab-button {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+        .tab-button:hover {
+            color: #0066cc;
+            background-color: #f8f9fa;
+        }
+        .tab-button.active {
+            color: #0066cc;
+            border-bottom-color: #0066cc;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th {
+            background-color: #0066cc;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            vertical-align: top;
+        }
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        .priority-high {
+            background-color: #fee;
+            border-left: 4px solid #dc3545;
+        }
+        .priority-medium {
+            background-color: #ffc;
+            border-left: 4px solid #ffc107;
+        }
+        .priority-low {
+            background-color: #efe;
+            border-left: 4px solid #28a745;
+        }
+        .archived-row {
+            opacity: 0.7;
+        }
+        .checkbox-cell {
+            text-align: center;
+            width: 60px;
+        }
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .priority-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .priority-badge.high {
+            background-color: #dc3545;
+            color: white;
+        }
+        .priority-badge.medium {
+            background-color: #ffc107;
+            color: #333;
+        }
+        .priority-badge.low {
+            background-color: #28a745;
+            color: white;
+        }
+        .activity-summary {
+            font-size: 14px;
+            color: #555;
+        }
+        .slack-link {
+            color: #0066cc;
+            text-decoration: none;
+            font-size: 13px;
+        }
+        .slack-link:hover {
+            text-decoration: underline;
+        }
+        .tenant-name {
+            font-size: 12px;
+            color: #666;
+            font-style: italic;
+        }
+        .tenant-link {
+            color: #0066cc;
+            font-weight: 500;
+            text-decoration: none;
+            border-bottom: 1px dotted #0066cc;
+            font-style: normal;
+        }
+        .tenant-link:hover {
+            background-color: #e6f2ff;
+            border-bottom: 1px solid #0066cc;
+            text-decoration: none;
+        }
+        .server-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .server-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .start-btn {
+            background-color: #28a745;
+            color: white;
+        }
+        .start-btn:hover {
+            background-color: #218838;
+        }
+        .stop-btn {
+            background-color: #dc3545;
+            color: white;
+        }
+        .stop-btn:hover {
+            background-color: #c82333;
+        }
+        .status-btn {
+            background-color: #0066cc;
+            color: white;
+        }
+        .status-btn:hover {
+            background-color: #0052a3;
+        }
+        #server-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        #server-status.running {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        #server-status.stopped {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .new-badge {
+            display: inline-block;
+            background-color: #28a745;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        /* Notes Field */
+        .notes-field {
+            width: 100%;
+            min-height: 60px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 13px;
+            resize: vertical;
+        }
+        .notes-field:focus {
+            outline: none;
+            border-color: #0066cc;
+            box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+        }
+        .notes-field::placeholder {
+            color: #999;
+            font-style: italic;
+        }
+        .notes-cell {
+            max-width: 300px;
+            position: relative;
+        }
+        .expand-button {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 10;
+        }
+        .notes-cell:hover .expand-button {
+            opacity: 1;
+        }
+        .expand-button:hover {
+            background-color: #0052a3;
+        }
+
+        /* Modal Popup */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 800px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s;
+            position: relative;
+            resize: vertical;
+            overflow: auto;
+            min-height: 400px;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        .modal-header {
+            background-color: #0066cc;
+            color: white;
+            padding: 20px 30px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+        .modal-contact-info {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        .close-button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 0;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .close-button:hover {
+            background-color: rgba(255,255,255,0.2);
+        }
+        .modal-body {
+            padding: 30px;
+        }
+        .modal-textarea {
+            width: 100%;
+            min-height: 300px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        .modal-textarea:focus {
+            outline: none;
+            border-color: #0066cc;
+            box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
+        }
+        .modal-footer {
+            padding: 20px 30px;
+            border-top: 1px solid #ddd;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f8f9fa;
+            border-radius: 0 0 8px 8px;
+        }
+        .save-button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .save-button:hover {
+            background-color: #218838;
+        }
+        .char-count {
+            font-size: 13px;
+            color: #666;
+        }
+
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        /* Loading state */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h1 style="margin: 0;">🎯 OSC Sales Contact List</h1>
+                <div class="server-controls">
+                    <button onclick="startServer()" class="server-btn start-btn">▶ Start Server</button>
+                    <button onclick="stopServer()" class="server-btn stop-btn">⏹ Stop Server</button>
+                    <button onclick="checkServerStatus()" class="server-btn status-btn">🔄 Check Status</button>
+                    <span id="server-status" style="margin-left: 10px; font-size: 14px;"></span>
+                </div>
+            </div>
+            <div class="stats">
+                <div class="stat-card">
+                    <strong id="stat-total">0</strong>
+                    <span>Total Contacts</span>
+                </div>
+                <div class="stat-card">
+                    <strong id="stat-pending">0</strong>
+                    <span>Pending Outreach</span>
+                </div>
+                <div class="stat-card">
+                    <strong id="stat-contacted">0</strong>
+                    <span>Contacted (Archived)</span>
+                </div>
+                <div class="stat-card">
+                    <strong id="stat-last-check">Loading...</strong>
+                    <span>Last Check (UTC)</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+            <button class="tab-button active" data-tab="active" onclick="switchTab('active')">
+                📋 Active (<span id="active-count">0</span>)
+            </button>
+            <button class="tab-button" data-tab="archived" onclick="switchTab('archived')">
+                📦 Archived (<span id="archived-count">0</span>)
+            </button>
+        </div>
+
+        <!-- Loading state -->
+        <div id="loading" class="loading">
+            <p>Loading contacts...</p>
+        </div>
+
+        <!-- Active Contacts Tab -->
+        <div id="active-tab" class="tab-content">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="checkbox-cell">✓</th>
+                        <th>Priority</th>
+                        <th>Name / Organization</th>
+                        <th>Email</th>
+                        <th>Activity Summary</th>
+                        <th>Notes</th>
+                        <th>First Seen</th>
+                        <th>Context</th>
+                    </tr>
+                </thead>
+                <tbody id="active-table-body">
+                    <!-- Contacts loaded dynamically from JSON -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Archived Contacts Tab -->
+        <div id="archived-tab" class="tab-content">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="checkbox-cell">✓</th>
+                        <th>Priority</th>
+                        <th>Name / Organization</th>
+                        <th>Email</th>
+                        <th>Activity Summary</th>
+                        <th>Notes</th>
+                        <th>First Seen</th>
+                        <th>Context</th>
+                    </tr>
+                </thead>
+                <tbody id="archived-table-body">
+                    <!-- Checked contacts will appear here automatically -->
+                </tbody>
+            </table>
+
+            <!-- Empty state for archived tab -->
+            <div class="empty-state" style="display: none;" id="archived-empty">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                </svg>
+                <h3>No Archived Contacts</h3>
+                <p>Check off contacts in the Active tab to move them here.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Note Modal Popup -->
+    <div id="noteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h2 id="modalContactName">Contact Name</h2>
+                    <div class="modal-contact-info" id="modalContactInfo">email@example.com</div>
+                </div>
+                <button class="close-button" onclick="closeNoteModal()" title="Close (Esc)">&times;</button>
+            </div>
+            <div class="modal-body">
+                <textarea class="modal-textarea" id="modalNoteTextarea"
+                          placeholder="Draft your email or add notes here...&#10;&#10;This expanded view gives you more space to compose detailed messages, track conversations, or plan your outreach strategy.&#10;&#10;Your notes are automatically saved to your browser's local storage."
+                          oninput="updateCharCount()"></textarea>
+            </div>
+            <div class="modal-footer">
+                <span class="char-count" id="charCount">0 characters</span>
+                <button class="save-button" onclick="saveModalNote()">💾 Save & Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let contactsData = null;
+
+        // Load contacts from JSON
+        async function loadContacts() {
+            try {
+                const response = await fetch('contacts-data.json');
+                if (!response.ok) {
+                    throw new Error('Failed to load contacts data');
+                }
+                contactsData = await response.json();
+                renderContacts();
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('active-tab').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading contacts:', error);
+                document.getElementById('loading').innerHTML = '<p style="color: #dc3545;">Error loading contacts. Please make sure contacts-data.json exists.</p>';
+            }
+        }
+
+        // Render contacts to the page
+        function renderContacts() {
+            const { metadata, contacts } = contactsData;
+
+            // Update metadata stats
+            document.getElementById('stat-total').textContent = metadata.totalContacts;
+
+            // Format last check date
+            const lastCheckDate = new Date(metadata.lastCheckDate);
+            const formattedDate = lastCheckDate.toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+            document.getElementById('stat-last-check').textContent = formattedDate;
+
+            // Render contacts
+            const activeTableBody = document.getElementById('active-table-body');
+            activeTableBody.innerHTML = '';
+
+            contacts.forEach(contact => {
+                const row = createContactRow(contact);
+                activeTableBody.appendChild(row);
+            });
+
+            // Restore checkbox states and move archived items
+            restoreCheckboxStates();
+            updateStats();
+            updateTabCounts();
+            sortActiveTable();
+        }
+
+        // Create a contact row
+        function createContactRow(contact) {
+            const row = document.createElement('tr');
+            row.className = `priority-${contact.priority}`;
+
+            const tenantLink = `https://app.osaas.io/admin/tenant/${contact.tenantName}`;
+            const slackLink = `https://eyevinn.slack.com/archives/${contact.slackChannelId}`;
+
+            row.innerHTML = `
+                <td class="checkbox-cell">
+                    <input type="checkbox" id="${contact.id}" onclick="toggleContact('${contact.id}')">
+                </td>
+                <td>
+                    <span class="priority-badge ${contact.priority}">${contact.priority.toUpperCase()}</span>
+                    ${contact.isNew ? '<span class="new-badge">NEW</span>' : ''}
+                </td>
+                <td>
+                    <strong>${escapeHtml(contact.name)}</strong><br>
+                    <span class="tenant-name">Tenant: <a href="${tenantLink}" target="_blank" class="tenant-link">${escapeHtml(contact.tenantName)}</a></span>
+                </td>
+                <td>${escapeHtml(contact.email)}</td>
+                <td class="activity-summary">${contact.activitySummary}</td>
+                <td class="notes-cell">
+                    <button class="expand-button" onclick="openNoteModal('${contact.id}', '${escapeHtml(contact.name)}', '${escapeHtml(contact.email)}')" title="Expand note editor">✏️ Expand</button>
+                    <textarea class="notes-field" id="note-${contact.id}"
+                              placeholder="Add notes here..."
+                              onchange="saveNote('${contact.id}', this.value)"></textarea>
+                </td>
+                <td>${contact.firstSeen}</td>
+                <td>
+                    <a href="${slackLink}" class="slack-link" target="_blank">View in Slack ↗</a>
+                </td>
+            `;
+
+            return row;
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Save note to localStorage
+        function saveNote(contactId, value) {
+            localStorage.setItem(`note-${contactId}`, value);
+        }
+
+        // Load note from localStorage
+        function loadNote(contactId) {
+            return localStorage.getItem(`note-${contactId}`) || '';
+        }
+
+        // Modal popup functions
+        let currentContactId = null;
+        let currentContactName = null;
+        let currentContactEmail = null;
+
+        function openNoteModal(contactId, contactName, contactEmail) {
+            currentContactId = contactId;
+            currentContactName = contactName;
+            currentContactEmail = contactEmail;
+
+            const modal = document.getElementById('noteModal');
+            const modalTextarea = document.getElementById('modalNoteTextarea');
+            const modalTitle = document.getElementById('modalContactName');
+            const modalInfo = document.getElementById('modalContactInfo');
+
+            modalTitle.textContent = contactName;
+            modalInfo.textContent = contactEmail;
+
+            const existingNote = loadNote(contactId);
+            modalTextarea.value = existingNote;
+
+            modal.style.display = 'block';
+            modalTextarea.focus();
+
+            updateCharCount();
+        }
+
+        function closeNoteModal() {
+            const modal = document.getElementById('noteModal');
+            modal.style.display = 'none';
+        }
+
+        function saveModalNote() {
+            const modalTextarea = document.getElementById('modalNoteTextarea');
+            const value = modalTextarea.value;
+
+            saveNote(currentContactId, value);
+
+            const inlineTextarea = document.getElementById(`note-${currentContactId}`);
+            if (inlineTextarea) {
+                inlineTextarea.value = value;
+            }
+
+            closeNoteModal();
+        }
+
+        function updateCharCount() {
+            const modalTextarea = document.getElementById('modalNoteTextarea');
+            const charCount = document.getElementById('charCount');
+            charCount.textContent = `${modalTextarea.value.length} characters`;
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('noteModal');
+            if (event.target === modal) {
+                closeNoteModal();
+            }
+        }
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeNoteModal();
+            }
+        });
+
+        // Toggle contact checkbox and move between tabs
+        function toggleContact(contactId) {
+            const checkbox = document.getElementById(contactId);
+            const row = checkbox.closest('tr');
+
+            if (checkbox.checked) {
+                localStorage.setItem(contactId, 'true');
+                moveToArchive(row);
+            } else {
+                localStorage.setItem(contactId, 'false');
+                moveToActive(row);
+            }
+
+            updateStats();
+            updateTabCounts();
+        }
+
+        // Move row to archive tab
+        function moveToArchive(row) {
+            const archivedTable = document.getElementById('archived-table-body');
+            archivedTable.appendChild(row);
+            row.classList.add('archived-row');
+            updateArchivedEmptyState();
+        }
+
+        // Move row back to active tab
+        function moveToActive(row) {
+            const activeTable = document.getElementById('active-table-body');
+            activeTable.appendChild(row);
+            row.classList.remove('archived-row');
+            sortActiveTable();
+            updateArchivedEmptyState();
+        }
+
+        // Sort active table by priority
+        function sortActiveTable() {
+            const tbody = document.getElementById('active-table-body');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+
+            rows.sort((a, b) => {
+                const aPriority = a.querySelector('.priority-badge').classList.contains('high') ? 1 :
+                                 a.querySelector('.priority-badge').classList.contains('medium') ? 2 : 3;
+                const bPriority = b.querySelector('.priority-badge').classList.contains('high') ? 1 :
+                                 b.querySelector('.priority-badge').classList.contains('medium') ? 2 : 3;
+                return aPriority - bPriority;
+            });
+
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        // Update statistics
+        function updateStats() {
+            const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
+            const total = allCheckboxes.length;
+            const contacted = Array.from(allCheckboxes).filter(cb => cb.checked).length;
+            const pending = total - contacted;
+
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-pending').textContent = pending;
+            document.getElementById('stat-contacted').textContent = contacted;
+        }
+
+        // Update tab badge counts
+        function updateTabCounts() {
+            const activeCount = document.getElementById('active-table-body').children.length;
+            const archivedCount = document.getElementById('archived-table-body').children.length;
+
+            document.getElementById('active-count').textContent = activeCount;
+            document.getElementById('archived-count').textContent = archivedCount;
+        }
+
+        // Switch tabs
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        // Show/hide empty state for archived tab
+        function updateArchivedEmptyState() {
+            const archivedBody = document.getElementById('archived-table-body');
+            const emptyState = document.getElementById('archived-empty');
+
+            if (archivedBody.children.length === 0) {
+                archivedBody.style.display = 'none';
+                emptyState.style.display = 'block';
+            } else {
+                archivedBody.style.display = '';
+                emptyState.style.display = 'none';
+            }
+        }
+
+        // Restore checkbox states and notes on page load
+        function restoreCheckboxStates() {
+            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                const contactId = checkbox.id;
+                const saved = localStorage.getItem(contactId);
+                const note = loadNote(contactId);
+
+                if (saved === 'true') {
+                    checkbox.checked = true;
+                    const row = checkbox.closest('tr');
+                    moveToArchive(row);
+                }
+
+                const noteField = document.querySelector(`#note-${contactId}`);
+                if (noteField && note) {
+                    noteField.value = note;
+                }
+            });
+        }
+
+        // Server control functions
+        function startServer() {
+            alert('To start the server, run this command in Terminal:\n\n' +
+                  'cd /Users/simon/Documents/Eyevinn/Claude/OSC/csm/slack/output\n' +
+                  './server.sh start\n\n' +
+                  'Then open: http://localhost:8080/contact-list.html');
+        }
+
+        function stopServer() {
+            alert('To stop the server, run this command in Terminal:\n\n' +
+                  'cd /Users/simon/Documents/Eyevinn/Claude/OSC/csm/slack/output\n' +
+                  './server.sh stop');
+        }
+
+        async function checkServerStatus() {
+            const statusEl = document.getElementById('server-status');
+
+            // Check if we're running on the HTTP server
+            if (window.location.protocol === 'http:' && window.location.port === '8080') {
+                statusEl.textContent = '✓ Server Running';
+                statusEl.className = 'running';
+            } else if (window.location.protocol === 'file:') {
+                statusEl.textContent = '⚠ Opened as file:// (Start server to enable)';
+                statusEl.className = 'stopped';
+            } else {
+                statusEl.textContent = '? Unknown state';
+                statusEl.className = 'stopped';
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadContacts();
+            checkServerStatus();
+        });
+    </script>
+</body>
+</html>

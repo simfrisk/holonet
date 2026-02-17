@@ -1,0 +1,20 @@
+{
+  "name": "osc-contact-list-server",
+  "version": "1.0.0",
+  "description": "OSC Sales Contact List with MongoDB backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["osc", "contacts", "sales", "mongodb"],
+  "author": "Eyevinn",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongodb": "^6.3.0",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
