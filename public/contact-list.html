@@ -178,54 +178,6 @@
             border-bottom: 1px solid #0066cc;
             text-decoration: none;
         }
-        .server-controls {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-        .server-btn {
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-        .start-btn {
-            background-color: #28a745;
-            color: white;
-        }
-        .start-btn:hover {
-            background-color: #218838;
-        }
-        .stop-btn {
-            background-color: #dc3545;
-            color: white;
-        }
-        .stop-btn:hover {
-            background-color: #c82333;
-        }
-        .status-btn {
-            background-color: #0066cc;
-            color: white;
-        }
-        .status-btn:hover {
-            background-color: #0052a3;
-        }
-        #server-status {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-weight: 500;
-        }
-        #server-status.running {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        #server-status.stopped {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
         .new-badge {
             display: inline-block;
             background-color: #28a745;
@@ -435,12 +387,6 @@
         <header>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h1 style="margin: 0;">🎯 OSC Sales Contact List</h1>
-                <div class="server-controls">
-                    <button onclick="startServer()" class="server-btn start-btn">▶ Start Server</button>
-                    <button onclick="stopServer()" class="server-btn stop-btn">⏹ Stop Server</button>
-                    <button onclick="checkServerStatus()" class="server-btn status-btn">🔄 Check Status</button>
-                    <span id="server-status" style="margin-left: 10px; font-size: 14px;"></span>
-                </div>
             </div>
             <div class="stats">
                 <div class="stat-card">
@@ -859,40 +805,9 @@
             });
         }
 
-        // Server control functions
-        function startServer() {
-            alert('To start the server, run this command in Terminal:\n\n' +
-                  'cd /Users/simon/Documents/Eyevinn/Claude/OSC/csm/slack/output\n' +
-                  './server.sh start\n\n' +
-                  'Then open: http://localhost:8080/contact-list.html');
-        }
-
-        function stopServer() {
-            alert('To stop the server, run this command in Terminal:\n\n' +
-                  'cd /Users/simon/Documents/Eyevinn/Claude/OSC/csm/slack/output\n' +
-                  './server.sh stop');
-        }
-
-        async function checkServerStatus() {
-            const statusEl = document.getElementById('server-status');
-
-            // Check if we're running on the HTTP server
-            if (window.location.protocol === 'http:' && window.location.port === '8080') {
-                statusEl.textContent = '✓ Server Running';
-                statusEl.className = 'running';
-            } else if (window.location.protocol === 'file:') {
-                statusEl.textContent = '⚠ Opened as file:// (Start server to enable)';
-                statusEl.className = 'stopped';
-            } else {
-                statusEl.textContent = '? Unknown state';
-                statusEl.className = 'stopped';
-            }
-        }
-
         // Initialize on page load
         window.addEventListener('DOMContentLoaded', () => {
             loadContacts();
-            checkServerStatus();
         });
     </script>
 </body>
