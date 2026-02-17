@@ -380,6 +380,130 @@
             padding: 40px;
             color: #666;
         }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .container {
+                padding: 15px;
+                border-radius: 4px;
+            }
+            h1 {
+                font-size: 20px;
+            }
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+            .stat-card {
+                padding: 10px;
+            }
+            .stat-card strong {
+                font-size: 18px;
+            }
+            .tab-button {
+                padding: 10px 14px;
+                font-size: 14px;
+            }
+
+            /* Hide table headers on mobile */
+            table thead {
+                display: none;
+            }
+
+            /* Stack table rows as cards */
+            table, tbody, tr, td {
+                display: block;
+                width: 100%;
+            }
+            tr {
+                margin-bottom: 12px;
+                border-radius: 6px;
+                border: 1px solid #ddd;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+                overflow: hidden;
+            }
+            tr.priority-high { border-left: 4px solid #dc3545; }
+            tr.priority-medium { border-left: 4px solid #ffc107; }
+            tr.priority-low { border-left: 4px solid #28a745; }
+            td {
+                padding: 8px 12px;
+                border-bottom: 1px solid #f0f0f0;
+                text-align: left;
+            }
+            td:last-child {
+                border-bottom: none;
+            }
+            /* Label each cell with data-label */
+            td[data-label]::before {
+                content: attr(data-label);
+                display: block;
+                font-size: 11px;
+                font-weight: 600;
+                color: #999;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                margin-bottom: 3px;
+            }
+            .checkbox-cell {
+                width: 100%;
+                text-align: left;
+                background-color: #f8f9fa;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                padding: 10px 12px;
+            }
+            .checkbox-cell::after {
+                content: 'Mark as contacted';
+                font-size: 13px;
+                color: #666;
+            }
+            .notes-cell {
+                max-width: 100%;
+            }
+            .expand-button {
+                opacity: 1;
+                position: static;
+                display: block;
+                margin-bottom: 6px;
+                width: 100%;
+                text-align: center;
+                padding: 6px;
+            }
+            .notes-field {
+                min-height: 50px;
+            }
+
+            /* Full-screen modal on mobile */
+            .modal-content {
+                margin: 0;
+                width: 100%;
+                height: 100%;
+                border-radius: 0;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+            }
+            .modal-body {
+                flex: 1;
+                padding: 15px;
+            }
+            .modal-textarea {
+                min-height: 200px;
+                height: calc(100vh - 220px);
+            }
+            .modal-header {
+                padding: 15px;
+                border-radius: 0;
+            }
+            .modal-footer {
+                padding: 12px 15px;
+                border-radius: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -564,24 +688,24 @@
                 <td class="checkbox-cell">
                     <input type="checkbox" id="${contact.id}" onclick="toggleContact('${contact.id}')">
                 </td>
-                <td>
+                <td data-label="Priority">
                     <span class="priority-badge ${contact.priority}">${contact.priority.toUpperCase()}</span>
                     ${contact.isNew ? '<span class="new-badge">NEW</span>' : ''}
                 </td>
-                <td>
+                <td data-label="Name">
                     <strong>${escapeHtml(contact.name)}</strong><br>
                     <span class="tenant-name">Tenant: <a href="${tenantLink}" target="_blank" class="tenant-link">${escapeHtml(contact.tenantName)}</a></span>
                 </td>
-                <td>${escapeHtml(contact.email)}</td>
-                <td class="activity-summary">${contact.activitySummary}</td>
-                <td class="notes-cell">
+                <td data-label="Email">${escapeHtml(contact.email)}</td>
+                <td data-label="Activity" class="activity-summary">${contact.activitySummary}</td>
+                <td data-label="Notes" class="notes-cell">
                     <button class="expand-button" onclick="openNoteModal('${contact.id}', '${escapeHtml(contact.name)}', '${escapeHtml(contact.email)}')" title="Expand note editor">✏️ Expand</button>
                     <textarea class="notes-field" id="note-${contact.id}"
                               placeholder="Add notes here..."
                               onchange="saveNote('${contact.id}', this.value)"></textarea>
                 </td>
-                <td>${contact.firstSeen}</td>
-                <td>
+                <td data-label="First Seen">${contact.firstSeen}</td>
+                <td data-label="Context">
                     <a href="${slackLink}" class="slack-link" target="_blank">View in Slack ↗</a>
                 </td>
             `;
