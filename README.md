@@ -1,11 +1,11 @@
 # OSC Sales Contact List Server
 
-A Node.js server with MongoDB backend for managing sales contacts extracted from Slack.
+A Node.js server with CouchDB backend for managing sales contacts extracted from Slack.
 
 ## Features
 
 - 📊 Contact management dashboard
-- 💾 MongoDB persistence
+- 💾 CouchDB persistence
 - 📝 Notes and contact tracking
 - 🔄 Auto-sync from Slack agent
 - 🔒 Optional API key protection
@@ -15,14 +15,15 @@ A Node.js server with MongoDB backend for managing sales contacts extracted from
 ### Prerequisites
 
 1. OSC account at https://app.osaas.io
-2. MongoDB database (create via OSC or use MongoDB Atlas)
+2. CouchDB database (create via OSC)
 
 ### Deploy Steps
 
-1. **Create MongoDB Database in OSC**:
+1. **Create CouchDB Database in OSC**:
    ```bash
    # Using OSC MCP or web interface
-   # Create a MongoDB instance and get connection URL
+   # Create a CouchDB instance and get connection URL
+   # Example: https://admin:password@tenant-dbname.apache-couchdb.auto.prod.osaas.io/
    ```
 
 2. **Deploy to OSC**:
@@ -33,7 +34,7 @@ A Node.js server with MongoDB backend for managing sales contacts extracted from
    ```
 
 3. **Set Environment Variables in OSC**:
-   - `MONGODB_URI` - Your MongoDB connection string
+   - `COUCHDB_URL` - Your CouchDB connection string
    - `API_KEY` - (Optional) Secret key for /api/sync endpoint
    - `PORT` - (Auto-set by OSC, usually 8080)
 
@@ -41,7 +42,7 @@ A Node.js server with MongoDB backend for managing sales contacts extracted from
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `MONGODB_URI` | Yes | MongoDB connection string (e.g., `mongodb://user:pass@host:27017`) |
+| `COUCHDB_URL` | Yes | CouchDB connection string (e.g., `https://admin:pass@host.osaas.io`) |
 | `API_KEY` | No | API key for sync endpoint protection |
 | `PORT` | No | Server port (default: 8080) |
 

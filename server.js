@@ -1,13 +1,12 @@
 #!/usr/bin/env node
 
 const express = require('express');
-const { MongoClient } = require('mongodb');
 const cors = require('cors');
 const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017';
+const COUCHDB_URL = process.env.COUCHDB_URL || 'http://admin:password@localhost:5984';
 const DB_NAME = 'osc_contacts';
 const API_KEY = process.env.API_KEY || ''; // Optional API key for sync endpoint
 
@@ -16,34 +15,92 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-let db;
-let contactsCollection;
+let dbUrl = '';
 
-// Connect to MongoDB
-async function connectToMongoDB() {
+// Initialize CouchDB connection
+async function initializeCouchDB() {
     try {
-        const client = new MongoClient(MONGODB_URI);
-        await client.connect();
-        db = client.db(DB_NAME);
-        contactsCollection = db.collection('contacts');
+        // Build database URL
+        dbUrl = `${COUCHDB_URL}/${DB_NAME}`;
 
-        console.log('✅ Connected to MongoDB');
+        // Check if database exists
+        const checkResponse = await fetch(dbUrl, { method: 'HEAD' });
 
-        // Create indexes
-        await contactsCollection.createIndex({ email: 1 });
-        await contactsCollection.createIndex({ tenantName: 1 });
+        if (checkResponse.status === 404) {
+            // Create database
+            const createResponse = await fetch(dbUrl, { method: 'PUT' });
+            if (!createResponse.ok) {
+                throw new Error('Failed to create database');
+            }
+            console.log('✅ Created CouchDB database:', DB_NAME);
+        } else {
+            console.log('✅ Connected to CouchDB database:', DB_NAME);
+        }
+
+        // Create design documents for views if needed
+        await createDesignDocuments();
 
     } catch (error) {
-        console.error('❌ MongoDB connection error:', error.message);
-        console.log('⚠️  Server will not function without MongoDB');
+        console.error('❌ CouchDB initialization error:', error.message);
+        console.log('⚠️  Server will not function without CouchDB');
         process.exit(1);
+    }
+}
+
+// Create design documents for querying
+async function createDesignDocuments() {
+    const designDoc = {
+        _id: '_design/contacts',
+        views: {
+            all_contacts: {
+                map: function(doc) {
+                    if (doc._id !== 'metadata') {
+                        emit(doc._id, doc);
+                    }
+                }.toString()
+            },
+            by_email: {
+                map: function(doc) {
+                    if (doc.email) {
+                        emit(doc.email, doc);
+                    }
+                }.toString()
+            },
+            by_tenant: {
+                map: function(doc) {
+                    if (doc.tenantName) {
+                        emit(doc.tenantName, doc);
+                    }
+                }.toString()
+            }
+        }
+    };
+
+    try {
+        // Check if design doc exists
+        const checkUrl = `${dbUrl}/_design/contacts`;
+        const checkResponse = await fetch(checkUrl);
+
+        if (checkResponse.status === 404) {
+            // Create design doc
+            const createResponse = await fetch(checkUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(designDoc)
+            });
+
+            if (createResponse.ok) {
+                console.log('✅ Created CouchDB design documents');
+            }
+        }
+    } catch (error) {
+        console.warn('⚠️  Could not create design documents:', error.message);
     }
 }
 
 // Middleware to verify API key for sync endpoint
 function verifyApiKey(req, res, next) {
     if (!API_KEY) {
-        // No API key configured, allow access
         return next();
     }
 
@@ -58,41 +115,62 @@ function verifyApiKey(req, res, next) {
 // API Routes
 
 // Health check
-app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'ok',
-        mongodb: db ? 'connected' : 'disconnected',
-        port: PORT,
-        timestamp: new Date().toISOString()
-    });
+app.get('/api/health', async (req, res) => {
+    try {
+        const response = await fetch(COUCHDB_URL);
+        const couchStatus = response.ok ? 'connected' : 'disconnected';
+
+        res.json({
+            status: 'ok',
+            database: couchStatus,
+            port: PORT,
+            timestamp: new Date().toISOString()
+        });
+    } catch (error) {
+        res.json({
+            status: 'ok',
+            database: 'disconnected',
+            port: PORT,
+            timestamp: new Date().toISOString()
+        });
+    }
 });
 
 // Get all contacts
 app.get('/api/contacts', async (req, res) => {
     try {
-        if (!db) {
-            return res.status(503).json({ error: 'Database not available' });
+        // Get metadata
+        const metadataUrl = `${dbUrl}/metadata`;
+        const metadataResponse = await fetch(metadataUrl);
+        const metadata = metadataResponse.ok ? await metadataResponse.json() : null;
+
+        // Get all contacts using view
+        const viewUrl = `${dbUrl}/_design/contacts/_view/all_contacts`;
+        const viewResponse = await fetch(viewUrl);
+
+        if (!viewResponse.ok) {
+            throw new Error('Failed to fetch contacts');
         }
 
-        const metadata = await contactsCollection.findOne({ _id: 'metadata' });
-        const contacts = await contactsCollection
-            .find({ _id: { $ne: 'metadata' } })
-            .toArray();
-
-        // Clean up MongoDB _id field from contacts
-        const cleanContacts = contacts.map(({ _id, ...contact }) => ({
-            id: _id,
-            ...contact
-        }));
+        const viewData = await viewResponse.json();
+        const contacts = viewData.rows.map(row => {
+            const { _id, _rev, ...contact } = row.value;
+            return { id: _id, ...contact };
+        });
 
         res.json({
-            metadata: metadata || {
-                totalContacts: cleanContacts.length,
+            metadata: metadata ? {
+                totalContacts: contacts.length,
+                contacted: metadata.contacted || 0,
+                pendingOutreach: metadata.pendingOutreach || contacts.length,
+                lastCheckDate: metadata.lastCheckDate || new Date().toISOString()
+            } : {
+                totalContacts: contacts.length,
                 contacted: 0,
-                pendingOutreach: cleanContacts.length,
+                pendingOutreach: contacts.length,
                 lastCheckDate: new Date().toISOString()
             },
-            contacts: cleanContacts
+            contacts
         });
     } catch (error) {
         console.error('Error fetching contacts:', error);
@@ -106,22 +184,28 @@ app.patch('/api/contacts/:id/notes', async (req, res) => {
         const { id } = req.params;
         const { notes } = req.body;
 
-        if (!db) {
-            return res.status(503).json({ error: 'Database not available' });
+        // Get current document
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await fetch(docUrl);
+
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Contact not found' });
         }
 
-        const result = await contactsCollection.updateOne(
-            { _id: id },
-            {
-                $set: {
-                    notes,
-                    updatedAt: new Date().toISOString()
-                }
-            }
-        );
+        const doc = await getResponse.json();
 
-        if (result.matchedCount === 0) {
-            return res.status(404).json({ error: 'Contact not found' });
+        // Update document
+        doc.notes = notes;
+        doc.updatedAt = new Date().toISOString();
+
+        const updateResponse = await fetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!updateResponse.ok) {
+            throw new Error('Failed to update notes');
         }
 
         res.json({ success: true });
@@ -137,43 +221,33 @@ app.patch('/api/contacts/:id/contacted', async (req, res) => {
         const { id } = req.params;
         const { contacted } = req.body;
 
-        if (!db) {
-            return res.status(503).json({ error: 'Database not available' });
-        }
+        // Get current document
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await fetch(docUrl);
 
-        const result = await contactsCollection.updateOne(
-            { _id: id },
-            {
-                $set: {
-                    contacted,
-                    contactedAt: contacted ? new Date().toISOString() : null,
-                    updatedAt: new Date().toISOString()
-                }
-            }
-        );
-
-        if (result.matchedCount === 0) {
+        if (!getResponse.ok) {
             return res.status(404).json({ error: 'Contact not found' });
         }
 
-        // Update metadata counts
-        const totalContacts = await contactsCollection.countDocuments({ _id: { $ne: 'metadata' } });
-        const contactedCount = await contactsCollection.countDocuments({
-            contacted: true,
-            _id: { $ne: 'metadata' }
+        const doc = await getResponse.json();
+
+        // Update document
+        doc.contacted = contacted;
+        doc.contactedAt = contacted ? new Date().toISOString() : null;
+        doc.updatedAt = new Date().toISOString();
+
+        const updateResponse = await fetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
         });
 
-        await contactsCollection.updateOne(
-            { _id: 'metadata' },
-            {
-                $set: {
-                    contacted: contactedCount,
-                    pendingOutreach: totalContacts - contactedCount,
-                    lastUpdated: new Date().toISOString()
-                }
-            },
-            { upsert: true }
-        );
+        if (!updateResponse.ok) {
+            throw new Error('Failed to update contacted status');
+        }
+
+        // Update metadata
+        await updateMetadataStats();
 
         res.json({ success: true });
     } catch (error) {
@@ -182,14 +256,42 @@ app.patch('/api/contacts/:id/contacted', async (req, res) => {
     }
 });
 
+// Update metadata statistics
+async function updateMetadataStats() {
+    try {
+        // Get all contacts
+        const viewUrl = `${dbUrl}/_design/contacts/_view/all_contacts`;
+        const viewResponse = await fetch(viewUrl);
+        const viewData = await viewResponse.json();
+
+        const contacts = viewData.rows.map(row => row.value);
+        const totalContacts = contacts.length;
+        const contactedCount = contacts.filter(c => c.contacted).length;
+
+        // Get current metadata
+        const metadataUrl = `${dbUrl}/metadata`;
+        const metadataResponse = await fetch(metadataUrl);
+        const metadata = metadataResponse.ok ? await metadataResponse.json() : { _id: 'metadata' };
+
+        // Update metadata
+        metadata.contacted = contactedCount;
+        metadata.pendingOutreach = totalContacts - contactedCount;
+        metadata.lastUpdated = new Date().toISOString();
+
+        await fetch(metadataUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(metadata)
+        });
+    } catch (error) {
+        console.warn('Could not update metadata stats:', error.message);
+    }
+}
+
 // Sync endpoint - accepts full contact data from Slack agent
 app.post('/api/sync', verifyApiKey, async (req, res) => {
     try {
         const { metadata, contacts } = req.body;
-
-        if (!db) {
-            return res.status(503).json({ error: 'Database not available' });
-        }
 
         // Validate input
         if (!contacts || !Array.isArray(contacts)) {
@@ -198,45 +300,70 @@ app.post('/api/sync', verifyApiKey, async (req, res) => {
 
         console.log(`📥 Syncing ${contacts.length} contacts from Slack agent...`);
 
-        // Get existing notes and contacted status before clearing
-        const existingContacts = await contactsCollection
-            .find({ _id: { $ne: 'metadata' } })
-            .toArray();
-
+        // Get all existing contacts to preserve notes and contacted status
+        const viewUrl = `${dbUrl}/_design/contacts/_view/all_contacts`;
+        const viewResponse = await fetch(viewUrl);
         const existingData = {};
-        existingContacts.forEach(contact => {
-            existingData[contact._id] = {
-                notes: contact.notes || '',
-                contacted: contact.contacted || false,
-                contactedAt: contact.contactedAt || null
-            };
-        });
 
-        // Clear existing data
-        await contactsCollection.deleteMany({});
+        if (viewResponse.ok) {
+            const viewData = await viewResponse.json();
+            viewData.rows.forEach(row => {
+                const doc = row.value;
+                existingData[doc._id] = {
+                    notes: doc.notes || '',
+                    contacted: doc.contacted || false,
+                    contactedAt: doc.contactedAt || null,
+                    _rev: doc._rev
+                };
+            });
+        }
 
-        // Insert metadata
-        await contactsCollection.insertOne({
+        // Prepare bulk update
+        const bulkDocs = [];
+
+        // Add metadata
+        const metadataUrl = `${dbUrl}/metadata`;
+        const metadataResponse = await fetch(metadataUrl);
+        const existingMetadata = metadataResponse.ok ? await metadataResponse.json() : {};
+
+        bulkDocs.push({
+            ...existingMetadata,
             _id: 'metadata',
             ...metadata,
             lastSynced: new Date().toISOString()
         });
 
-        // Insert contacts, preserving notes and contacted status
-        if (contacts.length > 0) {
-            const contactsWithPreservedData = contacts.map(contact => {
-                const existing = existingData[contact.id] || {};
-                return {
-                    ...contact,
-                    _id: contact.id,
-                    notes: existing.notes || '',
-                    contacted: existing.contacted || false,
-                    contactedAt: existing.contactedAt || null,
-                    syncedAt: new Date().toISOString()
-                };
+        // Add contacts with preserved data
+        contacts.forEach(contact => {
+            const existing = existingData[contact.id] || {};
+            bulkDocs.push({
+                _id: contact.id,
+                _rev: existing._rev,
+                ...contact,
+                notes: existing.notes || '',
+                contacted: existing.contacted || false,
+                contactedAt: existing.contactedAt || null,
+                syncedAt: new Date().toISOString()
             });
+        });
 
-            await contactsCollection.insertMany(contactsWithPreservedData);
+        // Bulk update to CouchDB
+        const bulkUrl = `${dbUrl}/_bulk_docs`;
+        const bulkResponse = await fetch(bulkUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ docs: bulkDocs })
+        });
+
+        if (!bulkResponse.ok) {
+            throw new Error('Bulk update failed');
+        }
+
+        const bulkResult = await bulkResponse.json();
+        const errors = bulkResult.filter(r => r.error);
+
+        if (errors.length > 0) {
+            console.warn('⚠️  Some updates failed:', errors.length);
         }
 
         console.log(`✅ Synced ${contacts.length} contacts successfully`);
@@ -259,23 +386,20 @@ app.get('/', (req, res) => {
 
 // Start server
 async function start() {
-    await connectToMongoDB();
+    await initializeCouchDB();
 
     app.listen(PORT, () => {
         console.log(`\n🚀 OSC Contact List Server running!`);
         console.log(`📄 URL: http://localhost:${PORT}/`);
         console.log(`🔧 API: http://localhost:${PORT}/api/contacts`);
-        console.log(`💾 MongoDB: ${db ? '✅ Connected' : '❌ Disconnected'}`);
+        console.log(`💾 CouchDB: ${COUCHDB_URL}`);
         console.log(`🔑 API Key: ${API_KEY ? '✅ Enabled' : '⚠️  Disabled (sync endpoint is public)'}\n`);
     });
 }
 
 // Graceful shutdown
-process.on('SIGTERM', async () => {
+process.on('SIGTERM', () => {
     console.log('SIGTERM received, shutting down gracefully...');
-    if (db) {
-        await db.client.close();
-    }
     process.exit(0);
 });
 
