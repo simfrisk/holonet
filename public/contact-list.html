@@ -732,7 +732,8 @@
                 </td>
                 <td data-label="First Seen">${contact.firstSeen}</td>
                 <td data-label="Context">
-                    <a href="${slackLink}" class="slack-link" target="_blank">View in Slack ↗</a>
+                    <a href="${slackLink}" class="slack-link" target="_blank">View in Slack ↗</a><br>
+                    <a href="https://ops-ui.osaas.io/d/45a4f896-1072-4957-ad18-9b4f0c1e77ef/tenant?orgId=1&from=now-24h&to=now&timezone=browser&var-tenant=${encodeURIComponent(contact.tenantName)}&refresh=5m" class="slack-link" target="_blank">Grafana ↗</a>
                 </td>
             `;
 
