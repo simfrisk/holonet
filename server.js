@@ -6,9 +6,40 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
-const COUCHDB_URL = process.env.COUCHDB_URL || 'http://admin:password@localhost:5984';
+const COUCHDB_URL = process.env.COUCHDB_URL || 'http://localhost:5984';
 const DB_NAME = 'osc_contacts';
 const API_KEY = process.env.API_KEY || ''; // Optional API key for sync endpoint
+
+// Parse CouchDB credentials from URL
+function parseCouchDBUrl(urlString) {
+    try {
+        const url = new URL(urlString);
+        const username = url.username || '';
+        const password = url.password || '';
+        const baseUrl = `${url.protocol}//${url.host}`;
+
+        // Create Basic Auth header if credentials exist
+        const authHeader = username && password
+            ? `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`
+            : '';
+
+        return { baseUrl, authHeader };
+    } catch (error) {
+        console.error('Invalid COUCHDB_URL:', error.message);
+        return { baseUrl: urlString, authHeader: '' };
+    }
+}
+
+const { baseUrl: couchBaseUrl, authHeader: couchAuthHeader } = parseCouchDBUrl(COUCHDB_URL);
+
+// Helper function to fetch from CouchDB with auth
+async function couchFetch(url, options = {}) {
+    const headers = { ...options.headers };
+    if (couchAuthHeader) {
+        headers['Authorization'] = couchAuthHeader;
+    }
+    return fetch(url, { ...options, headers });
+}
 
 // Middleware
 app.use(cors());
@@ -21,14 +52,14 @@ let dbUrl = '';
 async function initializeCouchDB() {
     try {
         // Build database URL
-        dbUrl = `${COUCHDB_URL}/${DB_NAME}`;
+        dbUrl = `${couchBaseUrl}/${DB_NAME}`;
 
         // Check if database exists
-        const checkResponse = await fetch(dbUrl, { method: 'HEAD' });
+        const checkResponse = await couchFetch(dbUrl, { method: 'HEAD' });
 
         if (checkResponse.status === 404) {
             // Create database
-            const createResponse = await fetch(dbUrl, { method: 'PUT' });
+            const createResponse = await couchFetch(dbUrl, { method: 'PUT' });
             if (!createResponse.ok) {
                 throw new Error('Failed to create database');
             }
@@ -79,11 +110,11 @@ async function createDesignDocuments() {
     try {
         // Check if design doc exists
         const checkUrl = `${dbUrl}/_design/contacts`;
-        const checkResponse = await fetch(checkUrl);
+        const checkResponse = await couchFetch(checkUrl);
 
         if (checkResponse.status === 404) {
             // Create design doc
-            const createResponse = await fetch(checkUrl, {
+            const createResponse = await couchFetch(checkUrl, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(designDoc)
@@ -117,7 +148,7 @@ function verifyApiKey(req, res, next) {
 // Health check
 app.get('/api/health', async (req, res) => {
     try {
-        const response = await fetch(COUCHDB_URL);
+        const response = await couchFetch(couchBaseUrl);
         const couchStatus = response.ok ? 'connected' : 'disconnected';
 
         res.json({
@@ -141,12 +172,12 @@ app.get('/api/contacts', async (req, res) => {
     try {
         // Get metadata
         const metadataUrl = `${dbUrl}/metadata`;
-        const metadataResponse = await fetch(metadataUrl);
+        const metadataResponse = await couchFetch(metadataUrl);
         const metadata = metadataResponse.ok ? await metadataResponse.json() : null;
 
         // Get all contacts using view
         const viewUrl = `${dbUrl}/_design/contacts/_view/all_contacts`;
-        const viewResponse = await fetch(viewUrl);
+        const viewResponse = await couchFetch(viewUrl);
 
         if (!viewResponse.ok) {
             throw new Error('Failed to fetch contacts');
@@ -186,7 +217,7 @@ app.patch('/api/contacts/:id/notes', async (req, res) => {
 
         // Get current document
         const docUrl = `${dbUrl}/${id}`;
-        const getResponse = await fetch(docUrl);
+        const getResponse = await couchFetch(docUrl);
 
         if (!getResponse.ok) {
             return res.status(404).json({ error: 'Contact not found' });
@@ -198,7 +229,7 @@ app.patch('/api/contacts/:id/notes', async (req, res) => {
         doc.notes = notes;
         doc.updatedAt = new Date().toISOString();
 
-        const updateResponse = await fetch(docUrl, {
+        const updateResponse = await couchFetch(docUrl, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(doc)
@@ -223,7 +254,7 @@ app.patch('/api/contacts/:id/contacted', async (req, res) => {
 
         // Get current document
         const docUrl = `${dbUrl}/${id}`;
-        const getResponse = await fetch(docUrl);
+        const getResponse = await couchFetch(docUrl);
 
         if (!getResponse.ok) {
             return res.status(404).json({ error: 'Contact not found' });
@@ -236,7 +267,7 @@ app.patch('/api/contacts/:id/contacted', async (req, res) => {
         doc.contactedAt = contacted ? new Date().toISOString() : null;
         doc.updatedAt = new Date().toISOString();
 
-        const updateResponse = await fetch(docUrl, {
+        const updateResponse = await couchFetch(docUrl, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(doc)
@@ -261,7 +292,7 @@ async function updateMetadataStats() {
     try {
         // Get all contacts
         const viewUrl = `${dbUrl}/_design/contacts/_view/all_contacts`;
-        const viewResponse = await fetch(viewUrl);
+        const viewResponse = await couchFetch(viewUrl);
         const viewData = await viewResponse.json();
 
         const contacts = viewData.rows.map(row => row.value);
@@ -270,7 +301,7 @@ async function updateMetadataStats() {
 
         // Get current metadata
         const metadataUrl = `${dbUrl}/metadata`;
-        const metadataResponse = await fetch(metadataUrl);
+        const metadataResponse = await couchFetch(metadataUrl);
         const metadata = metadataResponse.ok ? await metadataResponse.json() : { _id: 'metadata' };
 
         // Update metadata
@@ -278,7 +309,7 @@ async function updateMetadataStats() {
         metadata.pendingOutreach = totalContacts - contactedCount;
         metadata.lastUpdated = new Date().toISOString();
 
-        await fetch(metadataUrl, {
+        await couchFetch(metadataUrl, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(metadata)
@@ -302,7 +333,7 @@ app.post('/api/sync', verifyApiKey, async (req, res) => {
 
         // Get all existing contacts to preserve notes and contacted status
         const viewUrl = `${dbUrl}/_design/contacts/_view/all_contacts`;
-        const viewResponse = await fetch(viewUrl);
+        const viewResponse = await couchFetch(viewUrl);
         const existingData = {};
 
         if (viewResponse.ok) {
@@ -323,7 +354,7 @@ app.post('/api/sync', verifyApiKey, async (req, res) => {
 
         // Add metadata
         const metadataUrl = `${dbUrl}/metadata`;
-        const metadataResponse = await fetch(metadataUrl);
+        const metadataResponse = await couchFetch(metadataUrl);
         const existingMetadata = metadataResponse.ok ? await metadataResponse.json() : {};
 
         bulkDocs.push({
@@ -349,7 +380,7 @@ app.post('/api/sync', verifyApiKey, async (req, res) => {
 
         // Bulk update to CouchDB
         const bulkUrl = `${dbUrl}/_bulk_docs`;
-        const bulkResponse = await fetch(bulkUrl, {
+        const bulkResponse = await couchFetch(bulkUrl, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ docs: bulkDocs })
@@ -392,7 +423,7 @@ async function start() {
         console.log(`\n🚀 OSC Contact List Server running!`);
         console.log(`📄 URL: http://localhost:${PORT}/`);
         console.log(`🔧 API: http://localhost:${PORT}/api/contacts`);
-        console.log(`💾 CouchDB: ${COUCHDB_URL}`);
+        console.log(`💾 CouchDB: ${couchBaseUrl}`);
         console.log(`🔑 API Key: ${API_KEY ? '✅ Enabled' : '⚠️  Disabled (sync endpoint is public)'}\n`);
     });
 }
