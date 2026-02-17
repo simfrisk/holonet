@@ -530,6 +530,59 @@
                 border-radius: 0;
             }
         }
+        /* Add Contact Button */
+        .add-contact-btn {
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .add-contact-btn:hover {
+            background-color: #0052a3;
+        }
+
+        /* Add Contact Modal Form */
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #444;
+            margin-bottom: 5px;
+        }
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #0066cc;
+            box-shadow: 0 0 0 2px rgba(0,102,204,0.1);
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        @media (max-width: 600px) {
+            .form-row { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
@@ -537,6 +590,7 @@
         <header>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h1 style="margin: 0;">🎯 OSC Sales Contact List</h1>
+                <button class="add-contact-btn" onclick="openAddContactModal()">+ Add Contact</button>
             </div>
             <div class="stats">
                 <div class="stat-card">
@@ -648,6 +702,53 @@
         </div>
     </div>
 
+    <!-- Add Contact Modal -->
+    <div id="addContactModal" class="modal">
+        <div class="modal-content" style="resize: none; min-height: unset;">
+            <div class="modal-header">
+                <div>
+                    <h2>Add Contact Manually</h2>
+                </div>
+                <button class="close-button" onclick="closeAddContactModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ac-name">Name *</label>
+                        <input type="text" id="ac-name" placeholder="John Doe">
+                    </div>
+                    <div class="form-group">
+                        <label for="ac-email">Email *</label>
+                        <input type="email" id="ac-email" placeholder="john@example.com">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="ac-tenant">Tenant Name *</label>
+                        <input type="text" id="ac-tenant" placeholder="acme-corp">
+                    </div>
+                    <div class="form-group">
+                        <label for="ac-priority">Priority</label>
+                        <select id="ac-priority">
+                            <option value="high">High</option>
+                            <option value="medium" selected>Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="ac-activity">Activity Summary</label>
+                    <textarea id="ac-activity" rows="3" placeholder="Brief description of why this contact is relevant..."></textarea>
+                </div>
+                <p id="ac-error" style="color: #dc3545; font-size: 13px; display: none;"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="close-button" onclick="closeAddContactModal()" style="background: #6c757d; color: white; font-size: 14px; width: auto; height: auto; padding: 10px 18px; border-radius: 6px;">Cancel</button>
+                <button class="save-button" onclick="submitAddContact()">➕ Add Contact</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let contactsData = null;
 
@@ -732,7 +833,6 @@
                 </td>
                 <td data-label="First Seen">${contact.firstSeen}</td>
                 <td data-label="Context">
-                    <a href="${slackLink}" class="slack-link" target="_blank">View in Slack ↗</a><br>
                     <a href="https://ops-ui.osaas.io/d/45a4f896-1072-4957-ad18-9b4f0c1e77ef/tenant?orgId=1&from=now-24h&to=now&timezone=browser&var-tenant=${encodeURIComponent(contact.tenantName)}&refresh=5m" class="slack-link" target="_blank">Grafana ↗</a>
                 </td>
             `;
@@ -815,11 +915,13 @@
             charCount.textContent = `${modalTextarea.value.length} characters`;
         }
 
-        // Close modal when clicking outside
+        // Close modals when clicking outside
         window.onclick = function(event) {
-            const modal = document.getElementById('noteModal');
-            if (event.target === modal) {
+            if (event.target === document.getElementById('noteModal')) {
                 closeNoteModal();
+            }
+            if (event.target === document.getElementById('addContactModal')) {
+                closeAddContactModal();
             }
         }
 
@@ -954,6 +1056,67 @@
                     noteField.value = contact.notes;
                 }
             });
+        }
+
+        // Add Contact Modal
+        function openAddContactModal() {
+            document.getElementById('ac-name').value = '';
+            document.getElementById('ac-email').value = '';
+            document.getElementById('ac-tenant').value = '';
+            document.getElementById('ac-priority').value = 'medium';
+            document.getElementById('ac-activity').value = '';
+            document.getElementById('ac-error').style.display = 'none';
+            document.getElementById('addContactModal').style.display = 'block';
+            document.getElementById('ac-name').focus();
+        }
+
+        function closeAddContactModal() {
+            document.getElementById('addContactModal').style.display = 'none';
+        }
+
+        async function submitAddContact() {
+            const name = document.getElementById('ac-name').value.trim();
+            const email = document.getElementById('ac-email').value.trim();
+            const tenantName = document.getElementById('ac-tenant').value.trim();
+            const priority = document.getElementById('ac-priority').value;
+            const activitySummary = document.getElementById('ac-activity').value.trim();
+            const errorEl = document.getElementById('ac-error');
+
+            if (!name || !email || !tenantName) {
+                errorEl.textContent = 'Name, email, and tenant name are required.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            errorEl.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/contacts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, tenantName, priority, activitySummary })
+                });
+
+                if (!response.ok) throw new Error('Failed to create contact');
+
+                const result = await response.json();
+
+                // Add new row directly to the active table without full reload
+                const contact = result.contact;
+                if (contactsData) {
+                    contactsData.contacts.push(contact);
+                }
+                const row = createContactRow(contact);
+                document.getElementById('active-table-body').appendChild(row);
+                sortActiveTable();
+                updateStats();
+                updateTabCounts();
+
+                closeAddContactModal();
+            } catch (err) {
+                errorEl.textContent = 'Error saving contact. Please try again.';
+                errorEl.style.display = 'block';
+            }
         }
 
         // Initialize on page load

@@ -323,6 +323,51 @@ async function updateMetadataStats() {
     }
 }
 
+// Create a single new contact manually
+app.post('/api/contacts', async (req, res) => {
+    try {
+        const { name, email, tenantName, priority, activitySummary } = req.body;
+
+        if (!name || !email || !tenantName) {
+            return res.status(400).json({ error: 'name, email, and tenantName are required' });
+        }
+
+        const id = `manual-${Date.now()}`;
+        const doc = {
+            _id: id,
+            name,
+            email,
+            tenantName,
+            priority: priority || 'medium',
+            activitySummary: activitySummary || 'Manually added contact',
+            firstSeen: new Date().toISOString().split('T')[0],
+            notes: '',
+            contacted: false,
+            isNew: true,
+            slackChannelId: null,
+            createdAt: new Date().toISOString()
+        };
+
+        const docUrl = `${dbUrl}/${id}`;
+        const response = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to create contact');
+        }
+
+        await updateMetadataStats();
+
+        res.json({ success: true, id, contact: { id, ...doc } });
+    } catch (error) {
+        console.error('Error creating contact:', error);
+        res.status(500).json({ error: 'Failed to create contact' });
+    }
+});
+
 // Sync endpoint - accepts full contact data from Slack agent
 app.post('/api/sync', verifyApiKey, async (req, res) => {
     try {
