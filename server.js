@@ -6,7 +6,11 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
-const COUCHDB_URL = process.env.COUCHDB_URL || 'https://admin:simon123@simonsteam-osclisting.apache-couchdb.auto.prod.osaas.io';
+const COUCHDB_URL = process.env.COUCHDB_URL;
+if (!COUCHDB_URL) {
+    console.error('❌ COUCHDB_URL environment variable is required');
+    process.exit(1);
+}
 const DB_NAME = 'osc_contacts';
 const API_KEY = process.env.API_KEY || ''; // Optional API key for sync endpoint
 
