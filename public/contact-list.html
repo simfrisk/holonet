@@ -555,10 +555,10 @@
     <script>
         let contactsData = null;
 
-        // Load contacts from JSON
+        // Load contacts from API
         async function loadContacts() {
             try {
-                const response = await fetch('contacts-data.json');
+                const response = await fetch('/api/contacts');
                 if (!response.ok) {
                     throw new Error('Failed to load contacts data');
                 }
@@ -568,7 +568,7 @@
                 document.getElementById('active-tab').style.display = 'block';
             } catch (error) {
                 console.error('Error loading contacts:', error);
-                document.getElementById('loading').innerHTML = '<p style="color: #dc3545;">Error loading contacts. Please make sure contacts-data.json exists.</p>';
+                document.getElementById('loading').innerHTML = '<p style="color: #dc3545;">Error loading contacts from API.</p>';
             }
         }
 
@@ -650,14 +650,20 @@
             return div.innerHTML;
         }
 
-        // Save note to localStorage
-        function saveNote(contactId, value) {
-            localStorage.setItem(`note-${contactId}`, value);
+        // Save note to API
+        async function saveNote(contactId, value) {
+            await fetch(`/api/contacts/${contactId}/notes`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notes: value })
+            });
         }
 
-        // Load note from localStorage
+        // Load note from contact data
         function loadNote(contactId) {
-            return localStorage.getItem(`note-${contactId}`) || '';
+            if (!contactsData) return '';
+            const contact = contactsData.contacts.find(c => c.id === contactId);
+            return contact ? (contact.notes || '') : '';
         }
 
         // Modal popup functions
@@ -728,15 +734,23 @@
         });
 
         // Toggle contact checkbox and move between tabs
-        function toggleContact(contactId) {
+        async function toggleContact(contactId) {
             const checkbox = document.getElementById(contactId);
             const row = checkbox.closest('tr');
 
             if (checkbox.checked) {
-                localStorage.setItem(contactId, 'true');
+                await fetch(`/api/contacts/${contactId}/contacted`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contacted: true })
+                });
                 moveToArchive(row);
             } else {
-                localStorage.setItem(contactId, 'false');
+                await fetch(`/api/contacts/${contactId}/contacted`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contacted: false })
+                });
                 moveToActive(row);
             }
 
@@ -825,22 +839,22 @@
             }
         }
 
-        // Restore checkbox states and notes on page load
+        // Restore checkbox states and notes from API data
         function restoreCheckboxStates() {
             document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
                 const contactId = checkbox.id;
-                const saved = localStorage.getItem(contactId);
-                const note = loadNote(contactId);
+                const contact = contactsData.contacts.find(c => c.id === contactId);
+                if (!contact) return;
 
-                if (saved === 'true') {
+                if (contact.contacted) {
                     checkbox.checked = true;
                     const row = checkbox.closest('tr');
                     moveToArchive(row);
                 }
 
                 const noteField = document.querySelector(`#note-${contactId}`);
-                if (noteField && note) {
-                    noteField.value = note;
+                if (noteField && contact.notes) {
+                    noteField.value = contact.notes;
                 }
             });
         }
