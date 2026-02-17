@@ -6,7 +6,7 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
-const COUCHDB_URL = process.env.COUCHDB_URL || 'http://localhost:5984';
+const COUCHDB_URL = process.env.COUCHDB_URL || 'https://admin:contacts_data_2026_secure@eyevinnlab-contactsdata.apache-couchdb.auto.prod.osaas.io';
 const DB_NAME = 'osc_contacts';
 const API_KEY = process.env.API_KEY || ''; // Optional API key for sync endpoint
 
