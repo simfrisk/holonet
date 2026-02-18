@@ -1111,13 +1111,13 @@
         function sortActiveTable() {
             const tbody = document.getElementById('active-table-body');
             const rows = Array.from(tbody.querySelectorAll('tr'));
+            const rank = { high: 1, medium: 2, low: 3 };
 
             rows.sort((a, b) => {
-                const aPriority = a.querySelector('.priority-badge').classList.contains('high') ? 1 :
-                                 a.querySelector('.priority-badge').classList.contains('medium') ? 2 : 3;
-                const bPriority = b.querySelector('.priority-badge').classList.contains('high') ? 1 :
-                                 b.querySelector('.priority-badge').classList.contains('medium') ? 2 : 3;
-                return aPriority - bPriority;
+                const aSelect = a.querySelector('.priority-select');
+                const bSelect = b.querySelector('.priority-select');
+                return (rank[aSelect ? aSelect.value : 'low'] || 3) -
+                       (rank[bSelect ? bSelect.value : 'low'] || 3);
             });
 
             rows.forEach(row => tbody.appendChild(row));
