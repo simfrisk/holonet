@@ -193,21 +193,35 @@
         .drag-handle {
             cursor: grab;
             color: #bbb;
-            font-size: 18px;
+            font-size: 20px;
             padding: 0 6px;
             user-select: none;
             line-height: 1;
             display: flex;
             align-items: center;
+            touch-action: none;
         }
-        .drag-handle:active {
-            cursor: grabbing;
+        .drag-handle:hover { color: #888; }
+        tr.drag-source { opacity: 0.3; }
+        tr.drag-placeholder td {
+            background: #e8f0fe !important;
+            border-top: 2px dashed #0066cc !important;
+            padding: 4px 0 !important;
         }
-        tr.dragging {
-            opacity: 0.4;
+        .drag-ghost {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.92;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            border-radius: 4px;
+            background: white;
+            transform: rotate(1.5deg);
+            border: 1px solid #0066cc;
         }
-        tr.drag-over {
-            border-top: 3px solid #0066cc;
+        body.dragging-active {
+            user-select: none;
+            cursor: grabbing !important;
         }
 
         /* Priority select */
@@ -855,7 +869,6 @@
             const tenantLink = `https://app.osaas.io/admin/tenant/${contact.tenantName}`;
             const slackLink = `https://eyevinn.slack.com/archives/${contact.slackChannelId}`;
 
-            row.draggable = true;
             row.dataset.contactId = contact.id;
 
             row.innerHTML = `
@@ -935,59 +948,121 @@
             });
         }
 
-        // Drag-and-drop row reordering (active table only)
-        let dragSrcRow = null;
+        // Drag-and-drop row reordering using Pointer Events (solid, cross-browser, touch-friendly)
+        let dragState = null;
+        let rafId = null;
 
         function initDragAndDrop() {
             const tbody = document.getElementById('active-table-body');
+            // Remove previous listeners by cloning (safe since we re-init after render)
+            tbody.addEventListener('pointerdown', onDragPointerDown);
+        }
 
-            tbody.addEventListener('dragstart', e => {
-                const handle = e.target.closest('.drag-handle');
-                const row = e.target.closest('tr');
-                if (!handle || !row) { e.preventDefault(); return; }
-                dragSrcRow = row;
-                row.classList.add('dragging');
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', row.dataset.contactId);
+        function onDragPointerDown(e) {
+            const handle = e.target.closest('.drag-handle');
+            if (!handle) return;
+            const row = handle.closest('tr');
+            if (!row) return;
+
+            e.preventDefault();
+
+            const tbody = document.getElementById('active-table-body');
+            const rowRect = row.getBoundingClientRect();
+
+            // Create ghost: a table clone to preserve column widths
+            const table = document.createElement('table');
+            table.className = 'drag-ghost';
+            table.style.width = rowRect.width + 'px';
+            table.style.top = rowRect.top + 'px';
+            table.style.left = rowRect.left + 'px';
+            const ghostTbody = document.createElement('tbody');
+            const ghostRow = row.cloneNode(true);
+            // Fix cell widths from live row
+            const liveCells = row.querySelectorAll('td');
+            const ghostCells = ghostRow.querySelectorAll('td');
+            liveCells.forEach((cell, i) => {
+                ghostCells[i].style.width = cell.getBoundingClientRect().width + 'px';
             });
+            ghostTbody.appendChild(ghostRow);
+            table.appendChild(ghostTbody);
+            document.body.appendChild(table);
 
-            tbody.addEventListener('dragend', e => {
-                const row = e.target.closest('tr');
-                if (row) row.classList.remove('dragging');
-                tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
-                dragSrcRow = null;
-            });
+            // Placeholder preserves row height in table
+            const placeholder = document.createElement('tr');
+            placeholder.className = 'drag-placeholder';
+            const placeholderTd = document.createElement('td');
+            placeholderTd.colSpan = 9;
+            placeholderTd.style.height = rowRect.height + 'px';
+            placeholder.appendChild(placeholderTd);
+            row.parentNode.insertBefore(placeholder, row);
 
-            tbody.addEventListener('dragover', e => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                const row = e.target.closest('tr');
-                tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
-                if (row && row !== dragSrcRow) {
-                    row.classList.add('drag-over');
+            row.classList.add('drag-source');
+            document.body.classList.add('dragging-active');
+
+            dragState = {
+                row,
+                tbody,
+                ghost: table,
+                placeholder,
+                startY: e.clientY,
+                offsetY: e.clientY - rowRect.top,
+                latestY: e.clientY,
+            };
+
+            // Capture all pointer events on the handle
+            handle.setPointerCapture(e.pointerId);
+            document.addEventListener('pointermove', onDragPointerMove);
+            document.addEventListener('pointerup', onDragPointerUp);
+        }
+
+        function onDragPointerMove(e) {
+            if (!dragState) return;
+            dragState.latestY = e.clientY;
+            if (!rafId) {
+                rafId = requestAnimationFrame(updateDragFrame);
+            }
+        }
+
+        function updateDragFrame() {
+            rafId = null;
+            if (!dragState) return;
+            const { ghost, placeholder, tbody, row, offsetY, latestY } = dragState;
+
+            // Move ghost
+            ghost.style.top = (latestY - offsetY) + 'px';
+
+            // Snap placeholder to correct insertion point
+            const rows = Array.from(tbody.querySelectorAll('tr:not(.drag-source):not(.drag-placeholder)'));
+            let insertBefore = null;
+            for (const r of rows) {
+                const rect = r.getBoundingClientRect();
+                if (latestY < rect.top + rect.height / 2) {
+                    insertBefore = r;
+                    break;
                 }
-            });
+            }
+            if (insertBefore) {
+                tbody.insertBefore(placeholder, insertBefore);
+            } else {
+                tbody.appendChild(placeholder);
+            }
+        }
 
-            tbody.addEventListener('dragleave', e => {
-                const row = e.target.closest('tr');
-                if (row) row.classList.remove('drag-over');
-            });
+        function onDragPointerUp() {
+            if (!dragState) return;
+            const { row, ghost, placeholder, tbody } = dragState;
 
-            tbody.addEventListener('drop', e => {
-                e.preventDefault();
-                tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
-                const targetRow = e.target.closest('tr');
-                if (!targetRow || !dragSrcRow || targetRow === dragSrcRow) return;
+            // Drop: replace placeholder with the real row
+            placeholder.replaceWith(row);
+            ghost.remove();
+            row.classList.remove('drag-source');
+            document.body.classList.remove('dragging-active');
 
-                // Insert dragSrcRow before or after targetRow based on mouse position
-                const rect = targetRow.getBoundingClientRect();
-                const midY = rect.top + rect.height / 2;
-                if (e.clientY < midY) {
-                    tbody.insertBefore(dragSrcRow, targetRow);
-                } else {
-                    targetRow.after(dragSrcRow);
-                }
-            });
+            document.removeEventListener('pointermove', onDragPointerMove);
+            document.removeEventListener('pointerup', onDragPointerUp);
+
+            if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
+            dragState = null;
         }
 
         // Load note from contact data
