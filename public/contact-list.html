@@ -189,6 +189,45 @@
             margin-left: 8px;
         }
 
+        /* Drag handle */
+        .drag-handle {
+            cursor: grab;
+            color: #bbb;
+            font-size: 18px;
+            padding: 0 6px;
+            user-select: none;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+        }
+        .drag-handle:active {
+            cursor: grabbing;
+        }
+        tr.dragging {
+            opacity: 0.4;
+        }
+        tr.drag-over {
+            border-top: 3px solid #0066cc;
+        }
+
+        /* Priority select */
+        .priority-select {
+            appearance: none;
+            border: none;
+            background: transparent;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: white;
+        }
+        .priority-select.high { background-color: #dc3545; }
+        .priority-select.medium { background-color: #ffc107; color: #333; }
+        .priority-select.low { background-color: #28a745; }
+        .priority-select option { color: #333; background: white; font-weight: normal; }
+
         /* Notes Field */
         .notes-field {
             width: 100%;
@@ -632,6 +671,7 @@
             <table>
                 <thead>
                     <tr>
+                        <th style="width:30px;"></th>
                         <th class="checkbox-cell">✓</th>
                         <th>Priority</th>
                         <th>Name / Organization</th>
@@ -804,6 +844,7 @@
             updateStats();
             updateTabCounts();
             sortActiveTable();
+            initDragAndDrop();
         }
 
         // Create a contact row
@@ -814,12 +855,23 @@
             const tenantLink = `https://app.osaas.io/admin/tenant/${contact.tenantName}`;
             const slackLink = `https://eyevinn.slack.com/archives/${contact.slackChannelId}`;
 
+            row.draggable = true;
+            row.dataset.contactId = contact.id;
+
             row.innerHTML = `
+                <td style="width:30px; padding: 0 4px;">
+                    <span class="drag-handle" title="Drag to reorder">⠿</span>
+                </td>
                 <td class="checkbox-cell">
                     <input type="checkbox" id="${contact.id}" onclick="toggleContact('${contact.id}')">
                 </td>
                 <td data-label="Priority">
-                    <span class="priority-badge ${contact.priority}">${contact.priority.toUpperCase()}</span>
+                    <select class="priority-select ${contact.priority}"
+                            onchange="updatePriority('${contact.id}', this)">
+                        <option value="high" ${contact.priority === 'high' ? 'selected' : ''}>HIGH</option>
+                        <option value="medium" ${contact.priority === 'medium' ? 'selected' : ''}>MEDIUM</option>
+                        <option value="low" ${contact.priority === 'low' ? 'selected' : ''}>LOW</option>
+                    </select>
                     ${contact.isNew ? '<span class="new-badge">NEW</span>' : ''}
                 </td>
                 <td data-label="Name">
@@ -862,6 +914,80 @@
                 const contact = contactsData.contacts.find(c => c.id === contactId);
                 if (contact) contact.notes = value;
             }
+        }
+
+        // Update priority in DB and update row styling
+        async function updatePriority(contactId, selectEl) {
+            const priority = selectEl.value;
+            selectEl.className = `priority-select ${priority}`;
+            const row = selectEl.closest('tr');
+            row.className = `priority-${priority}`;
+
+            if (contactsData) {
+                const contact = contactsData.contacts.find(c => c.id === contactId);
+                if (contact) contact.priority = priority;
+            }
+
+            await fetch(`/api/contacts/${contactId}/priority`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ priority })
+            });
+        }
+
+        // Drag-and-drop row reordering (active table only)
+        let dragSrcRow = null;
+
+        function initDragAndDrop() {
+            const tbody = document.getElementById('active-table-body');
+
+            tbody.addEventListener('dragstart', e => {
+                const handle = e.target.closest('.drag-handle');
+                const row = e.target.closest('tr');
+                if (!handle || !row) { e.preventDefault(); return; }
+                dragSrcRow = row;
+                row.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', row.dataset.contactId);
+            });
+
+            tbody.addEventListener('dragend', e => {
+                const row = e.target.closest('tr');
+                if (row) row.classList.remove('dragging');
+                tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+                dragSrcRow = null;
+            });
+
+            tbody.addEventListener('dragover', e => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                const row = e.target.closest('tr');
+                tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+                if (row && row !== dragSrcRow) {
+                    row.classList.add('drag-over');
+                }
+            });
+
+            tbody.addEventListener('dragleave', e => {
+                const row = e.target.closest('tr');
+                if (row) row.classList.remove('drag-over');
+            });
+
+            tbody.addEventListener('drop', e => {
+                e.preventDefault();
+                tbody.querySelectorAll('tr').forEach(r => r.classList.remove('drag-over'));
+                const targetRow = e.target.closest('tr');
+                if (!targetRow || !dragSrcRow || targetRow === dragSrcRow) return;
+
+                // Insert dragSrcRow before or after targetRow based on mouse position
+                const rect = targetRow.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                if (e.clientY < midY) {
+                    tbody.insertBefore(dragSrcRow, targetRow);
+                } else {
+                    targetRow.after(dragSrcRow);
+                }
+            });
         }
 
         // Load note from contact data

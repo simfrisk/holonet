@@ -250,6 +250,44 @@ app.patch('/api/contacts/:id/notes', async (req, res) => {
     }
 });
 
+// Update contact priority
+app.patch('/api/contacts/:id/priority', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { priority } = req.body;
+
+        if (!['high', 'medium', 'low'].includes(priority)) {
+            return res.status(400).json({ error: 'priority must be high, medium, or low' });
+        }
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Contact not found' });
+        }
+
+        const doc = await getResponse.json();
+        doc.priority = priority;
+        doc.updatedAt = new Date().toISOString();
+
+        const updateResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!updateResponse.ok) {
+            throw new Error('Failed to update priority');
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error updating priority:', error);
+        res.status(500).json({ error: 'Failed to update priority' });
+    }
+});
+
 // Mark contact as contacted (archived)
 app.patch('/api/contacts/:id/contacted', async (req, res) => {
     try {
