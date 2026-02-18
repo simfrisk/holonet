@@ -697,7 +697,10 @@
             </div>
             <div class="modal-footer">
                 <span class="char-count" id="charCount">0 characters</span>
-                <button class="save-button" onclick="saveModalNote()">💾 Save & Close</button>
+                <div style="display: flex; gap: 10px;">
+                    <button onclick="closeNoteModal()" style="background: #6c757d; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">Cancel</button>
+                    <button class="save-button" onclick="saveModalNote()">💾 Save & Close</button>
+                </div>
             </div>
         </div>
     </div>
@@ -847,13 +850,18 @@
             return div.innerHTML;
         }
 
-        // Save note to API
+        // Save note to API and update local data
         async function saveNote(contactId, value) {
             await fetch(`/api/contacts/${contactId}/notes`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ notes: value })
             });
+            // Update local data so loadNote() returns fresh value
+            if (contactsData) {
+                const contact = contactsData.contacts.find(c => c.id === contactId);
+                if (contact) contact.notes = value;
+            }
         }
 
         // Load note from contact data
@@ -915,20 +923,19 @@
             charCount.textContent = `${modalTextarea.value.length} characters`;
         }
 
-        // Close modals when clicking outside
+        // Close only addContactModal when clicking outside (not noteModal)
         window.onclick = function(event) {
-            if (event.target === document.getElementById('noteModal')) {
-                closeNoteModal();
-            }
             if (event.target === document.getElementById('addContactModal')) {
                 closeAddContactModal();
             }
         }
 
-        // Close modal with Escape key
+        // Close addContactModal with Escape key
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
-                closeNoteModal();
+                if (document.getElementById('addContactModal').style.display === 'block') {
+                    closeAddContactModal();
+                }
             }
         });
 
