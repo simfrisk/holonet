@@ -775,13 +775,13 @@
                         <input type="text" id="ac-name" placeholder="John Doe">
                     </div>
                     <div class="form-group">
-                        <label for="ac-email">Email *</label>
+                        <label for="ac-email">Email</label>
                         <input type="email" id="ac-email" placeholder="john@example.com">
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="ac-tenant">Tenant Name *</label>
+                        <label for="ac-tenant">Tenant Name</label>
                         <input type="text" id="ac-tenant" placeholder="acme-corp">
                     </div>
                     <div class="form-group">
@@ -1290,8 +1290,8 @@
             const activitySummary = document.getElementById('ac-activity').value.trim();
             const errorEl = document.getElementById('ac-error');
 
-            if (!name || !email || !tenantName) {
-                errorEl.textContent = 'Name, email, and tenant name are required.';
+            if (!name) {
+                errorEl.textContent = 'Name is required.';
                 errorEl.style.display = 'block';
                 return;
             }

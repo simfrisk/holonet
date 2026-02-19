@@ -366,8 +366,8 @@ app.post('/api/contacts', async (req, res) => {
     try {
         const { name, email, tenantName, priority, activitySummary } = req.body;
 
-        if (!name || !email || !tenantName) {
-            return res.status(400).json({ error: 'name, email, and tenantName are required' });
+        if (!name) {
+            return res.status(400).json({ error: 'name is required' });
         }
 
         const id = `manual-${Date.now()}`;
