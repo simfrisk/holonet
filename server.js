@@ -193,6 +193,14 @@ app.get('/api/contacts', async (req, res) => {
             return { id: _id, ...contact };
         });
 
+        // Sort by sortOrder if present, then by firstSeen descending (newest first)
+        contacts.sort((a, b) => {
+            if (a.sortOrder != null && b.sortOrder != null) return a.sortOrder - b.sortOrder;
+            if (a.sortOrder != null) return -1;
+            if (b.sortOrder != null) return 1;
+            return new Date(b.firstSeen || 0) - new Date(a.firstSeen || 0);
+        });
+
         res.json({
             metadata: metadata ? {
                 totalContacts: contacts.length,
@@ -494,6 +502,44 @@ app.post('/api/sync', verifyApiKey, async (req, res) => {
     } catch (error) {
         console.error('Error syncing contacts:', error);
         res.status(500).json({ error: 'Failed to sync contacts', message: error.message });
+    }
+});
+
+// Bulk reorder contacts
+app.post('/api/contacts/reorder', async (req, res) => {
+    try {
+        const { order } = req.body; // array of { id, sortOrder }
+        if (!Array.isArray(order)) {
+            return res.status(400).json({ error: 'order must be an array' });
+        }
+
+        // Fetch all docs in parallel, update sortOrder, bulk write
+        const docs = await Promise.all(order.map(async ({ id, sortOrder }) => {
+            const docUrl = `${dbUrl}/${id}`;
+            const getResponse = await couchFetch(docUrl);
+            if (!getResponse.ok) return null;
+            const doc = await getResponse.json();
+            doc.sortOrder = sortOrder;
+            doc.updatedAt = new Date().toISOString();
+            return doc;
+        }));
+
+        const validDocs = docs.filter(Boolean);
+        const bulkUrl = `${dbUrl}/_bulk_docs`;
+        const bulkResponse = await couchFetch(bulkUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ docs: validDocs })
+        });
+
+        if (!bulkResponse.ok) {
+            throw new Error('Bulk reorder failed');
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error reordering contacts:', error);
+        res.status(500).json({ error: 'Failed to reorder contacts' });
     }
 });
 

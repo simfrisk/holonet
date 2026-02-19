@@ -857,7 +857,6 @@
             restoreCheckboxStates();
             updateStats();
             updateTabCounts();
-            sortActiveTable();
             initDragAndDrop();
         }
 
@@ -1063,6 +1062,27 @@
 
             if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
             dragState = null;
+
+            // Persist new order to server
+            saveRowOrder(tbody);
+        }
+
+        async function saveRowOrder(tbody) {
+            const rows = Array.from(tbody.querySelectorAll('tr:not(.drag-placeholder)'));
+            const order = rows.map((row, index) => ({
+                id: row.dataset.contactId,
+                sortOrder: index
+            })).filter(item => item.id);
+
+            try {
+                await fetch('/api/contacts/reorder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ order })
+                });
+            } catch (err) {
+                console.error('Failed to save row order:', err);
+            }
         }
 
         // Load note from contact data
@@ -1178,7 +1198,6 @@
             const activeTable = document.getElementById('active-table-body');
             activeTable.appendChild(row);
             row.classList.remove('archived-row');
-            sortActiveTable();
             updateArchivedEmptyState();
         }
 
@@ -1309,14 +1328,16 @@
 
                 const result = await response.json();
 
-                // Add new row directly to the active table without full reload
+                // Add new row to the top of the active table without full reload
                 const contact = result.contact;
                 if (contactsData) {
-                    contactsData.contacts.push(contact);
+                    contactsData.contacts.unshift(contact);
                 }
                 const row = createContactRow(contact);
-                document.getElementById('active-table-body').appendChild(row);
-                sortActiveTable();
+                const tbody = document.getElementById('active-table-body');
+                tbody.insertBefore(row, tbody.firstChild);
+                // Save the new order so the position persists on reload
+                saveRowOrder(tbody);
                 updateStats();
                 updateTabCounts();
 
