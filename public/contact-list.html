@@ -36,6 +36,17 @@
             --color-drag-ghost-border: #0066cc;
             --color-drag-ghost-shadow: rgba(0, 0, 0, 0.18);
             --color-tenant-link-hover-bg: #e6f2ff;
+
+            /* Status colors */
+            --color-status-contacted-bg: #d4edda;
+            --color-status-contacted-text: #155724;
+            --color-status-contacted-border: #c3e6cb;
+            --color-status-later-bg: #fff3cd;
+            --color-status-later-text: #856404;
+            --color-status-later-border: #ffc107;
+            --color-status-skip-bg: #f8d7da;
+            --color-status-skip-text: #721c24;
+            --color-status-skip-border: #f5c6cb;
         }
 
         html[data-theme="dark"] {
@@ -60,6 +71,17 @@
             --color-drag-ghost-border: #58a6ff;
             --color-drag-ghost-shadow: rgba(0, 0, 0, 0.5);
             --color-tenant-link-hover-bg: #1a3a5c;
+
+            /* Status colors dark */
+            --color-status-contacted-bg: #0d3a1a;
+            --color-status-contacted-text: #6fcf97;
+            --color-status-contacted-border: #27ae60;
+            --color-status-later-bg: #3a2a00;
+            --color-status-later-text: #f2c94c;
+            --color-status-later-border: #ffc107;
+            --color-status-skip-bg: #3a0d12;
+            --color-status-skip-text: #eb5757;
+            --color-status-skip-border: #dc3545;
         }
 
         body {
@@ -88,45 +110,54 @@
         }
         .stats {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 12px;
             margin-top: 15px;
         }
         .stat-card {
             background-color: var(--color-surface-elevated);
-            padding: 15px;
+            padding: 12px 15px;
             border-radius: 6px;
             border-left: 4px solid var(--color-primary);
         }
+        .stat-card.stat-contacted { border-left-color: var(--color-success); }
+        .stat-card.stat-later { border-left-color: var(--color-warning); }
+        .stat-card.stat-skip { border-left-color: var(--color-danger); }
         .stat-card strong {
             display: block;
-            font-size: 24px;
+            font-size: 22px;
             color: var(--color-primary);
-            margin-bottom: 5px;
+            margin-bottom: 3px;
         }
+        .stat-card.stat-contacted strong { color: var(--color-success); }
+        .stat-card.stat-later strong { color: #856404; }
+        html[data-theme="dark"] .stat-card.stat-later strong { color: #f2c94c; }
+        .stat-card.stat-skip strong { color: var(--color-danger); }
         .stat-card span {
-            font-size: 14px;
+            font-size: 13px;
             color: var(--color-text-muted);
         }
 
         /* Tab Navigation */
         .tab-nav {
             display: flex;
-            gap: 10px;
+            gap: 4px;
             margin-bottom: 20px;
             border-bottom: 2px solid var(--color-border);
+            flex-wrap: wrap;
         }
         .tab-button {
-            padding: 12px 24px;
+            padding: 10px 20px;
             background: none;
             border: none;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 500;
             color: var(--color-text-muted);
             border-bottom: 3px solid transparent;
             transition: color 0.2s ease, background-color 0.2s ease, border-bottom-color 0.2s ease;
             margin-bottom: -2px;
+            border-radius: 4px 4px 0 0;
         }
         .tab-button:hover {
             color: var(--color-primary);
@@ -136,6 +167,10 @@
             color: var(--color-primary);
             border-bottom-color: var(--color-primary);
         }
+        .tab-button.tab-archived.active { color: var(--color-success); border-bottom-color: var(--color-success); }
+        .tab-button.tab-later.active { color: #856404; border-bottom-color: var(--color-warning); }
+        html[data-theme="dark"] .tab-button.tab-later.active { color: #f2c94c; }
+        .tab-button.tab-skip.active { color: var(--color-danger); border-bottom-color: var(--color-danger); }
         .tab-content {
             display: none;
         }
@@ -180,18 +215,87 @@
             background-color: var(--color-row-low-bg);
             border-left: 4px solid var(--color-success);
         }
-        .archived-row {
-            opacity: 0.7;
+        .archived-row { opacity: 0.75; }
+        .later-row { opacity: 0.85; }
+        .skip-row { opacity: 0.55; }
+
+        /* Status select column */
+        .status-cell {
+            width: 130px;
+            min-width: 120px;
         }
-        .checkbox-cell {
-            text-align: center;
-            width: 60px;
-        }
-        input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
+        .status-select {
+            appearance: none;
+            border: 1px solid var(--color-border);
+            background: var(--color-input-bg);
+            font-size: 12px;
+            font-weight: 600;
             cursor: pointer;
+            padding: 5px 8px;
+            border-radius: 4px;
+            color: var(--color-text);
+            width: 100%;
+            min-width: 110px;
         }
+        .status-select:focus { outline: none; border-color: var(--color-primary); }
+        .status-select option { font-weight: normal; color: #333; background: white; }
+        html[data-theme="dark"] .status-select option { background: var(--color-surface); color: var(--color-text); }
+
+        .status-select.status-contacted {
+            background-color: var(--color-status-contacted-bg);
+            color: var(--color-status-contacted-text);
+            border-color: var(--color-status-contacted-border);
+        }
+        .status-select.status-later {
+            background-color: var(--color-status-later-bg);
+            color: var(--color-status-later-text);
+            border-color: var(--color-status-later-border);
+        }
+        .status-select.status-skip {
+            background-color: var(--color-status-skip-bg);
+            color: var(--color-status-skip-text);
+            border-color: var(--color-status-skip-border);
+        }
+
+        /* Status badges shown below status select */
+        .contacted-badge {
+            display: block;
+            margin-top: 5px;
+            background-color: var(--color-success);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .later-badge {
+            display: block;
+            margin-top: 5px;
+            background-color: var(--color-warning);
+            color: #333;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .skip-badge {
+            display: block;
+            margin-top: 5px;
+            background-color: var(--color-danger);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+        .bot-note {
+            display: block;
+            margin-top: 4px;
+            font-size: 10px;
+            color: var(--color-text-subtle);
+            font-style: italic;
+        }
+
         .activity-summary {
             font-size: 14px;
             color: var(--color-text-muted);
@@ -434,14 +538,8 @@
             min-height: 400px;
         }
         @keyframes slideIn {
-            from {
-                transform: translateY(-50px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
         }
         .modal-header {
             background-color: var(--color-primary);
@@ -452,15 +550,8 @@
             justify-content: space-between;
             align-items: center;
         }
-        .modal-header h2 {
-            margin: 0;
-            font-size: 20px;
-        }
-        .modal-contact-info {
-            font-size: 14px;
-            opacity: 0.9;
-            margin-top: 5px;
-        }
+        .modal-header h2 { margin: 0; font-size: 20px; }
+        .modal-contact-info { font-size: 14px; opacity: 0.9; margin-top: 5px; }
         .close-button {
             background: none;
             border: none;
@@ -477,12 +568,8 @@
             border-radius: 4px;
             transition: background-color 0.2s;
         }
-        .close-button:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-        }
-        .modal-body {
-            padding: 30px;
-        }
+        .close-button:hover { background-color: rgba(255, 255, 255, 0.2); }
+        .modal-body { padding: 30px; }
         .modal-textarea {
             width: 100%;
             min-height: 300px;
@@ -522,17 +609,9 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
-        .save-button:hover {
-            background-color: var(--color-success-hover);
-        }
-        .save-button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-        }
-        .char-count {
-            font-size: 13px;
-            color: var(--color-text-muted);
-        }
+        .save-button:hover { background-color: var(--color-success-hover); }
+        .save-button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .char-count { font-size: 13px; color: var(--color-text-muted); }
 
         /* Empty state */
         .empty-state {
@@ -548,79 +627,30 @@
         }
 
         /* Loading / error state */
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: var(--color-text-muted);
-        }
-        .load-error {
-            color: var(--color-danger);
-            font-weight: 500;
-        }
+        .loading { text-align: center; padding: 40px; color: var(--color-text-muted); }
+        .load-error { color: var(--color-danger); font-weight: 500; }
 
         /* Medium screens - horizontal scroll */
         @media (max-width: 1024px) {
-            .tab-content {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-            }
-            table {
-                min-width: 700px;
-            }
+            .tab-content { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            table { min-width: 700px; }
         }
 
         /* Mobile responsive - card layout */
         @media (max-width: 600px) {
-            body {
-                padding: 10px;
-            }
-            .container {
-                padding: 15px;
-                border-radius: 4px;
-            }
-            h1 {
-                font-size: 20px;
-            }
-            .stats {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
-            }
-            .stat-card {
-                padding: 10px;
-            }
-            .stat-card strong {
-                font-size: 18px;
-            }
-            .tab-button {
-                padding: 10px 14px;
-                font-size: 14px;
-            }
-
-            /* Override the medium-screen scroll, use cards instead */
-            .tab-content {
-                overflow-x: visible;
-            }
-            table {
-                min-width: unset;
-            }
-
-            /* Hide table headers on mobile */
-            table thead {
-                display: none;
-            }
-
-            /* Stack table rows as cards */
-            table, tbody, tr, td {
-                display: block;
-                width: 100%;
-            }
-            /* Keep tab hiding working */
-            .tab-content {
-                display: none;
-            }
-            .tab-content.active {
-                display: block;
-            }
+            body { padding: 10px; }
+            .container { padding: 15px; border-radius: 4px; }
+            h1 { font-size: 20px; }
+            .stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .stat-card { padding: 10px; }
+            .stat-card strong { font-size: 18px; }
+            .tab-button { padding: 8px 12px; font-size: 13px; }
+            .tab-content { overflow-x: visible; }
+            table { min-width: unset; }
+            table thead { display: none; }
+            table, tbody, tr, td { display: block; width: 100%; }
+            .tab-content { display: none; }
+            .tab-content.active { display: block; }
             tr {
                 margin-bottom: 12px;
                 border-radius: 6px;
@@ -631,15 +661,8 @@
             tr.priority-high { border-left: 4px solid var(--color-danger); }
             tr.priority-medium { border-left: 4px solid var(--color-warning); }
             tr.priority-low { border-left: 4px solid var(--color-success); }
-            td {
-                padding: 8px 12px;
-                border-bottom: 1px solid var(--color-surface-elevated);
-                text-align: left;
-            }
-            td:last-child {
-                border-bottom: none;
-            }
-            /* Label each cell with data-label */
+            td { padding: 8px 12px; border-bottom: 1px solid var(--color-surface-elevated); text-align: left; }
+            td:last-child { border-bottom: none; }
             td[data-label]::before {
                 content: attr(data-label);
                 display: block;
@@ -650,62 +673,20 @@
                 letter-spacing: 0.5px;
                 margin-bottom: 3px;
             }
-            .checkbox-cell {
+            .status-cell {
                 width: 100%;
-                text-align: left;
                 background-color: var(--color-surface-elevated);
-                display: flex;
-                align-items: center;
-                gap: 10px;
                 padding: 10px 12px;
             }
-            .checkbox-cell::after {
-                content: 'Mark as contacted';
-                font-size: 13px;
-                color: var(--color-text-muted);
-            }
-            .notes-cell {
-                max-width: 100%;
-            }
-            .expand-button {
-                opacity: 1;
-                position: static;
-                display: block;
-                margin-bottom: 6px;
-                width: 100%;
-                text-align: center;
-                padding: 6px;
-            }
-            .notes-field {
-                min-height: 50px;
-            }
-
-            /* Full-screen modal on mobile */
-            .modal-content {
-                margin: 0;
-                width: 100%;
-                height: 100%;
-                border-radius: 0;
-                min-height: 100vh;
-                display: flex;
-                flex-direction: column;
-            }
-            .modal-body {
-                flex: 1;
-                padding: 15px;
-            }
-            .modal-textarea {
-                min-height: 200px;
-                height: calc(100vh - 220px);
-            }
-            .modal-header {
-                padding: 15px;
-                border-radius: 0;
-            }
-            .modal-footer {
-                padding: 12px 15px;
-                border-radius: 0;
-            }
+            .status-select { width: auto; min-width: 140px; }
+            .notes-cell { max-width: 100%; }
+            .expand-button { opacity: 1; position: static; display: block; margin-bottom: 6px; width: 100%; text-align: center; padding: 6px; }
+            .notes-field { min-height: 50px; }
+            .modal-content { margin: 0; width: 100%; height: 100%; border-radius: 0; min-height: 100vh; display: flex; flex-direction: column; }
+            .modal-body { flex: 1; padding: 15px; }
+            .modal-textarea { min-height: 200px; height: calc(100vh - 220px); }
+            .modal-header { padding: 15px; border-radius: 0; }
+            .modal-footer { padding: 12px 15px; border-radius: 0; }
         }
 
         /* Add Contact Button */
@@ -720,14 +701,10 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
-        .add-contact-btn:hover {
-            background-color: var(--color-primary-hover);
-        }
+        .add-contact-btn:hover { background-color: var(--color-primary-hover); }
 
         /* Add Contact Modal Form */
-        .form-group {
-            margin-bottom: 16px;
-        }
+        .form-group { margin-bottom: 16px; }
         .form-group label {
             display: block;
             font-size: 13px;
@@ -755,14 +732,8 @@
             border-color: var(--color-primary);
             box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
         }
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-        @media (max-width: 600px) {
-            .form-row { grid-template-columns: 1fr; }
-        }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -782,11 +753,19 @@
                 </div>
                 <div class="stat-card">
                     <strong id="stat-pending">0</strong>
-                    <span>Pending Outreach</span>
+                    <span>Active</span>
                 </div>
-                <div class="stat-card">
+                <div class="stat-card stat-contacted">
                     <strong id="stat-contacted">0</strong>
-                    <span>Archived</span>
+                    <span>Contacted</span>
+                </div>
+                <div class="stat-card stat-later">
+                    <strong id="stat-later">0</strong>
+                    <span>Later</span>
+                </div>
+                <div class="stat-card stat-skip">
+                    <strong id="stat-skip">0</strong>
+                    <span>Skipped</span>
                 </div>
                 <div class="stat-card">
                     <strong id="stat-last-check">Loading...</strong>
@@ -800,8 +779,14 @@
             <button class="tab-button active" data-tab="active" onclick="switchTab('active')">
                 Active (<span id="active-count">0</span>)
             </button>
-            <button class="tab-button" data-tab="archived" onclick="switchTab('archived')">
-                Archived (<span id="archived-count">0</span>)
+            <button class="tab-button tab-archived" data-tab="archived" onclick="switchTab('archived')">
+                Contacted (<span id="archived-count">0</span>)
+            </button>
+            <button class="tab-button tab-later" data-tab="later" onclick="switchTab('later')">
+                Later (<span id="later-count">0</span>)
+            </button>
+            <button class="tab-button tab-skip" data-tab="skip" onclick="switchTab('skip')">
+                Skip (<span id="skip-count">0</span>)
             </button>
         </div>
 
@@ -816,7 +801,7 @@
                 <thead>
                     <tr>
                         <th style="width:30px;"></th>
-                        <th class="checkbox-cell">Done</th>
+                        <th class="status-cell">Status</th>
                         <th>Priority</th>
                         <th>Name / Organization</th>
                         <th>Email</th>
@@ -826,29 +811,25 @@
                         <th>Links</th>
                     </tr>
                 </thead>
-                <tbody id="active-table-body">
-                    <!-- Contacts loaded dynamically -->
-                </tbody>
+                <tbody id="active-table-body"></tbody>
             </table>
-
-            <!-- Empty state for active tab -->
             <div class="empty-state" style="display: none;" id="active-empty">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                           d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                 </svg>
                 <h3>All caught up!</h3>
-                <p>No active contacts. Add a new contact manually or wait for the next Slack sync.</p>
+                <p>No active contacts. Add one manually or wait for the next Slack sync.</p>
             </div>
         </div>
 
-        <!-- Archived Contacts Tab -->
+        <!-- Contacted / Archived Tab -->
         <div id="archived-tab" class="tab-content">
             <table>
                 <thead>
                     <tr>
                         <th style="width:30px;"></th>
-                        <th class="checkbox-cell">Done</th>
+                        <th class="status-cell">Status</th>
                         <th>Priority</th>
                         <th>Name / Organization</th>
                         <th>Email</th>
@@ -858,19 +839,75 @@
                         <th>Links</th>
                     </tr>
                 </thead>
-                <tbody id="archived-table-body">
-                    <!-- Archived contacts appear here automatically -->
-                </tbody>
+                <tbody id="archived-table-body"></tbody>
             </table>
-
-            <!-- Empty state for archived tab -->
             <div class="empty-state" style="display: none;" id="archived-empty">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path>
+                          d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                 </svg>
-                <h3>No Archived Contacts</h3>
-                <p>Check off contacts in the Active tab to move them here.</p>
+                <h3>No Contacted Leads</h3>
+                <p>Set a contact's status to "Contacted" in the Active tab to move it here.</p>
+            </div>
+        </div>
+
+        <!-- Later Tab -->
+        <div id="later-tab" class="tab-content">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:30px;"></th>
+                        <th class="status-cell">Status</th>
+                        <th>Priority</th>
+                        <th>Name / Organization</th>
+                        <th>Email</th>
+                        <th>Activity Summary</th>
+                        <th>Notes</th>
+                        <th>First Seen</th>
+                        <th>Links</th>
+                    </tr>
+                </thead>
+                <tbody id="later-table-body"></tbody>
+            </table>
+            <div class="empty-state" style="display: none;" id="later-empty">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h3>Nothing Saved for Later</h3>
+                <p>Set a contact's status to "Later" to revisit it when the time is right. The Slack bot will move them back to Active if new activity is detected.</p>
+            </div>
+        </div>
+
+        <!-- Skip Tab -->
+        <div id="skip-tab" class="tab-content">
+            <p style="color: var(--color-text-muted); font-size: 14px; margin-bottom: 0; padding: 10px 0;">
+                <strong>Note:</strong> Contacts here will never be automatically moved back to Active by the Slack bot, even if new activity is detected.
+                You can still manually change the status below.
+            </p>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:30px;"></th>
+                        <th class="status-cell">Status</th>
+                        <th>Priority</th>
+                        <th>Name / Organization</th>
+                        <th>Email</th>
+                        <th>Activity Summary</th>
+                        <th>Notes</th>
+                        <th>First Seen</th>
+                        <th>Links</th>
+                    </tr>
+                </thead>
+                <tbody id="skip-table-body"></tbody>
+            </table>
+            <div class="empty-state" style="display: none;" id="skip-empty">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+                </svg>
+                <h3>No Skipped Contacts</h3>
+                <p>Contacts marked as Skip will permanently stay here — the Slack bot won't reactivate them.</p>
             </div>
         </div>
     </div>
@@ -988,9 +1025,7 @@
         async function loadContacts() {
             try {
                 const response = await fetch('/api/contacts');
-                if (!response.ok) {
-                    throw new Error('Failed to load contacts data');
-                }
+                if (!response.ok) throw new Error('Failed to load contacts data');
                 contactsData = await response.json();
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('active-tab').classList.add('active');
@@ -1000,46 +1035,66 @@
                 document.getElementById('loading').innerHTML =
                     '<p class="load-error">Failed to load contacts. Check that the server is running and try refreshing.</p>';
                 document.getElementById('stat-last-check').textContent = '—';
-                // Still show the active tab so the UI is usable
                 document.getElementById('active-tab').classList.add('active');
                 document.getElementById('active-empty').style.display = 'block';
             }
         }
 
+        function formatDateShort(isoString) {
+            if (!isoString) return '';
+            const d = new Date(isoString);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
         function renderContacts() {
             const { metadata, contacts } = contactsData;
 
-            document.getElementById('stat-total').textContent = metadata.totalContacts;
-
-            // Format last check date (local time)
+            // Last check date
             const lastCheckDate = new Date(metadata.lastCheckDate);
-            const formattedDate = lastCheckDate.toLocaleString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
+            document.getElementById('stat-last-check').textContent = lastCheckDate.toLocaleString('en-US', {
+                month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
             });
-            document.getElementById('stat-last-check').textContent = formattedDate;
 
             const activeTableBody = document.getElementById('active-table-body');
             activeTableBody.innerHTML = '';
 
+            // Render all contacts into active table initially
             contacts.forEach(contact => {
                 const row = createContactRow(contact);
                 activeTableBody.appendChild(row);
             });
 
-            restoreCheckboxStates();
+            // Move contacts to correct tabs based on status
+            applyContactStatuses();
+
             updateStats();
             updateTabCounts();
-            updateActiveEmptyState();
+            updateAllEmptyStates();
             initDragAndDrop();
+        }
+
+        function getStatusClass(status) {
+            if (!status) return '';
+            return `status-${status}`;
+        }
+
+        function createStatusBadge(contact) {
+            if (contact.status === 'contacted' && contact.contactedAt) {
+                return `<span class="contacted-badge">Contacted ${formatDateShort(contact.contactedAt)}</span>`;
+            }
+            if (contact.status === 'later') {
+                return `<span class="later-badge">⏱ Saved for later</span><span class="bot-note">Slack bot may reactivate</span>`;
+            }
+            if (contact.status === 'skip') {
+                return `<span class="skip-badge">✗ Skipped</span><span class="bot-note">Slack bot won't reactivate</span>`;
+            }
+            return '';
         }
 
         function createContactRow(contact) {
             const row = document.createElement('tr');
             row.className = `priority-${contact.priority}`;
+            row.dataset.contactId = contact.id;
 
             const tenantLink = `https://app.osaas.io/admin/tenant/${contact.tenantName}`;
             const grafanaLink = `https://ops-ui.osaas.io/d/45a4f896-1072-4957-ad18-9b4f0c1e77ef/tenant?orgId=1&from=now-24h&to=now&timezone=browser&var-tenant=${encodeURIComponent(contact.tenantName || '')}&refresh=5m`;
@@ -1047,14 +1102,23 @@
                 ? `https://eyevinn.slack.com/archives/${contact.slackChannelId}`
                 : null;
 
-            row.dataset.contactId = contact.id;
+            const statusClass = getStatusClass(contact.status);
+            const statusBadge = createStatusBadge(contact);
 
             row.innerHTML = `
                 <td style="width:30px; padding: 0 4px;">
                     <span class="drag-handle" title="Drag to reorder">⠿</span>
                 </td>
-                <td class="checkbox-cell">
-                    <input type="checkbox" id="${contact.id}" onclick="toggleContact('${contact.id}')">
+                <td class="status-cell" data-label="Status">
+                    <select class="status-select ${statusClass}"
+                            onchange="updateStatus('${contact.id}', this)"
+                            data-contact-id="${contact.id}">
+                        <option value="" ${!contact.status ? 'selected' : ''}>— Active —</option>
+                        <option value="contacted" ${contact.status === 'contacted' ? 'selected' : ''}>✓ Contacted</option>
+                        <option value="later" ${contact.status === 'later' ? 'selected' : ''}>⏱ Later</option>
+                        <option value="skip" ${contact.status === 'skip' ? 'selected' : ''}>✗ Skip</option>
+                    </select>
+                    <span id="status-badge-${contact.id}">${statusBadge}</span>
                 </td>
                 <td data-label="Priority">
                     <select class="priority-select ${contact.priority}"
@@ -1067,12 +1131,13 @@
                 </td>
                 <td data-label="Name">
                     <strong>${escapeHtml(contact.name)}</strong><br>
+                    ${contact.organization ? `<span style="font-size:12px;color:var(--color-text-muted)">${escapeHtml(contact.organization)}</span><br>` : ''}
                     <span class="tenant-name">Tenant: <a href="${tenantLink}" target="_blank" class="tenant-link">${escapeHtml(contact.tenantName || '—')}</a></span>
                 </td>
                 <td data-label="Email">${escapeHtml(contact.email || '—')}</td>
-                <td data-label="Activity" class="activity-summary">${escapeHtml(contact.activitySummary || '')}</td>
+                <td data-label="Activity" class="activity-summary">${contact.activitySummary || ''}</td>
                 <td data-label="Notes" class="notes-cell">
-                    <button class="expand-button" onclick="openNoteModal('${contact.id}', '${escapeHtml(contact.name)}', '${escapeHtml(contact.email || '')}')" title="Expand note editor">Expand</button>
+                    <button class="expand-button" onclick="openNoteModal('${contact.id}', '${escapeAttr(contact.name)}', '${escapeAttr(contact.email || '')}')" title="Expand note editor">Expand</button>
                     <span class="note-save-status" id="note-status-${contact.id}"></span>
                     <textarea class="notes-field" id="note-${contact.id}"
                               placeholder="Add notes here..."
@@ -1095,6 +1160,12 @@
             const div = document.createElement('div');
             div.textContent = String(text);
             return div.innerHTML;
+        }
+
+        // Escape for use inside HTML attribute values (single-quoted JS strings in onclick etc.)
+        function escapeAttr(text) {
+            if (text == null) return '';
+            return String(text).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
         }
 
         // Save note to API with visual feedback
@@ -1133,7 +1204,7 @@
             const priority = selectEl.value;
             selectEl.className = `priority-select ${priority}`;
             const row = selectEl.closest('tr');
-            row.className = `priority-${priority}`;
+            row.className = row.className.replace(/priority-\w+/, `priority-${priority}`);
 
             if (contactsData) {
                 const contact = contactsData.contacts.find(c => c.id === contactId);
@@ -1147,7 +1218,182 @@
             });
         }
 
-        // Drag-and-drop row reordering using Pointer Events
+        // =========================================
+        // STATUS MANAGEMENT
+        // =========================================
+
+        async function updateStatus(contactId, selectEl) {
+            const status = selectEl.value || null; // empty string -> null (Active)
+            const row = selectEl.closest('tr');
+
+            // Update select styling
+            selectEl.className = `status-select ${status ? 'status-' + status : ''}`;
+
+            // Update in-memory data
+            let contactedAt = null;
+            if (contactsData) {
+                const contact = contactsData.contacts.find(c => c.id === contactId);
+                if (contact) {
+                    contact.status = status;
+                    if (status === 'contacted' && !contact.contactedAt) {
+                        contact.contactedAt = new Date().toISOString();
+                    }
+                    contactedAt = contact.contactedAt || null;
+                }
+            }
+
+            // Save to API
+            try {
+                const response = await fetch(`/api/contacts/${contactId}/status`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+                if (response.ok) {
+                    const result = await response.json();
+                    contactedAt = result.contactedAt || contactedAt;
+                    // Update in-memory contactedAt from server response
+                    if (contactsData && result.contactedAt) {
+                        const contact = contactsData.contacts.find(c => c.id === contactId);
+                        if (contact) contact.contactedAt = result.contactedAt;
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to save status:', err);
+            }
+
+            // Update badge
+            const badgeEl = document.getElementById(`status-badge-${contactId}`);
+            if (badgeEl) {
+                if (status === 'contacted' && contactedAt) {
+                    badgeEl.innerHTML = `<span class="contacted-badge">Contacted ${formatDateShort(contactedAt)}</span>`;
+                } else if (status === 'later') {
+                    badgeEl.innerHTML = `<span class="later-badge">⏱ Saved for later</span><span class="bot-note">Slack bot may reactivate</span>`;
+                } else if (status === 'skip') {
+                    badgeEl.innerHTML = `<span class="skip-badge">✗ Skipped</span><span class="bot-note">Slack bot won't reactivate</span>`;
+                } else {
+                    badgeEl.innerHTML = '';
+                }
+            }
+
+            // Move row to correct tab
+            if (!status) {
+                moveToActive(row);
+            } else if (status === 'contacted') {
+                moveToArchive(row);
+            } else if (status === 'later') {
+                moveToLater(row);
+            } else if (status === 'skip') {
+                moveToSkip(row);
+            }
+
+            updateStats();
+            updateTabCounts();
+        }
+
+        function moveToActive(row) {
+            row.classList.remove('archived-row', 'later-row', 'skip-row');
+            document.getElementById('active-table-body').appendChild(row);
+            updateAllEmptyStates();
+        }
+
+        function moveToArchive(row) {
+            row.classList.remove('later-row', 'skip-row');
+            row.classList.add('archived-row');
+            document.getElementById('archived-table-body').appendChild(row);
+            updateAllEmptyStates();
+        }
+
+        function moveToLater(row) {
+            row.classList.remove('archived-row', 'skip-row');
+            row.classList.add('later-row');
+            document.getElementById('later-table-body').appendChild(row);
+            updateAllEmptyStates();
+        }
+
+        function moveToSkip(row) {
+            row.classList.remove('archived-row', 'later-row');
+            row.classList.add('skip-row');
+            document.getElementById('skip-table-body').appendChild(row);
+            updateAllEmptyStates();
+        }
+
+        function applyContactStatuses() {
+            if (!contactsData) return;
+
+            contactsData.contacts.forEach(contact => {
+                const row = document.querySelector(`[data-contact-id="${contact.id}"]`);
+                if (!row) return;
+
+                // Move to correct tab
+                if (contact.status === 'contacted') {
+                    moveToArchive(row);
+                } else if (contact.status === 'later') {
+                    moveToLater(row);
+                } else if (contact.status === 'skip') {
+                    moveToSkip(row);
+                }
+                // null status stays in active (already there)
+
+                // Restore notes
+                const noteField = document.querySelector(`#note-${contact.id}`);
+                if (noteField && contact.notes) {
+                    noteField.value = contact.notes;
+                }
+            });
+        }
+
+        function updateStats() {
+            const total = document.querySelectorAll('[data-contact-id]').length;
+            const active = document.getElementById('active-table-body').children.length;
+            const contacted = document.getElementById('archived-table-body').children.length;
+            const later = document.getElementById('later-table-body').children.length;
+            const skip = document.getElementById('skip-table-body').children.length;
+
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-pending').textContent = active;
+            document.getElementById('stat-contacted').textContent = contacted;
+            document.getElementById('stat-later').textContent = later;
+            document.getElementById('stat-skip').textContent = skip;
+        }
+
+        function updateTabCounts() {
+            document.getElementById('active-count').textContent =
+                document.getElementById('active-table-body').children.length;
+            document.getElementById('archived-count').textContent =
+                document.getElementById('archived-table-body').children.length;
+            document.getElementById('later-count').textContent =
+                document.getElementById('later-table-body').children.length;
+            document.getElementById('skip-count').textContent =
+                document.getElementById('skip-table-body').children.length;
+        }
+
+        function updateAllEmptyStates() {
+            const tabs = ['active', 'archived', 'later', 'skip'];
+            tabs.forEach(tab => {
+                const body = document.getElementById(`${tab}-table-body`);
+                const empty = document.getElementById(`${tab}-empty`);
+                if (!body || !empty) return;
+                if (body.children.length === 0) {
+                    body.style.display = 'none';
+                    empty.style.display = 'block';
+                } else {
+                    body.style.display = '';
+                    empty.style.display = 'none';
+                }
+            });
+        }
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        // =========================================
+        // DRAG AND DROP
+        // =========================================
         let dragState = null;
         let rafId = null;
 
@@ -1195,13 +1441,8 @@
             document.body.classList.add('dragging-active');
 
             dragState = {
-                row,
-                tbody,
-                ghost: table,
-                placeholder,
-                startY: e.clientY,
-                offsetY: e.clientY - rowRect.top,
-                latestY: e.clientY,
+                row, tbody, ghost: table, placeholder,
+                startY: e.clientY, offsetY: e.clientY - rowRect.top, latestY: e.clientY,
             };
 
             handle.setPointerCapture(e.pointerId);
@@ -1212,49 +1453,35 @@
         function onDragPointerMove(e) {
             if (!dragState) return;
             dragState.latestY = e.clientY;
-            if (!rafId) {
-                rafId = requestAnimationFrame(updateDragFrame);
-            }
+            if (!rafId) rafId = requestAnimationFrame(updateDragFrame);
         }
 
         function updateDragFrame() {
             rafId = null;
             if (!dragState) return;
-            const { ghost, placeholder, tbody, row, offsetY, latestY } = dragState;
-
+            const { ghost, placeholder, tbody, offsetY, latestY } = dragState;
             ghost.style.top = (latestY - offsetY) + 'px';
-
             const rows = Array.from(tbody.querySelectorAll('tr:not(.drag-source):not(.drag-placeholder)'));
             let insertBefore = null;
             for (const r of rows) {
                 const rect = r.getBoundingClientRect();
-                if (latestY < rect.top + rect.height / 2) {
-                    insertBefore = r;
-                    break;
-                }
+                if (latestY < rect.top + rect.height / 2) { insertBefore = r; break; }
             }
-            if (insertBefore) {
-                tbody.insertBefore(placeholder, insertBefore);
-            } else {
-                tbody.appendChild(placeholder);
-            }
+            if (insertBefore) tbody.insertBefore(placeholder, insertBefore);
+            else tbody.appendChild(placeholder);
         }
 
         function onDragPointerUp() {
             if (!dragState) return;
             const { row, ghost, placeholder, tbody } = dragState;
-
             placeholder.replaceWith(row);
             ghost.remove();
             row.classList.remove('drag-source');
             document.body.classList.remove('dragging-active');
-
             document.removeEventListener('pointermove', onDragPointerMove);
             document.removeEventListener('pointerup', onDragPointerUp);
-
             if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
             dragState = null;
-
             saveRowOrder(tbody);
         }
 
@@ -1276,12 +1503,6 @@
             }
         }
 
-        function loadNote(contactId) {
-            if (!contactsData) return '';
-            const contact = contactsData.contacts.find(c => c.id === contactId);
-            return contact ? (contact.notes || '') : '';
-        }
-
         // =========================================
         // NOTE MODAL
         // =========================================
@@ -1289,16 +1510,12 @@
 
         function openNoteModal(contactId, contactName, contactEmail) {
             currentContactId = contactId;
-
-            const modal = document.getElementById('noteModal');
-            const modalTextarea = document.getElementById('modalNoteTextarea');
-
             document.getElementById('modalContactName').textContent = contactName;
             document.getElementById('modalContactInfo').textContent = contactEmail;
-
-            modalTextarea.value = loadNote(contactId);
-            modal.style.display = 'block';
-            modalTextarea.focus();
+            const noteField = document.getElementById(`note-${contactId}`);
+            document.getElementById('modalNoteTextarea').value = noteField ? noteField.value : '';
+            document.getElementById('noteModal').style.display = 'block';
+            document.getElementById('modalNoteTextarea').focus();
             updateCharCount();
         }
 
@@ -1316,12 +1533,8 @@
 
             try {
                 await saveNote(currentContactId, value);
-
                 const inlineTextarea = document.getElementById(`note-${currentContactId}`);
-                if (inlineTextarea) {
-                    inlineTextarea.value = value;
-                }
-
+                if (inlineTextarea) inlineTextarea.value = value;
                 closeNoteModal();
             } finally {
                 saveBtn.disabled = false;
@@ -1340,19 +1553,16 @@
 
         function openAddContactModal() {
             editingContactId = null;
-
             document.getElementById('ac-name').value = '';
             document.getElementById('ac-email').value = '';
             document.getElementById('ac-tenant').value = '';
             document.getElementById('ac-priority').value = 'medium';
             document.getElementById('ac-activity').value = '';
             document.getElementById('ac-notes').value = '';
-
             document.getElementById('addContactModalTitle').textContent = 'Add Contact Manually';
             const submitBtn = document.getElementById('addContactSubmitBtn');
             submitBtn.textContent = 'Add Contact';
             submitBtn.disabled = false;
-
             document.getElementById('ac-error').style.display = 'none';
             document.getElementById('addContactModal').style.display = 'block';
             document.getElementById('ac-name').focus();
@@ -1361,21 +1571,17 @@
         function openEditModal(contactId) {
             const contact = contactsData && contactsData.contacts.find(c => c.id === contactId);
             if (!contact) return;
-
             editingContactId = contactId;
-
             document.getElementById('ac-name').value = contact.name || '';
             document.getElementById('ac-email').value = contact.email || '';
             document.getElementById('ac-tenant').value = contact.tenantName || '';
             document.getElementById('ac-priority').value = contact.priority || 'medium';
             document.getElementById('ac-activity').value = contact.activitySummary || '';
             document.getElementById('ac-notes').value = contact.notes || '';
-
             document.getElementById('addContactModalTitle').textContent = 'Edit Contact';
             const submitBtn = document.getElementById('addContactSubmitBtn');
             submitBtn.textContent = 'Save Changes';
             submitBtn.disabled = false;
-
             document.getElementById('ac-error').style.display = 'none';
             document.getElementById('addContactModal').style.display = 'block';
             document.getElementById('ac-name').focus();
@@ -1413,18 +1619,13 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ name, email, tenantName, priority, activitySummary, notes })
                     });
-
                     if (!response.ok) throw new Error('Failed to update contact');
 
                     if (contactsData) {
                         const contact = contactsData.contacts.find(c => c.id === editingContactId);
                         if (contact) {
-                            contact.name = name;
-                            contact.email = email;
-                            contact.tenantName = tenantName;
-                            contact.priority = priority;
-                            contact.activitySummary = activitySummary;
-                            contact.notes = notes;
+                            contact.name = name; contact.email = email; contact.tenantName = tenantName;
+                            contact.priority = priority; contact.activitySummary = activitySummary; contact.notes = notes;
                         }
                     }
 
@@ -1432,18 +1633,14 @@
                     if (existingRow) {
                         const updatedContact = contactsData.contacts.find(c => c.id === editingContactId);
                         const newRow = createContactRow(updatedContact);
-                        if (existingRow.classList.contains('archived-row')) {
-                            newRow.classList.add('archived-row');
-                        }
+                        // Preserve tab-specific classes
+                        if (existingRow.classList.contains('archived-row')) newRow.classList.add('archived-row');
+                        if (existingRow.classList.contains('later-row')) newRow.classList.add('later-row');
+                        if (existingRow.classList.contains('skip-row')) newRow.classList.add('skip-row');
                         existingRow.replaceWith(newRow);
                         const noteField = document.getElementById(`note-${editingContactId}`);
                         if (noteField) noteField.value = notes;
-                        const checkbox = document.getElementById(editingContactId);
-                        if (checkbox && existingRow.classList.contains('archived-row')) {
-                            checkbox.checked = true;
-                        }
                     }
-
                     closeAddContactModal();
                 } catch (err) {
                     errorEl.textContent = 'Error updating contact. Please try again.';
@@ -1458,15 +1655,11 @@
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ name, email, tenantName, priority, activitySummary })
                     });
-
                     if (!response.ok) throw new Error('Failed to create contact');
-
                     const result = await response.json();
                     const contact = result.contact;
 
-                    if (contactsData) {
-                        contactsData.contacts.unshift(contact);
-                    }
+                    if (contactsData) contactsData.contacts.unshift(contact);
                     const row = createContactRow(contact);
                     const tbody = document.getElementById('active-table-body');
                     tbody.insertBefore(row, tbody.firstChild);
@@ -1480,8 +1673,7 @@
                     saveRowOrder(tbody);
                     updateStats();
                     updateTabCounts();
-                    updateActiveEmptyState();
-
+                    updateAllEmptyStates();
                     closeAddContactModal();
                 } catch (err) {
                     errorEl.textContent = 'Error saving contact. Please try again.';
@@ -1493,131 +1685,17 @@
         }
 
         // =========================================
-        // CONTACT MANAGEMENT
-        // =========================================
-
-        async function toggleContact(contactId) {
-            const checkbox = document.getElementById(contactId);
-            const row = checkbox.closest('tr');
-
-            if (checkbox.checked) {
-                await fetch(`/api/contacts/${contactId}/contacted`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contacted: true })
-                });
-                moveToArchive(row);
-            } else {
-                await fetch(`/api/contacts/${contactId}/contacted`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contacted: false })
-                });
-                moveToActive(row);
-            }
-
-            updateStats();
-            updateTabCounts();
-        }
-
-        function moveToArchive(row) {
-            document.getElementById('archived-table-body').appendChild(row);
-            row.classList.add('archived-row');
-            updateArchivedEmptyState();
-            updateActiveEmptyState();
-        }
-
-        function moveToActive(row) {
-            document.getElementById('active-table-body').appendChild(row);
-            row.classList.remove('archived-row');
-            updateArchivedEmptyState();
-            updateActiveEmptyState();
-        }
-
-        function updateStats() {
-            const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
-            const total = allCheckboxes.length;
-            const contacted = Array.from(allCheckboxes).filter(cb => cb.checked).length;
-            const pending = total - contacted;
-
-            document.getElementById('stat-total').textContent = total;
-            document.getElementById('stat-pending').textContent = pending;
-            document.getElementById('stat-contacted').textContent = contacted;
-        }
-
-        function updateTabCounts() {
-            document.getElementById('active-count').textContent =
-                document.getElementById('active-table-body').children.length;
-            document.getElementById('archived-count').textContent =
-                document.getElementById('archived-table-body').children.length;
-        }
-
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById(`${tabName}-tab`).classList.add('active');
-        }
-
-        function updateArchivedEmptyState() {
-            const archivedBody = document.getElementById('archived-table-body');
-            const emptyState = document.getElementById('archived-empty');
-            if (archivedBody.children.length === 0) {
-                archivedBody.style.display = 'none';
-                emptyState.style.display = 'block';
-            } else {
-                archivedBody.style.display = '';
-                emptyState.style.display = 'none';
-            }
-        }
-
-        function updateActiveEmptyState() {
-            const activeBody = document.getElementById('active-table-body');
-            const emptyState = document.getElementById('active-empty');
-            emptyState.style.display = activeBody.children.length === 0 ? 'block' : 'none';
-        }
-
-        function restoreCheckboxStates() {
-            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-                const contactId = checkbox.id;
-                const contact = contactsData.contacts.find(c => c.id === contactId);
-                if (!contact) return;
-
-                if (contact.contacted) {
-                    checkbox.checked = true;
-                    moveToArchive(checkbox.closest('tr'));
-                }
-
-                const noteField = document.querySelector(`#note-${contactId}`);
-                if (noteField && contact.notes) {
-                    noteField.value = contact.notes;
-                }
-            });
-        }
-
-        // =========================================
         // EVENT LISTENERS
         // =========================================
-
-        // Close modals when clicking outside
         window.onclick = function(event) {
-            if (event.target === document.getElementById('addContactModal')) {
-                closeAddContactModal();
-            }
-            if (event.target === document.getElementById('noteModal')) {
-                closeNoteModal();
-            }
+            if (event.target === document.getElementById('addContactModal')) closeAddContactModal();
+            if (event.target === document.getElementById('noteModal')) closeNoteModal();
         };
 
-        // Escape key closes modals
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
-                if (document.getElementById('addContactModal').style.display === 'block') {
-                    closeAddContactModal();
-                }
-                if (document.getElementById('noteModal').style.display === 'block') {
-                    closeNoteModal();
-                }
+                if (document.getElementById('addContactModal').style.display === 'block') closeAddContactModal();
+                if (document.getElementById('noteModal').style.display === 'block') closeNoteModal();
             }
         });
 

@@ -14,6 +14,9 @@ if (!COUCHDB_URL) {
 const DB_NAME = 'osc_contacts';
 const API_KEY = process.env.API_KEY || ''; // Optional API key for sync endpoint
 
+// Valid contact statuses
+const VALID_STATUSES = [null, 'contacted', 'later', 'skip'];
+
 // Parse CouchDB credentials from URL
 function parseCouchDBUrl(urlString) {
     try {
@@ -201,17 +204,20 @@ app.get('/api/contacts', async (req, res) => {
             return new Date(b.firstSeen || 0) - new Date(a.firstSeen || 0);
         });
 
+        // Calculate live stats from actual contact statuses
+        const activeCount = contacts.filter(c => !c.status).length;
+        const contactedCount = contacts.filter(c => c.status === 'contacted').length;
+        const laterCount = contacts.filter(c => c.status === 'later').length;
+        const skipCount = contacts.filter(c => c.status === 'skip').length;
+
         res.json({
-            metadata: metadata ? {
+            metadata: {
                 totalContacts: contacts.length,
-                contacted: metadata.contacted || 0,
-                pendingOutreach: metadata.pendingOutreach || contacts.length,
-                lastCheckDate: metadata.lastCheckDate || new Date().toISOString()
-            } : {
-                totalContacts: contacts.length,
-                contacted: 0,
-                pendingOutreach: contacts.length,
-                lastCheckDate: new Date().toISOString()
+                pendingOutreach: activeCount,
+                contacted: contactedCount,
+                later: laterCount,
+                skip: skipCount,
+                lastCheckDate: (metadata && metadata.lastCheckDate) || new Date().toISOString()
             },
             contacts
         });
@@ -296,6 +302,91 @@ app.patch('/api/contacts/:id/priority', async (req, res) => {
     }
 });
 
+// Update contact status (null=active, 'contacted', 'later', 'skip')
+app.patch('/api/contacts/:id/status', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!VALID_STATUSES.includes(status)) {
+            return res.status(400).json({ error: 'status must be null, contacted, later, or skip' });
+        }
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Contact not found' });
+        }
+
+        const doc = await getResponse.json();
+
+        doc.status = status;
+
+        // Record when first contacted (keep timestamp for history, don't reset it)
+        if (status === 'contacted' && !doc.contactedAt) {
+            doc.contactedAt = new Date().toISOString();
+        }
+
+        doc.updatedAt = new Date().toISOString();
+
+        const updateResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!updateResponse.ok) {
+            throw new Error('Failed to update status');
+        }
+
+        res.json({ success: true, status, contactedAt: doc.contactedAt || null });
+    } catch (error) {
+        console.error('Error updating status:', error);
+        res.status(500).json({ error: 'Failed to update status' });
+    }
+});
+
+// Legacy endpoint: kept for backward compatibility, maps to /status
+app.patch('/api/contacts/:id/contacted', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { contacted } = req.body;
+
+        // Map old boolean API to new status
+        const status = contacted ? 'contacted' : null;
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Contact not found' });
+        }
+
+        const doc = await getResponse.json();
+        doc.status = status;
+        if (status === 'contacted' && !doc.contactedAt) {
+            doc.contactedAt = new Date().toISOString();
+        }
+        doc.updatedAt = new Date().toISOString();
+
+        const updateResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!updateResponse.ok) {
+            throw new Error('Failed to update status');
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error updating contacted status:', error);
+        res.status(500).json({ error: 'Failed to update status' });
+    }
+});
+
 // Update contact fields (name, email, tenantName, priority, activitySummary, notes)
 app.patch('/api/contacts/:id', async (req, res) => {
     try {
@@ -336,79 +427,6 @@ app.patch('/api/contacts/:id', async (req, res) => {
     }
 });
 
-// Mark contact as contacted (archived)
-app.patch('/api/contacts/:id/contacted', async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { contacted } = req.body;
-
-        // Get current document
-        const docUrl = `${dbUrl}/${id}`;
-        const getResponse = await couchFetch(docUrl);
-
-        if (!getResponse.ok) {
-            return res.status(404).json({ error: 'Contact not found' });
-        }
-
-        const doc = await getResponse.json();
-
-        // Update document
-        doc.contacted = contacted;
-        doc.contactedAt = contacted ? new Date().toISOString() : null;
-        doc.updatedAt = new Date().toISOString();
-
-        const updateResponse = await couchFetch(docUrl, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(doc)
-        });
-
-        if (!updateResponse.ok) {
-            throw new Error('Failed to update contacted status');
-        }
-
-        // Update metadata
-        await updateMetadataStats();
-
-        res.json({ success: true });
-    } catch (error) {
-        console.error('Error updating contacted status:', error);
-        res.status(500).json({ error: 'Failed to update status' });
-    }
-});
-
-// Update metadata statistics
-async function updateMetadataStats() {
-    try {
-        // Get all contacts
-        const viewUrl = `${dbUrl}/_design/contacts/_view/all_contacts`;
-        const viewResponse = await couchFetch(viewUrl);
-        const viewData = await viewResponse.json();
-
-        const contacts = viewData.rows.map(row => row.value);
-        const totalContacts = contacts.length;
-        const contactedCount = contacts.filter(c => c.contacted).length;
-
-        // Get current metadata
-        const metadataUrl = `${dbUrl}/metadata`;
-        const metadataResponse = await couchFetch(metadataUrl);
-        const metadata = metadataResponse.ok ? await metadataResponse.json() : { _id: 'metadata' };
-
-        // Update metadata
-        metadata.contacted = contactedCount;
-        metadata.pendingOutreach = totalContacts - contactedCount;
-        metadata.lastUpdated = new Date().toISOString();
-
-        await couchFetch(metadataUrl, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(metadata)
-        });
-    } catch (error) {
-        console.warn('Could not update metadata stats:', error.message);
-    }
-}
-
 // Create a single new contact manually
 app.post('/api/contacts', async (req, res) => {
     try {
@@ -428,7 +446,8 @@ app.post('/api/contacts', async (req, res) => {
             activitySummary: activitySummary || 'Manually added contact',
             firstSeen: new Date().toISOString().split('T')[0],
             notes: '',
-            contacted: false,
+            status: null,
+            contactedAt: null,
             isNew: true,
             slackChannelId: null,
             createdAt: new Date().toISOString()
@@ -444,8 +463,6 @@ app.post('/api/contacts', async (req, res) => {
         if (!response.ok) {
             throw new Error('Failed to create contact');
         }
-
-        await updateMetadataStats();
 
         res.json({ success: true, id, contact: { id, ...doc } });
     } catch (error) {
@@ -466,7 +483,7 @@ app.post('/api/sync', verifyApiKey, async (req, res) => {
 
         console.log(`📥 Syncing ${contacts.length} contacts from Slack agent...`);
 
-        // Get all existing contacts to preserve notes and contacted status
+        // Get all existing contacts to preserve user-managed fields
         const viewUrl = `${dbUrl}/_design/contacts/_view/all_contacts`;
         const viewResponse = await couchFetch(viewUrl);
         const existingData = {};
@@ -477,7 +494,7 @@ app.post('/api/sync', verifyApiKey, async (req, res) => {
                 const doc = row.value;
                 existingData[doc._id] = {
                     notes: doc.notes || '',
-                    contacted: doc.contacted || false,
+                    status: doc.status !== undefined ? doc.status : null,
                     contactedAt: doc.contactedAt || null,
                     _rev: doc._rev
                 };
@@ -499,15 +516,35 @@ app.post('/api/sync', verifyApiKey, async (req, res) => {
             lastSynced: new Date().toISOString()
         });
 
-        // Add contacts with preserved data
+        // Add contacts with preserved user-managed data
         contacts.forEach(contact => {
             const existing = existingData[contact.id] || {};
+
+            // Determine status:
+            // - If contact has reactivate:true AND existing status is 'contacted' or 'later'
+            //   → set to null (back to active). Never reactivate 'skip'.
+            // - Otherwise, preserve the existing status from CouchDB
+            // - For brand new contacts (no existing), use null (active)
+            let finalStatus;
+            if (contact.reactivate === true && existing.status !== 'skip') {
+                finalStatus = null; // reactivated by Slack bot
+            } else if (existing._rev) {
+                // Existing contact: always preserve CouchDB status
+                finalStatus = existing.status;
+            } else {
+                // New contact: use null (active) by default
+                finalStatus = null;
+            }
+
+            // Remove the reactivate flag before storing
+            const { reactivate, ...contactData } = contact;
+
             bulkDocs.push({
                 _id: contact.id,
                 _rev: existing._rev,
-                ...contact,
+                ...contactData,
                 notes: existing.notes || '',
-                contacted: existing.contacted || false,
+                status: finalStatus,
                 contactedAt: existing.contactedAt || null,
                 syncedAt: new Date().toISOString()
             });
