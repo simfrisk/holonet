@@ -100,7 +100,7 @@ async function createDesignDocuments() {
         if (checkResponse.ok) {
             existingDoc = await checkResponse.json();
             // All required views present — nothing to do
-            const required = ['all_contacts', 'by_email', 'by_tenant', 'all_drafts', 'all_todos'];
+            const required = ['all_contacts', 'by_email', 'by_tenant', 'all_drafts', 'all_todos', 'all_tracked'];
             if (existingDoc.views && required.every(v => existingDoc.views[v])) {
                 return;
             }
@@ -143,6 +143,13 @@ async function createDesignDocuments() {
                     map: function(doc) {
                         if (doc.type === 'todo') {
                             emit(doc.sortOrder != null ? doc.sortOrder : doc.createdAt, doc);
+                        }
+                    }.toString()
+                },
+                all_tracked: {
+                    map: function(doc) {
+                        if (doc.type === 'tracked_customer') {
+                            emit(doc.addedAt, doc);
                         }
                     }.toString()
                 }
@@ -1099,6 +1106,225 @@ app.post('/api/todos/reorder', async (req, res) => {
     } catch (error) {
         console.error('Error reordering todos:', error);
         res.status(500).json({ error: 'Failed to reorder todos' });
+    }
+});
+
+// ================================
+// TRACKED CUSTOMERS API
+// ================================
+
+// Get all tracked customers
+app.get('/api/tracked', async (req, res) => {
+    try {
+        const viewUrl = `${dbUrl}/_design/contacts/_view/all_tracked`;
+        const viewResponse = await couchFetch(viewUrl);
+
+        if (!viewResponse.ok) {
+            return res.json({ tracked: [] });
+        }
+
+        const viewData = await viewResponse.json();
+        const tracked = viewData.rows.map(row => {
+            const { _id, _rev, type, ...item } = row.value;
+            return { id: _id, ...item };
+        });
+
+        // Newest first
+        tracked.sort((a, b) => new Date(b.addedAt || 0) - new Date(a.addedAt || 0));
+
+        res.json({ tracked });
+    } catch (error) {
+        console.error('Error fetching tracked customers:', error);
+        res.status(500).json({ error: 'Failed to fetch tracked customers' });
+    }
+});
+
+// Create tracked customer (optionally from a contact)
+app.post('/api/tracked', async (req, res) => {
+    try {
+        const { contactId, name, organization, tenantName, email, health, stage, notes, nextFollowUp } = req.body;
+
+        if (!name) {
+            return res.status(400).json({ error: 'name is required' });
+        }
+
+        const id = `tracked-${Date.now()}`;
+        const doc = {
+            _id: id,
+            type: 'tracked_customer',
+            contactId: contactId || null,
+            name,
+            organization: organization || null,
+            tenantName: tenantName || null,
+            email: email || null,
+            health: health || 'unknown',
+            stage: stage || 'Onboarding',
+            notes: notes || '',
+            nextFollowUp: nextFollowUp || null,
+            touchpoints: [],
+            addedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        const docUrl = `${dbUrl}/${id}`;
+        const response = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!response.ok) throw new Error('Failed to create tracked customer');
+
+        res.json({ success: true, id, tracked: { id, ...doc } });
+    } catch (error) {
+        console.error('Error creating tracked customer:', error);
+        res.status(500).json({ error: 'Failed to create tracked customer' });
+    }
+});
+
+// Update tracked customer (health, stage, notes, nextFollowUp)
+app.patch('/api/tracked/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, organization, tenantName, email, health, stage, notes, nextFollowUp } = req.body;
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Tracked customer not found' });
+        }
+
+        const doc = await getResponse.json();
+
+        if (name !== undefined) doc.name = name;
+        if (organization !== undefined) doc.organization = organization;
+        if (tenantName !== undefined) doc.tenantName = tenantName;
+        if (email !== undefined) doc.email = email;
+        if (health !== undefined) doc.health = health;
+        if (stage !== undefined) doc.stage = stage;
+        if (notes !== undefined) doc.notes = notes;
+        if (nextFollowUp !== undefined) doc.nextFollowUp = nextFollowUp;
+        doc.updatedAt = new Date().toISOString();
+
+        const updateResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!updateResponse.ok) throw new Error('Failed to update tracked customer');
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error updating tracked customer:', error);
+        res.status(500).json({ error: 'Failed to update tracked customer' });
+    }
+});
+
+// Delete tracked customer
+app.delete('/api/tracked/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Tracked customer not found' });
+        }
+
+        const doc = await getResponse.json();
+        const deleteResponse = await couchFetch(`${docUrl}?rev=${doc._rev}`, { method: 'DELETE' });
+
+        if (!deleteResponse.ok) throw new Error('Failed to delete tracked customer');
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting tracked customer:', error);
+        res.status(500).json({ error: 'Failed to delete tracked customer' });
+    }
+});
+
+// Add a touchpoint to a tracked customer
+app.post('/api/tracked/:id/touchpoints', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { date, type, note } = req.body;
+
+        if (!note) {
+            return res.status(400).json({ error: 'note is required' });
+        }
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Tracked customer not found' });
+        }
+
+        const doc = await getResponse.json();
+
+        const touchpoint = {
+            id: `tp-${Date.now()}`,
+            date: date || new Date().toISOString().split('T')[0],
+            type: type || 'other',
+            note
+        };
+
+        doc.touchpoints = doc.touchpoints || [];
+        doc.touchpoints.unshift(touchpoint); // newest first
+        doc.updatedAt = new Date().toISOString();
+
+        const updateResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!updateResponse.ok) throw new Error('Failed to add touchpoint');
+
+        res.json({ success: true, touchpoint });
+    } catch (error) {
+        console.error('Error adding touchpoint:', error);
+        res.status(500).json({ error: 'Failed to add touchpoint' });
+    }
+});
+
+// Delete a touchpoint
+app.delete('/api/tracked/:id/touchpoints/:tpId', async (req, res) => {
+    try {
+        const { id, tpId } = req.params;
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Tracked customer not found' });
+        }
+
+        const doc = await getResponse.json();
+        const before = (doc.touchpoints || []).length;
+        doc.touchpoints = (doc.touchpoints || []).filter(tp => tp.id !== tpId);
+
+        if (doc.touchpoints.length === before) {
+            return res.status(404).json({ error: 'Touchpoint not found' });
+        }
+
+        doc.updatedAt = new Date().toISOString();
+
+        const updateResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!updateResponse.ok) throw new Error('Failed to delete touchpoint');
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting touchpoint:', error);
+        res.status(500).json({ error: 'Failed to delete touchpoint' });
     }
 });
 
