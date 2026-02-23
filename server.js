@@ -78,6 +78,9 @@ async function initializeCouchDB() {
         // Create design documents for views if needed
         await createDesignDocuments();
 
+        // Migrate contacts from old boolean 'contacted' field to new 'status' enum
+        await migrateContactStatuses();
+
     } catch (error) {
         console.error('❌ CouchDB initialization error:', error.message);
         console.log('⚠️  Server will not function without CouchDB');
@@ -133,6 +136,50 @@ async function createDesignDocuments() {
         }
     } catch (error) {
         console.warn('⚠️  Could not create design documents:', error.message);
+    }
+}
+
+// Migrate contacts from old boolean 'contacted' field to new 'status' enum
+// Migration rule: contacted:true → 'later', contacted:false/undefined → null
+async function migrateContactStatuses() {
+    try {
+        const viewUrl = `${dbUrl}/_design/contacts/_view/all_contacts`;
+        const viewResponse = await couchFetch(viewUrl);
+        if (!viewResponse.ok) return;
+
+        const viewData = await viewResponse.json();
+        const contactsToMigrate = viewData.rows
+            .map(row => row.value)
+            .filter(doc => doc.status === undefined); // Only migrate contacts without status field
+
+        if (contactsToMigrate.length === 0) {
+            console.log('✅ No contacts need status migration');
+            return;
+        }
+
+        console.log(`🔄 Migrating ${contactsToMigrate.length} contacts to new status system...`);
+
+        const migratedDocs = contactsToMigrate.map(doc => ({
+            ...doc,
+            status: doc.contacted === true ? 'later' : null,
+            contactedAt: doc.contactedAt || (doc.contacted === true ? new Date().toISOString() : null),
+            updatedAt: new Date().toISOString()
+        }));
+
+        const bulkUrl = `${dbUrl}/_bulk_docs`;
+        const bulkResponse = await couchFetch(bulkUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ docs: migratedDocs })
+        });
+
+        if (bulkResponse.ok) {
+            console.log(`✅ Migrated ${contactsToMigrate.length} contacts to new status system`);
+        } else {
+            console.warn('⚠️  Migration bulk update failed');
+        }
+    } catch (error) {
+        console.warn('⚠️  Could not run status migration:', error.message);
     }
 }
 
