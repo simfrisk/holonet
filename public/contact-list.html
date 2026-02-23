@@ -5,28 +5,85 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OSC Sales Contact List</title>
     <style>
+        /* =========================================
+           COLOR TOKENS
+           ========================================= */
+        :root {
+            --color-bg: #f5f5f5;
+            --color-surface: #ffffff;
+            --color-surface-elevated: #f8f9fa;
+            --color-border: #ddd;
+            --color-text: #333;
+            --color-text-muted: #666;
+            --color-text-subtle: #999;
+            --color-primary: #0066cc;
+            --color-primary-hover: #0052a3;
+            --color-success: #28a745;
+            --color-success-hover: #218838;
+            --color-warning: #ffc107;
+            --color-danger: #dc3545;
+            --color-neutral: #6c757d;
+            --color-neutral-hover: #5a6268;
+            --color-row-high-bg: #fee;
+            --color-row-medium-bg: #ffc;
+            --color-row-low-bg: #efe;
+            --color-drag-placeholder-bg: #e8f0fe;
+            --color-input-bg: #ffffff;
+            --color-modal-footer-bg: #f8f9fa;
+            --color-shadow: rgba(0, 0, 0, 0.1);
+            --color-shadow-modal: rgba(0, 0, 0, 0.3);
+            --color-drag-ghost-bg: #ffffff;
+            --color-drag-ghost-border: #0066cc;
+            --color-drag-ghost-shadow: rgba(0, 0, 0, 0.18);
+            --color-tenant-link-hover-bg: #e6f2ff;
+        }
+
+        html[data-theme="dark"] {
+            --color-bg: #0d1117;
+            --color-surface: #161b22;
+            --color-surface-elevated: #21262d;
+            --color-border: #30363d;
+            --color-text: #e6edf3;
+            --color-text-muted: #8b949e;
+            --color-text-subtle: #6e7681;
+            --color-primary: #58a6ff;
+            --color-primary-hover: #388bfd;
+            --color-row-high-bg: #2d1215;
+            --color-row-medium-bg: #2d2210;
+            --color-row-low-bg: #0d2818;
+            --color-drag-placeholder-bg: #1a3a5c;
+            --color-input-bg: #0d1117;
+            --color-modal-footer-bg: #21262d;
+            --color-shadow: rgba(0, 0, 0, 0.4);
+            --color-shadow-modal: rgba(0, 0, 0, 0.6);
+            --color-drag-ghost-bg: #161b22;
+            --color-drag-ghost-border: #58a6ff;
+            --color-drag-ghost-shadow: rgba(0, 0, 0, 0.5);
+            --color-tenant-link-hover-bg: #1a3a5c;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
             max-width: 1600px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f5f5f5;
-            color: #333;
+            background-color: var(--color-bg);
+            color: var(--color-text);
         }
         .container {
-            background-color: white;
+            background-color: var(--color-surface);
             border-radius: 8px;
             padding: 30px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px var(--color-shadow);
         }
         header {
-            border-bottom: 3px solid #0066cc;
+            border-bottom: 3px solid var(--color-primary);
             padding-bottom: 20px;
             margin-bottom: 30px;
         }
         h1 {
-            color: #0066cc;
+            color: var(--color-primary);
             margin: 0 0 15px 0;
         }
         .stats {
@@ -36,20 +93,20 @@
             margin-top: 15px;
         }
         .stat-card {
-            background-color: #f8f9fa;
+            background-color: var(--color-surface-elevated);
             padding: 15px;
             border-radius: 6px;
-            border-left: 4px solid #0066cc;
+            border-left: 4px solid var(--color-primary);
         }
         .stat-card strong {
             display: block;
             font-size: 24px;
-            color: #0066cc;
+            color: var(--color-primary);
             margin-bottom: 5px;
         }
         .stat-card span {
             font-size: 14px;
-            color: #666;
+            color: var(--color-text-muted);
         }
 
         /* Tab Navigation */
@@ -57,7 +114,7 @@
             display: flex;
             gap: 10px;
             margin-bottom: 20px;
-            border-bottom: 2px solid #ddd;
+            border-bottom: 2px solid var(--color-border);
         }
         .tab-button {
             padding: 12px 24px;
@@ -66,17 +123,18 @@
             cursor: pointer;
             font-size: 16px;
             font-weight: 500;
-            color: #666;
+            color: var(--color-text-muted);
             border-bottom: 3px solid transparent;
-            transition: all 0.3s ease;
+            transition: color 0.2s ease, background-color 0.2s ease, border-bottom-color 0.2s ease;
+            margin-bottom: -2px;
         }
         .tab-button:hover {
-            color: #0066cc;
-            background-color: #f8f9fa;
+            color: var(--color-primary);
+            background-color: var(--color-surface-elevated);
         }
         .tab-button.active {
-            color: #0066cc;
-            border-bottom-color: #0066cc;
+            color: var(--color-primary);
+            border-bottom-color: var(--color-primary);
         }
         .tab-content {
             display: none;
@@ -91,31 +149,36 @@
             margin-top: 20px;
         }
         th {
-            background-color: #0066cc;
+            background-color: var(--color-primary);
             color: white;
             padding: 12px;
             text-align: left;
             font-weight: 600;
         }
+        html[data-theme="dark"] th {
+            background-color: var(--color-surface-elevated);
+            color: var(--color-text);
+        }
         td {
             padding: 12px;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid var(--color-border);
             vertical-align: top;
+            color: var(--color-text);
         }
         tr:hover {
-            background-color: #f8f9fa;
+            background-color: var(--color-surface-elevated);
         }
         .priority-high {
-            background-color: #fee;
-            border-left: 4px solid #dc3545;
+            background-color: var(--color-row-high-bg);
+            border-left: 4px solid var(--color-danger);
         }
         .priority-medium {
-            background-color: #ffc;
-            border-left: 4px solid #ffc107;
+            background-color: var(--color-row-medium-bg);
+            border-left: 4px solid var(--color-warning);
         }
         .priority-low {
-            background-color: #efe;
-            border-left: 4px solid #28a745;
+            background-color: var(--color-row-low-bg);
+            border-left: 4px solid var(--color-success);
         }
         .archived-row {
             opacity: 0.7;
@@ -129,58 +192,45 @@
             height: 20px;
             cursor: pointer;
         }
-        .priority-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        .priority-badge.high {
-            background-color: #dc3545;
-            color: white;
-        }
-        .priority-badge.medium {
-            background-color: #ffc107;
-            color: #333;
-        }
-        .priority-badge.low {
-            background-color: #28a745;
-            color: white;
-        }
         .activity-summary {
             font-size: 14px;
-            color: #555;
+            color: var(--color-text-muted);
+            max-width: 250px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
         }
         .slack-link {
-            color: #0066cc;
+            color: var(--color-primary);
             text-decoration: none;
             font-size: 13px;
+            display: block;
+            margin-bottom: 4px;
         }
         .slack-link:hover {
             text-decoration: underline;
         }
         .tenant-name {
             font-size: 12px;
-            color: #666;
+            color: var(--color-text-muted);
             font-style: italic;
         }
         .tenant-link {
-            color: #0066cc;
+            color: var(--color-primary);
             font-weight: 500;
             text-decoration: none;
-            border-bottom: 1px dotted #0066cc;
+            border-bottom: 1px dotted var(--color-primary);
             font-style: normal;
         }
         .tenant-link:hover {
-            background-color: #e6f2ff;
-            border-bottom: 1px solid #0066cc;
+            background-color: var(--color-tenant-link-hover-bg);
+            border-bottom: 1px solid var(--color-primary);
             text-decoration: none;
         }
         .new-badge {
             display: inline-block;
-            background-color: #28a745;
+            background-color: var(--color-success);
             color: white;
             padding: 2px 6px;
             border-radius: 3px;
@@ -204,8 +254,8 @@
         .drag-handle:hover { color: #888; }
         tr.drag-source { opacity: 0.3; }
         tr.drag-placeholder td {
-            background: #e8f0fe !important;
-            border-top: 2px dashed #0066cc !important;
+            background: var(--color-drag-placeholder-bg) !important;
+            border-top: 2px dashed var(--color-primary) !important;
             padding: 4px 0 !important;
         }
         .drag-ghost {
@@ -213,11 +263,11 @@
             pointer-events: none;
             z-index: 9999;
             opacity: 0.92;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            box-shadow: 0 8px 24px var(--color-drag-ghost-shadow);
             border-radius: 4px;
-            background: white;
+            background: var(--color-drag-ghost-bg);
             transform: rotate(1.5deg);
-            border: 1px solid #0066cc;
+            border: 1px solid var(--color-drag-ghost-border);
         }
         body.dragging-active {
             user-select: none;
@@ -237,42 +287,58 @@
             border-radius: 4px;
             color: white;
         }
-        .priority-select.high { background-color: #dc3545; }
-        .priority-select.medium { background-color: #ffc107; color: #333; }
-        .priority-select.low { background-color: #28a745; }
+        .priority-select.high { background-color: var(--color-danger); }
+        .priority-select.medium { background-color: var(--color-warning); color: #333; }
+        .priority-select.low { background-color: var(--color-success); }
         .priority-select option { color: #333; background: white; font-weight: normal; }
+        html[data-theme="dark"] .priority-select option {
+            background: var(--color-surface);
+            color: var(--color-text);
+        }
 
         /* Notes Field */
         .notes-field {
             width: 100%;
             min-height: 60px;
             padding: 8px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--color-border);
             border-radius: 4px;
             font-family: inherit;
             font-size: 13px;
             resize: vertical;
-            background-color: white;
-            color: #333;
+            background-color: var(--color-input-bg);
+            color: var(--color-text);
         }
         .notes-field:focus {
             outline: none;
-            border-color: #0066cc;
+            border-color: var(--color-primary);
             box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
         }
         .notes-field::placeholder {
-            color: #999;
+            color: var(--color-text-subtle);
             font-style: italic;
         }
         .notes-cell {
             max-width: 300px;
             position: relative;
         }
+        .note-save-status {
+            font-size: 11px;
+            position: absolute;
+            top: 10px;
+            left: 8px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .note-save-status.saved { color: var(--color-success); }
+        .note-save-status.error { color: var(--color-danger); }
+        .note-save-status.visible { opacity: 1; }
         .expand-button {
             position: absolute;
             top: 8px;
             right: 8px;
-            background-color: #0066cc;
+            background-color: var(--color-primary);
             color: white;
             border: none;
             border-radius: 4px;
@@ -287,7 +353,7 @@
             opacity: 1;
         }
         .expand-button:hover {
-            background-color: #0052a3;
+            background-color: var(--color-primary-hover);
         }
 
         /* Edit row button */
@@ -295,8 +361,8 @@
             display: block;
             margin-top: 6px;
             background: none;
-            border: 1px solid #0066cc;
-            color: #0066cc;
+            border: 1px solid var(--color-primary);
+            color: var(--color-primary);
             border-radius: 4px;
             padding: 3px 8px;
             font-size: 12px;
@@ -305,23 +371,40 @@
             white-space: nowrap;
         }
         .edit-row-btn:hover {
-            background-color: #0066cc;
+            background-color: var(--color-primary);
             color: white;
         }
 
         /* Dark mode toggle */
         .dark-mode-btn {
             background: none;
-            border: 1px solid #ccc;
+            border: 1px solid var(--color-border);
             border-radius: 6px;
             padding: 6px 12px;
             font-size: 18px;
             cursor: pointer;
             transition: background-color 0.2s, border-color 0.2s;
             line-height: 1;
+            color: var(--color-text);
         }
         .dark-mode-btn:hover {
-            background-color: #f0f0f0;
+            background-color: var(--color-surface-elevated);
+        }
+
+        /* Cancel button */
+        .cancel-button {
+            background: var(--color-neutral);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .cancel-button:hover {
+            background: var(--color-neutral-hover);
         }
 
         /* Modal Popup */
@@ -334,7 +417,7 @@
             width: 100%;
             height: 100%;
             overflow: auto;
-            background-color: rgba(0,0,0,0.5);
+            background-color: rgba(0, 0, 0, 0.5);
             animation: fadeIn 0.3s;
         }
         @keyframes fadeIn {
@@ -342,16 +425,15 @@
             to { opacity: 1; }
         }
         .modal-content {
-            background-color: white;
+            background-color: var(--color-surface);
             margin: 5% auto;
             padding: 0;
             border-radius: 8px;
             width: 90%;
             max-width: 800px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 20px var(--color-shadow-modal);
             animation: slideIn 0.3s;
             position: relative;
-            resize: vertical;
             overflow: auto;
             min-height: 400px;
         }
@@ -366,7 +448,7 @@
             }
         }
         .modal-header {
-            background-color: #0066cc;
+            background-color: var(--color-primary);
             color: white;
             padding: 20px 30px;
             border-radius: 8px 8px 0 0;
@@ -400,7 +482,7 @@
             transition: background-color 0.2s;
         }
         .close-button:hover {
-            background-color: rgba(255,255,255,0.2);
+            background-color: rgba(255, 255, 255, 0.2);
         }
         .modal-body {
             padding: 30px;
@@ -409,32 +491,32 @@
             width: 100%;
             min-height: 300px;
             padding: 15px;
-            border: 2px solid #ddd;
+            border: 2px solid var(--color-border);
             border-radius: 6px;
             font-family: inherit;
             font-size: 14px;
             line-height: 1.6;
             resize: vertical;
             box-sizing: border-box;
-            background-color: white;
-            color: #333;
+            background-color: var(--color-input-bg);
+            color: var(--color-text);
         }
         .modal-textarea:focus {
             outline: none;
-            border-color: #0066cc;
+            border-color: var(--color-primary);
             box-shadow: 0 0 0 3px rgba(0, 102, 204, 0.1);
         }
         .modal-footer {
             padding: 20px 30px;
-            border-top: 1px solid #ddd;
+            border-top: 1px solid var(--color-border);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background-color: #f8f9fa;
+            background-color: var(--color-modal-footer-bg);
             border-radius: 0 0 8px 8px;
         }
         .save-button {
-            background-color: #28a745;
+            background-color: var(--color-success);
             color: white;
             border: none;
             padding: 10px 20px;
@@ -445,31 +527,39 @@
             transition: background-color 0.2s;
         }
         .save-button:hover {
-            background-color: #218838;
+            background-color: var(--color-success-hover);
+        }
+        .save-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
         .char-count {
             font-size: 13px;
-            color: #666;
+            color: var(--color-text-muted);
         }
 
         /* Empty state */
         .empty-state {
             text-align: center;
             padding: 60px 20px;
-            color: #666;
+            color: var(--color-text-muted);
         }
         .empty-state svg {
             width: 80px;
             height: 80px;
             margin-bottom: 20px;
-            opacity: 0.3;
+            opacity: 0.5;
         }
 
-        /* Loading state */
+        /* Loading / error state */
         .loading {
             text-align: center;
             padding: 40px;
-            color: #666;
+            color: var(--color-text-muted);
+        }
+        .load-error {
+            color: var(--color-danger);
+            font-weight: 500;
         }
 
         /* Medium screens - horizontal scroll */
@@ -538,16 +628,16 @@
             tr {
                 margin-bottom: 12px;
                 border-radius: 6px;
-                border: 1px solid #ddd;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+                border: 1px solid var(--color-border);
+                box-shadow: 0 1px 3px var(--color-shadow);
                 overflow: hidden;
             }
-            tr.priority-high { border-left: 4px solid #dc3545; }
-            tr.priority-medium { border-left: 4px solid #ffc107; }
-            tr.priority-low { border-left: 4px solid #28a745; }
+            tr.priority-high { border-left: 4px solid var(--color-danger); }
+            tr.priority-medium { border-left: 4px solid var(--color-warning); }
+            tr.priority-low { border-left: 4px solid var(--color-success); }
             td {
                 padding: 8px 12px;
-                border-bottom: 1px solid #f0f0f0;
+                border-bottom: 1px solid var(--color-surface-elevated);
                 text-align: left;
             }
             td:last-child {
@@ -559,7 +649,7 @@
                 display: block;
                 font-size: 11px;
                 font-weight: 600;
-                color: #999;
+                color: var(--color-text-subtle);
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
                 margin-bottom: 3px;
@@ -567,7 +657,7 @@
             .checkbox-cell {
                 width: 100%;
                 text-align: left;
-                background-color: #f8f9fa;
+                background-color: var(--color-surface-elevated);
                 display: flex;
                 align-items: center;
                 gap: 10px;
@@ -576,7 +666,7 @@
             .checkbox-cell::after {
                 content: 'Mark as contacted';
                 font-size: 13px;
-                color: #666;
+                color: var(--color-text-muted);
             }
             .notes-cell {
                 max-width: 100%;
@@ -621,9 +711,10 @@
                 border-radius: 0;
             }
         }
+
         /* Add Contact Button */
         .add-contact-btn {
-            background-color: #0066cc;
+            background-color: var(--color-primary);
             color: white;
             border: none;
             padding: 10px 18px;
@@ -634,7 +725,7 @@
             transition: background-color 0.2s;
         }
         .add-contact-btn:hover {
-            background-color: #0052a3;
+            background-color: var(--color-primary-hover);
         }
 
         /* Add Contact Modal Form */
@@ -645,7 +736,7 @@
             display: block;
             font-size: 13px;
             font-weight: 600;
-            color: #444;
+            color: var(--color-text-muted);
             margin-bottom: 5px;
         }
         .form-group input,
@@ -653,20 +744,20 @@
         .form-group textarea {
             width: 100%;
             padding: 9px 12px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--color-border);
             border-radius: 5px;
             font-family: inherit;
             font-size: 14px;
             box-sizing: border-box;
-            background-color: white;
-            color: #333;
+            background-color: var(--color-input-bg);
+            color: var(--color-text);
         }
         .form-group input:focus,
         .form-group select:focus,
         .form-group textarea:focus {
             outline: none;
-            border-color: #0066cc;
-            box-shadow: 0 0 0 2px rgba(0,102,204,0.1);
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
         }
         .form-row {
             display: grid;
@@ -676,200 +767,13 @@
         @media (max-width: 600px) {
             .form-row { grid-template-columns: 1fr; }
         }
-
-        /* =========================================
-           DARK MODE
-           ========================================= */
-        [data-theme="dark"] body {
-            background-color: #0d1117;
-            color: #e6edf3;
-        }
-        [data-theme="dark"] .container {
-            background-color: #161b22;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
-        }
-        [data-theme="dark"] header {
-            border-bottom-color: #30363d;
-        }
-        [data-theme="dark"] h1 {
-            color: #58a6ff;
-        }
-        [data-theme="dark"] .stat-card {
-            background-color: #21262d;
-            border-left-color: #58a6ff;
-        }
-        [data-theme="dark"] .stat-card strong {
-            color: #58a6ff;
-        }
-        [data-theme="dark"] .stat-card span {
-            color: #8b949e;
-        }
-        [data-theme="dark"] .tab-nav {
-            border-bottom-color: #30363d;
-        }
-        [data-theme="dark"] .tab-button {
-            color: #8b949e;
-        }
-        [data-theme="dark"] .tab-button:hover {
-            color: #58a6ff;
-            background-color: #21262d;
-        }
-        [data-theme="dark"] .tab-button.active {
-            color: #58a6ff;
-            border-bottom-color: #58a6ff;
-        }
-        [data-theme="dark"] th {
-            background-color: #21262d;
-            color: #e6edf3;
-        }
-        [data-theme="dark"] td {
-            border-bottom-color: #30363d;
-            color: #e6edf3;
-        }
-        [data-theme="dark"] tr:hover {
-            background-color: #1c2128;
-        }
-        [data-theme="dark"] .priority-high {
-            background-color: #2d1215;
-        }
-        [data-theme="dark"] .priority-medium {
-            background-color: #2d2210;
-        }
-        [data-theme="dark"] .priority-low {
-            background-color: #0d2818;
-        }
-        [data-theme="dark"] .notes-field {
-            background-color: #0d1117;
-            border-color: #30363d;
-            color: #e6edf3;
-        }
-        [data-theme="dark"] .notes-field::placeholder {
-            color: #6e7681;
-        }
-        [data-theme="dark"] .notes-field:focus {
-            border-color: #58a6ff;
-            box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.15);
-        }
-        [data-theme="dark"] .modal-content {
-            background-color: #161b22;
-        }
-        [data-theme="dark"] .modal-footer {
-            background-color: #21262d;
-            border-top-color: #30363d;
-        }
-        [data-theme="dark"] .modal-textarea {
-            background-color: #0d1117;
-            border-color: #30363d;
-            color: #e6edf3;
-        }
-        [data-theme="dark"] .modal-textarea:focus {
-            border-color: #58a6ff;
-            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
-        }
-        [data-theme="dark"] .form-group label {
-            color: #8b949e;
-        }
-        [data-theme="dark"] .form-group input,
-        [data-theme="dark"] .form-group select,
-        [data-theme="dark"] .form-group textarea {
-            background-color: #0d1117;
-            border-color: #30363d;
-            color: #e6edf3;
-        }
-        [data-theme="dark"] .form-group input:focus,
-        [data-theme="dark"] .form-group select:focus,
-        [data-theme="dark"] .form-group textarea:focus {
-            border-color: #58a6ff;
-            box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.15);
-        }
-        [data-theme="dark"] .char-count {
-            color: #8b949e;
-        }
-        [data-theme="dark"] .empty-state {
-            color: #8b949e;
-        }
-        [data-theme="dark"] .loading {
-            color: #8b949e;
-        }
-        [data-theme="dark"] .drag-ghost {
-            background: #161b22;
-            border-color: #58a6ff;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
-        }
-        [data-theme="dark"] tr.drag-placeholder td {
-            background: #1a3a5c !important;
-            border-top-color: #58a6ff !important;
-        }
-        [data-theme="dark"] .activity-summary {
-            color: #c9d1d9;
-        }
-        [data-theme="dark"] .tenant-name {
-            color: #8b949e;
-        }
-        [data-theme="dark"] .tenant-link {
-            color: #58a6ff;
-            border-bottom-color: #58a6ff;
-        }
-        [data-theme="dark"] .tenant-link:hover {
-            background-color: #1a3a5c;
-        }
-        [data-theme="dark"] .slack-link {
-            color: #58a6ff;
-        }
-        [data-theme="dark"] .priority-select option {
-            background: #161b22;
-            color: #e6edf3;
-        }
-        [data-theme="dark"] .dark-mode-btn {
-            border-color: #30363d;
-            color: #e6edf3;
-        }
-        [data-theme="dark"] .dark-mode-btn:hover {
-            background-color: #21262d;
-        }
-        [data-theme="dark"] .edit-row-btn {
-            border-color: #58a6ff;
-            color: #58a6ff;
-        }
-        [data-theme="dark"] .edit-row-btn:hover {
-            background-color: #58a6ff;
-            color: #0d1117;
-        }
-        [data-theme="dark"] .add-contact-btn {
-            background-color: #1f6feb;
-        }
-        [data-theme="dark"] .add-contact-btn:hover {
-            background-color: #388bfd;
-        }
-        [data-theme="dark"] table {
-            color: #e6edf3;
-        }
-        /* Mobile dark mode adjustments */
-        @media (max-width: 600px) {
-            [data-theme="dark"] tr {
-                border-color: #30363d;
-                box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-            }
-            [data-theme="dark"] td {
-                border-bottom-color: #21262d;
-            }
-            [data-theme="dark"] td[data-label]::before {
-                color: #6e7681;
-            }
-            [data-theme="dark"] .checkbox-cell {
-                background-color: #21262d;
-            }
-            [data-theme="dark"] .checkbox-cell::after {
-                color: #8b949e;
-            }
-        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h1 style="margin: 0;">🎯 OSC Sales Contact List</h1>
+                <h1 style="margin: 0;">OSC Sales Contact List</h1>
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <button class="dark-mode-btn" id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</button>
                     <button class="add-contact-btn" onclick="openAddContactModal()">+ Add Contact</button>
@@ -886,11 +790,11 @@
                 </div>
                 <div class="stat-card">
                     <strong id="stat-contacted">0</strong>
-                    <span>Contacted (Archived)</span>
+                    <span>Archived</span>
                 </div>
                 <div class="stat-card">
                     <strong id="stat-last-check">Loading...</strong>
-                    <span>Last Check (UTC)</span>
+                    <span>Last Check (Local)</span>
                 </div>
             </div>
         </header>
@@ -898,10 +802,10 @@
         <!-- Tab Navigation -->
         <div class="tab-nav">
             <button class="tab-button active" data-tab="active" onclick="switchTab('active')">
-                📋 Active (<span id="active-count">0</span>)
+                Active (<span id="active-count">0</span>)
             </button>
             <button class="tab-button" data-tab="archived" onclick="switchTab('archived')">
-                📦 Archived (<span id="archived-count">0</span>)
+                Archived (<span id="archived-count">0</span>)
             </button>
         </div>
 
@@ -916,20 +820,30 @@
                 <thead>
                     <tr>
                         <th style="width:30px;"></th>
-                        <th class="checkbox-cell">✓</th>
+                        <th class="checkbox-cell">Done</th>
                         <th>Priority</th>
                         <th>Name / Organization</th>
                         <th>Email</th>
                         <th>Activity Summary</th>
                         <th>Notes</th>
                         <th>First Seen</th>
-                        <th>Context</th>
+                        <th>Links</th>
                     </tr>
                 </thead>
                 <tbody id="active-table-body">
-                    <!-- Contacts loaded dynamically from JSON -->
+                    <!-- Contacts loaded dynamically -->
                 </tbody>
             </table>
+
+            <!-- Empty state for active tab -->
+            <div class="empty-state" style="display: none;" id="active-empty">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h3>All caught up!</h3>
+                <p>No active contacts. Add a new contact manually or wait for the next Slack sync.</p>
+            </div>
         </div>
 
         <!-- Archived Contacts Tab -->
@@ -938,18 +852,18 @@
                 <thead>
                     <tr>
                         <th style="width:30px;"></th>
-                        <th class="checkbox-cell">✓</th>
+                        <th class="checkbox-cell">Done</th>
                         <th>Priority</th>
                         <th>Name / Organization</th>
                         <th>Email</th>
                         <th>Activity Summary</th>
                         <th>Notes</th>
                         <th>First Seen</th>
-                        <th>Context</th>
+                        <th>Links</th>
                     </tr>
                 </thead>
                 <tbody id="archived-table-body">
-                    <!-- Checked contacts will appear here automatically -->
+                    <!-- Archived contacts appear here automatically -->
                 </tbody>
             </table>
 
@@ -977,14 +891,14 @@
             </div>
             <div class="modal-body">
                 <textarea class="modal-textarea" id="modalNoteTextarea"
-                          placeholder="Draft your email or add notes here...&#10;&#10;This expanded view gives you more space to compose detailed messages, track conversations, or plan your outreach strategy.&#10;&#10;Your notes are automatically saved to your browser's local storage."
+                          placeholder="Add notes or draft your outreach email here..."
                           oninput="updateCharCount()"></textarea>
             </div>
             <div class="modal-footer">
                 <span class="char-count" id="charCount">0 characters</span>
                 <div style="display: flex; gap: 10px;">
-                    <button onclick="closeNoteModal()" style="background: #6c757d; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">Cancel</button>
-                    <button class="save-button" onclick="saveModalNote()">💾 Save & Close</button>
+                    <button class="cancel-button" onclick="closeNoteModal()">Cancel</button>
+                    <button class="save-button" id="saveModalNoteBtn" onclick="saveModalNote()">Save & Close</button>
                 </div>
             </div>
         </div>
@@ -992,7 +906,7 @@
 
     <!-- Add / Edit Contact Modal -->
     <div id="addContactModal" class="modal">
-        <div class="modal-content" style="resize: none; min-height: unset;">
+        <div class="modal-content" style="min-height: unset;">
             <div class="modal-header">
                 <div>
                     <h2 id="addContactModalTitle">Add Contact Manually</h2>
@@ -1032,11 +946,11 @@
                     <label for="ac-notes">Notes</label>
                     <textarea id="ac-notes" rows="3" placeholder="Internal notes, email drafts, follow-up reminders..."></textarea>
                 </div>
-                <p id="ac-error" style="color: #dc3545; font-size: 13px; display: none;"></p>
+                <p id="ac-error" class="load-error" style="display: none;"></p>
             </div>
             <div class="modal-footer">
-                <button onclick="closeAddContactModal()" style="background: #6c757d; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">Cancel</button>
-                <button class="save-button" id="addContactSubmitBtn" onclick="submitAddContact()">➕ Add Contact</button>
+                <button class="cancel-button" onclick="closeAddContactModal()">Cancel</button>
+                <button class="save-button" id="addContactSubmitBtn" onclick="submitAddContact()">Add Contact</button>
             </div>
         </div>
     </div>
@@ -1075,7 +989,6 @@
         // CONTACTS
         // =========================================
 
-        // Load contacts from API
         async function loadContacts() {
             try {
                 const response = await fetch('/api/contacts');
@@ -1083,23 +996,26 @@
                     throw new Error('Failed to load contacts data');
                 }
                 contactsData = await response.json();
-                renderContacts();
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('active-tab').classList.add('active');
+                renderContacts();
             } catch (error) {
                 console.error('Error loading contacts:', error);
-                document.getElementById('loading').innerHTML = '<p style="color: #dc3545;">Error loading contacts from API.</p>';
+                document.getElementById('loading').innerHTML =
+                    '<p class="load-error">Failed to load contacts. Check that the server is running and try refreshing.</p>';
+                document.getElementById('stat-last-check').textContent = '—';
+                // Still show the active tab so the UI is usable
+                document.getElementById('active-tab').classList.add('active');
+                document.getElementById('active-empty').style.display = 'block';
             }
         }
 
-        // Render contacts to the page
         function renderContacts() {
             const { metadata, contacts } = contactsData;
 
-            // Update metadata stats
             document.getElementById('stat-total').textContent = metadata.totalContacts;
 
-            // Format last check date
+            // Format last check date (local time)
             const lastCheckDate = new Date(metadata.lastCheckDate);
             const formattedDate = lastCheckDate.toLocaleString('en-US', {
                 month: 'short',
@@ -1110,7 +1026,6 @@
             });
             document.getElementById('stat-last-check').textContent = formattedDate;
 
-            // Render contacts
             const activeTableBody = document.getElementById('active-table-body');
             activeTableBody.innerHTML = '';
 
@@ -1119,20 +1034,22 @@
                 activeTableBody.appendChild(row);
             });
 
-            // Restore checkbox states and move archived items
             restoreCheckboxStates();
             updateStats();
             updateTabCounts();
+            updateActiveEmptyState();
             initDragAndDrop();
         }
 
-        // Create a contact row
         function createContactRow(contact) {
             const row = document.createElement('tr');
             row.className = `priority-${contact.priority}`;
 
             const tenantLink = `https://app.osaas.io/admin/tenant/${contact.tenantName}`;
-            const slackLink = `https://eyevinn.slack.com/archives/${contact.slackChannelId}`;
+            const grafanaLink = `https://ops-ui.osaas.io/d/45a4f896-1072-4957-ad18-9b4f0c1e77ef/tenant?orgId=1&from=now-24h&to=now&timezone=browser&var-tenant=${encodeURIComponent(contact.tenantName || '')}&refresh=5m`;
+            const slackLink = contact.slackChannelId
+                ? `https://eyevinn.slack.com/archives/${contact.slackChannelId}`
+                : null;
 
             row.dataset.contactId = contact.id;
 
@@ -1154,20 +1071,22 @@
                 </td>
                 <td data-label="Name">
                     <strong>${escapeHtml(contact.name)}</strong><br>
-                    <span class="tenant-name">Tenant: <a href="${tenantLink}" target="_blank" class="tenant-link">${escapeHtml(contact.tenantName)}</a></span>
+                    <span class="tenant-name">Tenant: <a href="${tenantLink}" target="_blank" class="tenant-link">${escapeHtml(contact.tenantName || '—')}</a></span>
                 </td>
-                <td data-label="Email">${escapeHtml(contact.email)}</td>
-                <td data-label="Activity" class="activity-summary">${contact.activitySummary}</td>
+                <td data-label="Email">${escapeHtml(contact.email || '—')}</td>
+                <td data-label="Activity" class="activity-summary">${escapeHtml(contact.activitySummary || '')}</td>
                 <td data-label="Notes" class="notes-cell">
-                    <button class="expand-button" onclick="openNoteModal('${contact.id}', '${escapeHtml(contact.name)}', '${escapeHtml(contact.email)}')" title="Expand note editor">✏️ Expand</button>
+                    <button class="expand-button" onclick="openNoteModal('${contact.id}', '${escapeHtml(contact.name)}', '${escapeHtml(contact.email || '')}')" title="Expand note editor">Expand</button>
+                    <span class="note-save-status" id="note-status-${contact.id}"></span>
                     <textarea class="notes-field" id="note-${contact.id}"
                               placeholder="Add notes here..."
                               onchange="saveNote('${contact.id}', this.value)"></textarea>
                 </td>
-                <td data-label="First Seen">${contact.firstSeen}</td>
-                <td data-label="Context">
-                    <a href="https://ops-ui.osaas.io/d/45a4f896-1072-4957-ad18-9b4f0c1e77ef/tenant?orgId=1&from=now-24h&to=now&timezone=browser&var-tenant=${encodeURIComponent(contact.tenantName)}&refresh=5m" class="slack-link" target="_blank">Grafana ↗</a>
-                    <button class="edit-row-btn" onclick="openEditModal('${contact.id}')">✏️ Edit</button>
+                <td data-label="First Seen">${contact.firstSeen || '—'}</td>
+                <td data-label="Links">
+                    <a href="${grafanaLink}" class="slack-link" target="_blank">Grafana ↗</a>
+                    ${slackLink ? `<a href="${slackLink}" class="slack-link" target="_blank">Slack ↗</a>` : ''}
+                    <button class="edit-row-btn" onclick="openEditModal('${contact.id}')">Edit</button>
                 </td>
             `;
 
@@ -1176,26 +1095,44 @@
 
         // Escape HTML to prevent XSS
         function escapeHtml(text) {
+            if (text == null) return '';
             const div = document.createElement('div');
-            div.textContent = text;
+            div.textContent = String(text);
             return div.innerHTML;
         }
 
-        // Save note to API and update local data
+        // Save note to API with visual feedback
         async function saveNote(contactId, value) {
-            await fetch(`/api/contacts/${contactId}/notes`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ notes: value })
-            });
-            // Update local data so loadNote() returns fresh value
-            if (contactsData) {
-                const contact = contactsData.contacts.find(c => c.id === contactId);
-                if (contact) contact.notes = value;
+            const statusEl = document.getElementById(`note-status-${contactId}`);
+            try {
+                const response = await fetch(`/api/contacts/${contactId}/notes`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ notes: value })
+                });
+
+                if (!response.ok) throw new Error('Save failed');
+
+                if (contactsData) {
+                    const contact = contactsData.contacts.find(c => c.id === contactId);
+                    if (contact) contact.notes = value;
+                }
+
+                if (statusEl) {
+                    statusEl.textContent = 'Saved';
+                    statusEl.className = 'note-save-status saved visible';
+                    setTimeout(() => { statusEl.className = 'note-save-status saved'; }, 2000);
+                }
+            } catch (err) {
+                console.error('Failed to save note:', err);
+                if (statusEl) {
+                    statusEl.textContent = 'Save failed';
+                    statusEl.className = 'note-save-status error visible';
+                    setTimeout(() => { statusEl.className = 'note-save-status error'; }, 3000);
+                }
             }
         }
 
-        // Update priority in DB and update row styling
         async function updatePriority(contactId, selectEl) {
             const priority = selectEl.value;
             selectEl.className = `priority-select ${priority}`;
@@ -1214,13 +1151,12 @@
             });
         }
 
-        // Drag-and-drop row reordering using Pointer Events (solid, cross-browser, touch-friendly)
+        // Drag-and-drop row reordering using Pointer Events
         let dragState = null;
         let rafId = null;
 
         function initDragAndDrop() {
             const tbody = document.getElementById('active-table-body');
-            // Remove previous listeners by cloning (safe since we re-init after render)
             tbody.addEventListener('pointerdown', onDragPointerDown);
         }
 
@@ -1235,7 +1171,6 @@
             const tbody = document.getElementById('active-table-body');
             const rowRect = row.getBoundingClientRect();
 
-            // Create ghost: a table clone to preserve column widths
             const table = document.createElement('table');
             table.className = 'drag-ghost';
             table.style.width = rowRect.width + 'px';
@@ -1243,7 +1178,6 @@
             table.style.left = rowRect.left + 'px';
             const ghostTbody = document.createElement('tbody');
             const ghostRow = row.cloneNode(true);
-            // Fix cell widths from live row
             const liveCells = row.querySelectorAll('td');
             const ghostCells = ghostRow.querySelectorAll('td');
             liveCells.forEach((cell, i) => {
@@ -1253,7 +1187,6 @@
             table.appendChild(ghostTbody);
             document.body.appendChild(table);
 
-            // Placeholder preserves row height in table
             const placeholder = document.createElement('tr');
             placeholder.className = 'drag-placeholder';
             const placeholderTd = document.createElement('td');
@@ -1275,7 +1208,6 @@
                 latestY: e.clientY,
             };
 
-            // Capture all pointer events on the handle
             handle.setPointerCapture(e.pointerId);
             document.addEventListener('pointermove', onDragPointerMove);
             document.addEventListener('pointerup', onDragPointerUp);
@@ -1294,10 +1226,8 @@
             if (!dragState) return;
             const { ghost, placeholder, tbody, row, offsetY, latestY } = dragState;
 
-            // Move ghost
             ghost.style.top = (latestY - offsetY) + 'px';
 
-            // Snap placeholder to correct insertion point
             const rows = Array.from(tbody.querySelectorAll('tr:not(.drag-source):not(.drag-placeholder)'));
             let insertBefore = null;
             for (const r of rows) {
@@ -1318,7 +1248,6 @@
             if (!dragState) return;
             const { row, ghost, placeholder, tbody } = dragState;
 
-            // Drop: replace placeholder with the real row
             placeholder.replaceWith(row);
             ghost.remove();
             row.classList.remove('drag-source');
@@ -1330,7 +1259,6 @@
             if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
             dragState = null;
 
-            // Persist new order to server
             saveRowOrder(tbody);
         }
 
@@ -1352,7 +1280,6 @@
             }
         }
 
-        // Load note from contact data
         function loadNote(contactId) {
             if (!contactsData) return '';
             const contact = contactsData.contacts.find(c => c.id === contactId);
@@ -1363,54 +1290,52 @@
         // NOTE MODAL
         // =========================================
         let currentContactId = null;
-        let currentContactName = null;
-        let currentContactEmail = null;
 
         function openNoteModal(contactId, contactName, contactEmail) {
             currentContactId = contactId;
-            currentContactName = contactName;
-            currentContactEmail = contactEmail;
 
             const modal = document.getElementById('noteModal');
             const modalTextarea = document.getElementById('modalNoteTextarea');
-            const modalTitle = document.getElementById('modalContactName');
-            const modalInfo = document.getElementById('modalContactInfo');
 
-            modalTitle.textContent = contactName;
-            modalInfo.textContent = contactEmail;
+            document.getElementById('modalContactName').textContent = contactName;
+            document.getElementById('modalContactInfo').textContent = contactEmail;
 
-            const existingNote = loadNote(contactId);
-            modalTextarea.value = existingNote;
-
+            modalTextarea.value = loadNote(contactId);
             modal.style.display = 'block';
             modalTextarea.focus();
-
             updateCharCount();
         }
 
         function closeNoteModal() {
-            const modal = document.getElementById('noteModal');
-            modal.style.display = 'none';
+            document.getElementById('noteModal').style.display = 'none';
         }
 
-        function saveModalNote() {
+        async function saveModalNote() {
             const modalTextarea = document.getElementById('modalNoteTextarea');
+            const saveBtn = document.getElementById('saveModalNoteBtn');
             const value = modalTextarea.value;
 
-            saveNote(currentContactId, value);
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
 
-            const inlineTextarea = document.getElementById(`note-${currentContactId}`);
-            if (inlineTextarea) {
-                inlineTextarea.value = value;
+            try {
+                await saveNote(currentContactId, value);
+
+                const inlineTextarea = document.getElementById(`note-${currentContactId}`);
+                if (inlineTextarea) {
+                    inlineTextarea.value = value;
+                }
+
+                closeNoteModal();
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save & Close';
             }
-
-            closeNoteModal();
         }
 
         function updateCharCount() {
             const modalTextarea = document.getElementById('modalNoteTextarea');
-            const charCount = document.getElementById('charCount');
-            charCount.textContent = `${modalTextarea.value.length} characters`;
+            document.getElementById('charCount').textContent = `${modalTextarea.value.length} characters`;
         }
 
         // =========================================
@@ -1420,7 +1345,6 @@
         function openAddContactModal() {
             editingContactId = null;
 
-            // Clear form
             document.getElementById('ac-name').value = '';
             document.getElementById('ac-email').value = '';
             document.getElementById('ac-tenant').value = '';
@@ -1428,9 +1352,10 @@
             document.getElementById('ac-activity').value = '';
             document.getElementById('ac-notes').value = '';
 
-            // Reset modal title and button
             document.getElementById('addContactModalTitle').textContent = 'Add Contact Manually';
-            document.getElementById('addContactSubmitBtn').textContent = '➕ Add Contact';
+            const submitBtn = document.getElementById('addContactSubmitBtn');
+            submitBtn.textContent = 'Add Contact';
+            submitBtn.disabled = false;
 
             document.getElementById('ac-error').style.display = 'none';
             document.getElementById('addContactModal').style.display = 'block';
@@ -1443,7 +1368,6 @@
 
             editingContactId = contactId;
 
-            // Prefill form with existing contact data
             document.getElementById('ac-name').value = contact.name || '';
             document.getElementById('ac-email').value = contact.email || '';
             document.getElementById('ac-tenant').value = contact.tenantName || '';
@@ -1451,9 +1375,10 @@
             document.getElementById('ac-activity').value = contact.activitySummary || '';
             document.getElementById('ac-notes').value = contact.notes || '';
 
-            // Update modal title and button for edit mode
-            document.getElementById('addContactModalTitle').textContent = '✏️ Edit Contact';
-            document.getElementById('addContactSubmitBtn').textContent = '💾 Save Changes';
+            document.getElementById('addContactModalTitle').textContent = 'Edit Contact';
+            const submitBtn = document.getElementById('addContactSubmitBtn');
+            submitBtn.textContent = 'Save Changes';
+            submitBtn.disabled = false;
 
             document.getElementById('ac-error').style.display = 'none';
             document.getElementById('addContactModal').style.display = 'block';
@@ -1473,6 +1398,7 @@
             const activitySummary = document.getElementById('ac-activity').value.trim();
             const notes = document.getElementById('ac-notes').value.trim();
             const errorEl = document.getElementById('ac-error');
+            const submitBtn = document.getElementById('addContactSubmitBtn');
 
             if (!name) {
                 errorEl.textContent = 'Name is required.';
@@ -1481,9 +1407,10 @@
             }
 
             errorEl.style.display = 'none';
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
 
             if (editingContactId) {
-                // --- UPDATE existing contact ---
                 try {
                     const response = await fetch(`/api/contacts/${editingContactId}`, {
                         method: 'PATCH',
@@ -1493,7 +1420,6 @@
 
                     if (!response.ok) throw new Error('Failed to update contact');
 
-                    // Update local data
                     if (contactsData) {
                         const contact = contactsData.contacts.find(c => c.id === editingContactId);
                         if (contact) {
@@ -1506,20 +1432,16 @@
                         }
                     }
 
-                    // Re-render the row in whichever table it currently lives
                     const existingRow = document.querySelector(`[data-contact-id="${editingContactId}"]`);
                     if (existingRow) {
                         const updatedContact = contactsData.contacts.find(c => c.id === editingContactId);
                         const newRow = createContactRow(updatedContact);
-                        // If it was archived, keep the archived-row class
                         if (existingRow.classList.contains('archived-row')) {
                             newRow.classList.add('archived-row');
                         }
                         existingRow.replaceWith(newRow);
-                        // Restore notes value in the inline textarea
                         const noteField = document.getElementById(`note-${editingContactId}`);
                         if (noteField) noteField.value = notes;
-                        // If it was checked (archived), restore the checkbox state
                         const checkbox = document.getElementById(editingContactId);
                         if (checkbox && existingRow.classList.contains('archived-row')) {
                             checkbox.checked = true;
@@ -1530,9 +1452,10 @@
                 } catch (err) {
                     errorEl.textContent = 'Error updating contact. Please try again.';
                     errorEl.style.display = 'block';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Save Changes';
                 }
             } else {
-                // --- CREATE new contact ---
                 try {
                     const response = await fetch('/api/contacts', {
                         method: 'POST',
@@ -1543,30 +1466,32 @@
                     if (!response.ok) throw new Error('Failed to create contact');
 
                     const result = await response.json();
-
-                    // Add new row to the top of the active table without full reload
                     const contact = result.contact;
+
                     if (contactsData) {
                         contactsData.contacts.unshift(contact);
                     }
                     const row = createContactRow(contact);
                     const tbody = document.getElementById('active-table-body');
                     tbody.insertBefore(row, tbody.firstChild);
-                    // If notes were provided, save them
+
                     if (notes) {
                         saveNote(contact.id, notes);
                         const noteField = document.getElementById(`note-${contact.id}`);
                         if (noteField) noteField.value = notes;
                     }
-                    // Save the new order so the position persists on reload
+
                     saveRowOrder(tbody);
                     updateStats();
                     updateTabCounts();
+                    updateActiveEmptyState();
 
                     closeAddContactModal();
                 } catch (err) {
                     errorEl.textContent = 'Error saving contact. Please try again.';
                     errorEl.style.display = 'block';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Add Contact';
                 }
             }
         }
@@ -1575,7 +1500,6 @@
         // CONTACT MANAGEMENT
         // =========================================
 
-        // Toggle contact checkbox and move between tabs
         async function toggleContact(contactId) {
             const checkbox = document.getElementById(contactId);
             const row = checkbox.closest('tr');
@@ -1600,23 +1524,20 @@
             updateTabCounts();
         }
 
-        // Move row to archive tab
         function moveToArchive(row) {
-            const archivedTable = document.getElementById('archived-table-body');
-            archivedTable.appendChild(row);
+            document.getElementById('archived-table-body').appendChild(row);
             row.classList.add('archived-row');
             updateArchivedEmptyState();
+            updateActiveEmptyState();
         }
 
-        // Move row back to active tab
         function moveToActive(row) {
-            const activeTable = document.getElementById('active-table-body');
-            activeTable.appendChild(row);
+            document.getElementById('active-table-body').appendChild(row);
             row.classList.remove('archived-row');
             updateArchivedEmptyState();
+            updateActiveEmptyState();
         }
 
-        // Update statistics
         function updateStats() {
             const allCheckboxes = document.querySelectorAll('input[type="checkbox"]');
             const total = allCheckboxes.length;
@@ -1628,33 +1549,23 @@
             document.getElementById('stat-contacted').textContent = contacted;
         }
 
-        // Update tab badge counts
         function updateTabCounts() {
-            const activeCount = document.getElementById('active-table-body').children.length;
-            const archivedCount = document.getElementById('archived-table-body').children.length;
-
-            document.getElementById('active-count').textContent = activeCount;
-            document.getElementById('archived-count').textContent = archivedCount;
+            document.getElementById('active-count').textContent =
+                document.getElementById('active-table-body').children.length;
+            document.getElementById('archived-count').textContent =
+                document.getElementById('archived-table-body').children.length;
         }
 
-        // Switch tabs
         function switchTab(tabName) {
-            document.querySelectorAll('.tab-button').forEach(btn => {
-                btn.classList.remove('active');
-            });
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
             document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
-
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             document.getElementById(`${tabName}-tab`).classList.add('active');
         }
 
-        // Show/hide empty state for archived tab
         function updateArchivedEmptyState() {
             const archivedBody = document.getElementById('archived-table-body');
             const emptyState = document.getElementById('archived-empty');
-
             if (archivedBody.children.length === 0) {
                 archivedBody.style.display = 'none';
                 emptyState.style.display = 'block';
@@ -1664,7 +1575,12 @@
             }
         }
 
-        // Restore checkbox states and notes from API data
+        function updateActiveEmptyState() {
+            const activeBody = document.getElementById('active-table-body');
+            const emptyState = document.getElementById('active-empty');
+            emptyState.style.display = activeBody.children.length === 0 ? 'block' : 'none';
+        }
+
         function restoreCheckboxStates() {
             document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
                 const contactId = checkbox.id;
@@ -1673,8 +1589,7 @@
 
                 if (contact.contacted) {
                     checkbox.checked = true;
-                    const row = checkbox.closest('tr');
-                    moveToArchive(row);
+                    moveToArchive(checkbox.closest('tr'));
                 }
 
                 const noteField = document.querySelector(`#note-${contactId}`);
@@ -1688,12 +1603,15 @@
         // EVENT LISTENERS
         // =========================================
 
-        // Close addContactModal when clicking outside
+        // Close modals when clicking outside
         window.onclick = function(event) {
             if (event.target === document.getElementById('addContactModal')) {
                 closeAddContactModal();
             }
-        }
+            if (event.target === document.getElementById('noteModal')) {
+                closeNoteModal();
+            }
+        };
 
         // Escape key closes modals
         document.addEventListener('keydown', function(event) {
