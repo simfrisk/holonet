@@ -752,6 +752,25 @@
         }
         .topic-filter-btn:hover { background: var(--color-border); }
         .topic-filter-btn.active { background: var(--color-primary); color: white; font-weight: 600; }
+        .topic-row { display: flex; align-items: center; gap: 2px; margin-bottom: 2px; }
+        .topic-row .topic-filter-btn { flex: 1; margin-bottom: 0; }
+        .topic-delete-btn {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            line-height: 1;
+            font-size: 13px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: var(--color-text-subtle);
+            border-radius: 3px;
+            opacity: 0;
+            transition: opacity 0.15s, color 0.15s, background 0.15s;
+        }
+        .topic-row:hover .topic-delete-btn { opacity: 1; }
+        .topic-delete-btn:hover { color: var(--color-danger); background: rgba(220,53,69,0.12); }
         .topics-divider { height: 1px; background: var(--color-border); margin: 10px 0; }
         .add-topic-label {
             display: block;
@@ -2062,13 +2081,33 @@
             topicsData.forEach(topic => {
                 const count = draftsData.filter(d => d.topic === topic).length;
                 const isActive = activeDraftTopic === topic;
-                html += `<button class="topic-filter-btn ${isActive ? 'active' : ''}"
-                    data-topic="${escapeHtml(topic)}"
-                    onclick="filterDrafts('${escapeAttr(topic)}')"
-                    title="${escapeHtml(topic)}">${escapeHtml(topic)} (${count})</button>`;
+                html += `<div class="topic-row">
+                    <button class="topic-filter-btn ${isActive ? 'active' : ''}"
+                        data-topic="${escapeHtml(topic)}"
+                        onclick="filterDrafts('${escapeAttr(topic)}')"
+                        title="${escapeHtml(topic)}">${escapeHtml(topic)} (${count})</button>
+                    <button class="topic-delete-btn"
+                        onclick="deleteTopic('${escapeAttr(topic)}')"
+                        title="Delete topic">×</button>
+                </div>`;
             });
 
             container.innerHTML = html;
+        }
+
+        async function deleteTopic(topic) {
+            if (!confirm(`Delete the topic "${topic}"? Drafts with this topic won't be deleted.`)) return;
+            try {
+                const response = await fetch(`/api/topics/${encodeURIComponent(topic)}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error('Delete failed');
+                const data = await response.json();
+                topicsData = data.topics || topicsData;
+                if (activeDraftTopic === topic) activeDraftTopic = 'all';
+                renderTopicsSidebar();
+                renderDraftsGrid();
+            } catch (err) {
+                alert('Failed to delete topic. Please try again.');
+            }
         }
 
         function renderDraftsGrid() {

@@ -840,6 +840,43 @@ app.get('/api/topics', async (req, res) => {
     }
 });
 
+// Delete a topic
+app.delete('/api/topics/:topic', async (req, res) => {
+    try {
+        const topicToDelete = decodeURIComponent(req.params.topic).trim();
+        const docUrl = `${dbUrl}/email_topics`;
+        const getResponse = await couchFetch(docUrl);
+
+        if (getResponse.status === 404) {
+            return res.status(404).json({ error: 'Topics doc not found' });
+        }
+        if (!getResponse.ok) throw new Error('Failed to fetch topics doc');
+
+        const doc = await getResponse.json();
+        const before = (doc.topics || []).length;
+        doc.topics = (doc.topics || []).filter(
+            t => t.toLowerCase() !== topicToDelete.toLowerCase()
+        );
+
+        if (doc.topics.length === before) {
+            return res.status(404).json({ error: 'Topic not found' });
+        }
+
+        const saveResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!saveResponse.ok) throw new Error('Failed to save topics');
+
+        res.json({ success: true, topics: doc.topics });
+    } catch (error) {
+        console.error('Error deleting topic:', error);
+        res.status(500).json({ error: 'Failed to delete topic' });
+    }
+});
+
 // Add a topic
 app.post('/api/topics', async (req, res) => {
     try {
