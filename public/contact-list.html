@@ -2024,8 +2024,12 @@
         let activeSection = 'contacts';
         let activeContactTab = 'active';
 
-        function switchSection(sectionName) {
+        function switchSection(sectionName, skipHash) {
             activeSection = sectionName;
+            if (!skipHash) {
+                const hash = sectionName === 'contacts' ? `contacts-${activeContactTab}` : sectionName;
+                history.replaceState(null, '', `#${hash}`);
+            }
 
             // Update primary nav buttons
             document.querySelectorAll('.primary-nav-btn').forEach(btn => btn.classList.remove('active'));
@@ -2052,12 +2056,35 @@
             }
         }
 
-        function switchTab(tabName) {
+        function switchTab(tabName, skipHash) {
             activeContactTab = tabName;
+            if (!skipHash) {
+                history.replaceState(null, '', `#contacts-${tabName}`);
+            }
             document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
             document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        function restoreNavFromHash() {
+            const hash = window.location.hash.slice(1);
+            const CONTACT_SUB_TABS = ['active', 'archived', 'later', 'skip'];
+            const TOP_SECTIONS = ['drafts', 'todos'];
+
+            if (TOP_SECTIONS.includes(hash)) {
+                switchSection(hash, true);
+            } else if (hash.startsWith('contacts-')) {
+                const sub = hash.replace('contacts-', '');
+                if (CONTACT_SUB_TABS.includes(sub)) {
+                    activeContactTab = sub;
+                    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                    const btn = document.querySelector(`[data-tab="${sub}"]`);
+                    if (btn) btn.classList.add('active');
+                }
+                switchSection('contacts', true);
+            }
+            // default (no hash or unknown): stays on contacts/active
         }
 
         // =========================================
@@ -2908,7 +2935,7 @@
         // =========================================
         window.addEventListener('DOMContentLoaded', () => {
             initDarkMode();
-            loadContacts();
+            loadContacts().then(() => restoreNavFromHash());
         });
     </script>
 </body>
