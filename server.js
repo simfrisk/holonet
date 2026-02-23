@@ -99,8 +99,9 @@ async function createDesignDocuments() {
 
         if (checkResponse.ok) {
             existingDoc = await checkResponse.json();
-            // Already has all_drafts view — nothing to do
-            if (existingDoc.views && existingDoc.views.all_drafts) {
+            // All required views present — nothing to do
+            const required = ['all_contacts', 'by_email', 'by_tenant', 'all_drafts', 'all_todos'];
+            if (existingDoc.views && required.every(v => existingDoc.views[v])) {
                 return;
             }
         }
@@ -112,7 +113,7 @@ async function createDesignDocuments() {
             views: {
                 all_contacts: {
                     map: function(doc) {
-                        if (doc._id !== 'metadata' && doc.type !== 'email_draft' && doc._id !== 'email_topics') {
+                        if (doc._id !== 'metadata' && doc.type !== 'email_draft' && doc._id !== 'email_topics' && doc.type !== 'todo') {
                             emit(doc._id, doc);
                         }
                     }.toString()
@@ -135,6 +136,13 @@ async function createDesignDocuments() {
                     map: function(doc) {
                         if (doc.type === 'email_draft') {
                             emit(doc.createdAt, doc);
+                        }
+                    }.toString()
+                },
+                all_todos: {
+                    map: function(doc) {
+                        if (doc.type === 'todo') {
+                            emit(doc.sortOrder != null ? doc.sortOrder : doc.createdAt, doc);
                         }
                     }.toString()
                 }
@@ -919,6 +927,178 @@ app.post('/api/topics', async (req, res) => {
     } catch (error) {
         console.error('Error adding topic:', error);
         res.status(500).json({ error: 'Failed to add topic' });
+    }
+});
+
+// ================================
+// TODOS API
+// ================================
+
+// Get all todos
+app.get('/api/todos', async (req, res) => {
+    try {
+        const viewUrl = `${dbUrl}/_design/contacts/_view/all_todos`;
+        const viewResponse = await couchFetch(viewUrl);
+
+        if (!viewResponse.ok) {
+            return res.json({ todos: [] });
+        }
+
+        const viewData = await viewResponse.json();
+        const todos = viewData.rows.map(row => {
+            const { _id, _rev, type, ...todo } = row.value;
+            return { id: _id, ...todo };
+        });
+
+        // Sort by sortOrder (if set), then by createdAt ascending (oldest first)
+        todos.sort((a, b) => {
+            if (a.sortOrder != null && b.sortOrder != null) return a.sortOrder - b.sortOrder;
+            if (a.sortOrder != null) return -1;
+            if (b.sortOrder != null) return 1;
+            return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+        });
+
+        res.json({ todos });
+    } catch (error) {
+        console.error('Error fetching todos:', error);
+        res.status(500).json({ error: 'Failed to fetch todos' });
+    }
+});
+
+// Create todo
+app.post('/api/todos', async (req, res) => {
+    try {
+        const { text, priority, dueDate } = req.body;
+
+        if (!text || !text.trim()) {
+            return res.status(400).json({ error: 'text is required' });
+        }
+
+        const id = `todo-${Date.now()}`;
+        const doc = {
+            _id: id,
+            type: 'todo',
+            text: text.trim(),
+            done: false,
+            priority: priority || null,
+            dueDate: dueDate || null,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            sortOrder: null
+        };
+
+        const docUrl = `${dbUrl}/${id}`;
+        const response = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!response.ok) throw new Error('Failed to create todo');
+
+        res.json({ success: true, id, todo: { id, ...doc } });
+    } catch (error) {
+        console.error('Error creating todo:', error);
+        res.status(500).json({ error: 'Failed to create todo' });
+    }
+});
+
+// Update todo (text, done, priority, dueDate)
+app.patch('/api/todos/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { text, done, priority, dueDate } = req.body;
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Todo not found' });
+        }
+
+        const doc = await getResponse.json();
+
+        if (text !== undefined) doc.text = text.trim();
+        if (done !== undefined) doc.done = Boolean(done);
+        if (priority !== undefined) doc.priority = priority;
+        if (dueDate !== undefined) doc.dueDate = dueDate;
+        if (done === true && !doc.doneAt) doc.doneAt = new Date().toISOString();
+        if (done === false) doc.doneAt = null;
+        doc.updatedAt = new Date().toISOString();
+
+        const updateResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!updateResponse.ok) throw new Error('Failed to update todo');
+
+        res.json({ success: true, todo: { id, ...doc } });
+    } catch (error) {
+        console.error('Error updating todo:', error);
+        res.status(500).json({ error: 'Failed to update todo' });
+    }
+});
+
+// Delete todo
+app.delete('/api/todos/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Todo not found' });
+        }
+
+        const doc = await getResponse.json();
+        const deleteResponse = await couchFetch(`${docUrl}?rev=${doc._rev}`, {
+            method: 'DELETE'
+        });
+
+        if (!deleteResponse.ok) throw new Error('Failed to delete todo');
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting todo:', error);
+        res.status(500).json({ error: 'Failed to delete todo' });
+    }
+});
+
+// Reorder todos
+app.post('/api/todos/reorder', async (req, res) => {
+    try {
+        const { order } = req.body; // [{ id, sortOrder }, ...]
+        if (!Array.isArray(order)) {
+            return res.status(400).json({ error: 'order must be an array' });
+        }
+
+        const docs = await Promise.all(order.map(async ({ id, sortOrder }) => {
+            const docUrl = `${dbUrl}/${id}`;
+            const getResponse = await couchFetch(docUrl);
+            if (!getResponse.ok) return null;
+            const doc = await getResponse.json();
+            doc.sortOrder = sortOrder;
+            doc.updatedAt = new Date().toISOString();
+            return doc;
+        }));
+
+        const validDocs = docs.filter(Boolean);
+        const bulkUrl = `${dbUrl}/_bulk_docs`;
+        const bulkResponse = await couchFetch(bulkUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ docs: validDocs })
+        });
+
+        if (!bulkResponse.ok) throw new Error('Bulk reorder failed');
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error reordering todos:', error);
+        res.status(500).json({ error: 'Failed to reorder todos' });
     }
 });
 
