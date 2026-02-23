@@ -159,27 +159,86 @@
             color: var(--color-text-muted);
         }
 
-        /* Tab Navigation */
-        .tab-nav {
+        /* =========================================
+           PRIMARY NAVIGATION (top-level sections)
+           ========================================= */
+        .primary-nav {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 4px;
+            flex-wrap: wrap;
+        }
+        .primary-nav-btn {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 18px;
+            background: none;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            font-family: inherit;
+            transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+            letter-spacing: 0.01em;
+        }
+        .primary-nav-btn:hover {
+            color: var(--color-text);
+            background-color: var(--color-surface-elevated);
+        }
+        .primary-nav-btn.active {
+            color: var(--color-text);
+            background-color: var(--color-surface-elevated);
+            border-color: var(--color-border);
+        }
+        .pnav-icon {
+            font-size: 15px;
+            line-height: 1;
+        }
+        .pnav-count {
+            font-size: 12px;
+            font-weight: 600;
+            background: var(--color-border);
+            color: var(--color-text-muted);
+            padding: 1px 7px;
+            border-radius: 10px;
+            min-width: 20px;
+            text-align: center;
+        }
+        .primary-nav-btn.active .pnav-count {
+            background: var(--color-primary);
+            color: white;
+        }
+
+        /* =========================================
+           SUB NAVIGATION (contact list sub-tabs)
+           ========================================= */
+        .sub-nav {
             display: flex;
             gap: 2px;
             margin-bottom: 20px;
             border-bottom: 1px solid var(--color-border);
             flex-wrap: wrap;
+            padding-top: 8px;
         }
+        .sub-nav.hidden { display: none; }
+
         .tab-button {
-            padding: 9px 18px;
+            padding: 8px 16px;
             background: none;
             border: none;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
             color: var(--color-text-muted);
             border-bottom: 2px solid transparent;
             transition: color 0.15s ease, border-bottom-color 0.15s ease;
             margin-bottom: -1px;
-            border-radius: 6px 6px 0 0;
+            border-radius: 4px 4px 0 0;
             letter-spacing: 0.01em;
+            font-family: inherit;
         }
         .tab-button:hover {
             color: var(--color-text);
@@ -728,7 +787,7 @@
         /* =========================================
            EMAIL DRAFTS TAB
            ========================================= */
-        .tab-button.tab-drafts.active { color: #9b59b6; border-bottom-color: #9b59b6; }
+        /* drafts/todos are now primary-nav items, not sub-tabs */
 
         .drafts-layout {
             display: flex;
@@ -966,7 +1025,7 @@
         /* =========================================
            TODO TAB
            ========================================= */
-        .tab-button.tab-todos.active { color: #27ae60; border-bottom-color: #27ae60; }
+        /* drafts/todos are now primary-nav items, not sub-tabs */
 
         .todo-tab-inner { max-width: 700px; }
 
@@ -1233,8 +1292,21 @@
             </div>
         </header>
 
-        <!-- Tab Navigation -->
-        <div class="tab-nav">
+        <!-- Primary Navigation -->
+        <div class="primary-nav">
+            <button class="primary-nav-btn active" data-section="contacts" onclick="switchSection('contacts')">
+                <span class="pnav-icon">👥</span> Contact List <span class="pnav-count" id="contacts-section-count">0</span>
+            </button>
+            <button class="primary-nav-btn" data-section="drafts" onclick="switchSection('drafts')">
+                <span class="pnav-icon">✉️</span> Email Drafts <span class="pnav-count" id="drafts-count">0</span>
+            </button>
+            <button class="primary-nav-btn" data-section="todos" onclick="switchSection('todos')">
+                <span class="pnav-icon">✅</span> To-do <span class="pnav-count" id="todos-count">0</span>
+            </button>
+        </div>
+
+        <!-- Sub Navigation (contact list sub-tabs) -->
+        <div class="sub-nav" id="contact-sub-nav">
             <button class="tab-button active" data-tab="active" onclick="switchTab('active')">
                 Active (<span id="active-count">0</span>)
             </button>
@@ -1246,12 +1318,6 @@
             </button>
             <button class="tab-button tab-skip" data-tab="skip" onclick="switchTab('skip')">
                 Skip (<span id="skip-count">0</span>)
-            </button>
-            <button class="tab-button tab-drafts" data-tab="drafts" onclick="switchTab('drafts')">
-                Email Drafts (<span id="drafts-count">0</span>)
-            </button>
-            <button class="tab-button tab-todos" data-tab="todos" onclick="switchTab('todos')">
-                To-do (<span id="todos-count">0</span>)
             </button>
         </div>
 
@@ -1924,14 +1990,18 @@
         }
 
         function updateTabCounts() {
-            document.getElementById('active-count').textContent =
-                document.getElementById('active-table-body').children.length;
-            document.getElementById('archived-count').textContent =
-                document.getElementById('archived-table-body').children.length;
-            document.getElementById('later-count').textContent =
-                document.getElementById('later-table-body').children.length;
-            document.getElementById('skip-count').textContent =
-                document.getElementById('skip-table-body').children.length;
+            const activeCount = document.getElementById('active-table-body').children.length;
+            const archivedCount = document.getElementById('archived-table-body').children.length;
+            const laterCount = document.getElementById('later-table-body').children.length;
+            const skipCount = document.getElementById('skip-table-body').children.length;
+
+            document.getElementById('active-count').textContent = activeCount;
+            document.getElementById('archived-count').textContent = archivedCount;
+            document.getElementById('later-count').textContent = laterCount;
+            document.getElementById('skip-count').textContent = skipCount;
+
+            // Update primary nav badge (show active contact count)
+            document.getElementById('contacts-section-count').textContent = activeCount;
         }
 
         function updateAllEmptyStates() {
@@ -1950,18 +2020,44 @@
             });
         }
 
+        const CONTACT_TABS = ['active', 'archived', 'later', 'skip'];
+        let activeSection = 'contacts';
+        let activeContactTab = 'active';
+
+        function switchSection(sectionName) {
+            activeSection = sectionName;
+
+            // Update primary nav buttons
+            document.querySelectorAll('.primary-nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
+
+            // Show/hide sub-nav
+            const subNav = document.getElementById('contact-sub-nav');
+            if (sectionName === 'contacts') {
+                subNav.classList.remove('hidden');
+                // Restore last active contact sub-tab
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(`${activeContactTab}-tab`).classList.add('active');
+            } else {
+                subNav.classList.add('hidden');
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(`${sectionName}-tab`).classList.add('active');
+
+                if (sectionName === 'drafts' && !draftsLoaded) {
+                    loadDraftsTab();
+                }
+                if (sectionName === 'todos' && !todosLoaded) {
+                    loadTodosTab();
+                }
+            }
+        }
+
         function switchTab(tabName) {
+            activeContactTab = tabName;
             document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
             document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             document.getElementById(`${tabName}-tab`).classList.add('active');
-
-            if (tabName === 'drafts' && !draftsLoaded) {
-                loadDraftsTab();
-            }
-            if (tabName === 'todos' && !todosLoaded) {
-                loadTodosTab();
-            }
         }
 
         // =========================================
