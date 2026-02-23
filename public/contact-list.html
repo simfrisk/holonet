@@ -252,6 +252,8 @@
             font-family: inherit;
             font-size: 13px;
             resize: vertical;
+            background-color: white;
+            color: #333;
         }
         .notes-field:focus {
             outline: none;
@@ -286,6 +288,40 @@
         }
         .expand-button:hover {
             background-color: #0052a3;
+        }
+
+        /* Edit row button */
+        .edit-row-btn {
+            display: block;
+            margin-top: 6px;
+            background: none;
+            border: 1px solid #0066cc;
+            color: #0066cc;
+            border-radius: 4px;
+            padding: 3px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            white-space: nowrap;
+        }
+        .edit-row-btn:hover {
+            background-color: #0066cc;
+            color: white;
+        }
+
+        /* Dark mode toggle */
+        .dark-mode-btn {
+            background: none;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+            line-height: 1;
+        }
+        .dark-mode-btn:hover {
+            background-color: #f0f0f0;
         }
 
         /* Modal Popup */
@@ -380,6 +416,8 @@
             line-height: 1.6;
             resize: vertical;
             box-sizing: border-box;
+            background-color: white;
+            color: #333;
         }
         .modal-textarea:focus {
             outline: none;
@@ -620,6 +658,8 @@
             font-family: inherit;
             font-size: 14px;
             box-sizing: border-box;
+            background-color: white;
+            color: #333;
         }
         .form-group input:focus,
         .form-group select:focus,
@@ -636,6 +676,193 @@
         @media (max-width: 600px) {
             .form-row { grid-template-columns: 1fr; }
         }
+
+        /* =========================================
+           DARK MODE
+           ========================================= */
+        [data-theme="dark"] body {
+            background-color: #0d1117;
+            color: #e6edf3;
+        }
+        [data-theme="dark"] .container {
+            background-color: #161b22;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+        }
+        [data-theme="dark"] header {
+            border-bottom-color: #30363d;
+        }
+        [data-theme="dark"] h1 {
+            color: #58a6ff;
+        }
+        [data-theme="dark"] .stat-card {
+            background-color: #21262d;
+            border-left-color: #58a6ff;
+        }
+        [data-theme="dark"] .stat-card strong {
+            color: #58a6ff;
+        }
+        [data-theme="dark"] .stat-card span {
+            color: #8b949e;
+        }
+        [data-theme="dark"] .tab-nav {
+            border-bottom-color: #30363d;
+        }
+        [data-theme="dark"] .tab-button {
+            color: #8b949e;
+        }
+        [data-theme="dark"] .tab-button:hover {
+            color: #58a6ff;
+            background-color: #21262d;
+        }
+        [data-theme="dark"] .tab-button.active {
+            color: #58a6ff;
+            border-bottom-color: #58a6ff;
+        }
+        [data-theme="dark"] th {
+            background-color: #21262d;
+            color: #e6edf3;
+        }
+        [data-theme="dark"] td {
+            border-bottom-color: #30363d;
+            color: #e6edf3;
+        }
+        [data-theme="dark"] tr:hover {
+            background-color: #1c2128;
+        }
+        [data-theme="dark"] .priority-high {
+            background-color: #2d1215;
+        }
+        [data-theme="dark"] .priority-medium {
+            background-color: #2d2210;
+        }
+        [data-theme="dark"] .priority-low {
+            background-color: #0d2818;
+        }
+        [data-theme="dark"] .notes-field {
+            background-color: #0d1117;
+            border-color: #30363d;
+            color: #e6edf3;
+        }
+        [data-theme="dark"] .notes-field::placeholder {
+            color: #6e7681;
+        }
+        [data-theme="dark"] .notes-field:focus {
+            border-color: #58a6ff;
+            box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.15);
+        }
+        [data-theme="dark"] .modal-content {
+            background-color: #161b22;
+        }
+        [data-theme="dark"] .modal-footer {
+            background-color: #21262d;
+            border-top-color: #30363d;
+        }
+        [data-theme="dark"] .modal-textarea {
+            background-color: #0d1117;
+            border-color: #30363d;
+            color: #e6edf3;
+        }
+        [data-theme="dark"] .modal-textarea:focus {
+            border-color: #58a6ff;
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.15);
+        }
+        [data-theme="dark"] .form-group label {
+            color: #8b949e;
+        }
+        [data-theme="dark"] .form-group input,
+        [data-theme="dark"] .form-group select,
+        [data-theme="dark"] .form-group textarea {
+            background-color: #0d1117;
+            border-color: #30363d;
+            color: #e6edf3;
+        }
+        [data-theme="dark"] .form-group input:focus,
+        [data-theme="dark"] .form-group select:focus,
+        [data-theme="dark"] .form-group textarea:focus {
+            border-color: #58a6ff;
+            box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.15);
+        }
+        [data-theme="dark"] .char-count {
+            color: #8b949e;
+        }
+        [data-theme="dark"] .empty-state {
+            color: #8b949e;
+        }
+        [data-theme="dark"] .loading {
+            color: #8b949e;
+        }
+        [data-theme="dark"] .drag-ghost {
+            background: #161b22;
+            border-color: #58a6ff;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+        }
+        [data-theme="dark"] tr.drag-placeholder td {
+            background: #1a3a5c !important;
+            border-top-color: #58a6ff !important;
+        }
+        [data-theme="dark"] .activity-summary {
+            color: #c9d1d9;
+        }
+        [data-theme="dark"] .tenant-name {
+            color: #8b949e;
+        }
+        [data-theme="dark"] .tenant-link {
+            color: #58a6ff;
+            border-bottom-color: #58a6ff;
+        }
+        [data-theme="dark"] .tenant-link:hover {
+            background-color: #1a3a5c;
+        }
+        [data-theme="dark"] .slack-link {
+            color: #58a6ff;
+        }
+        [data-theme="dark"] .priority-select option {
+            background: #161b22;
+            color: #e6edf3;
+        }
+        [data-theme="dark"] .dark-mode-btn {
+            border-color: #30363d;
+            color: #e6edf3;
+        }
+        [data-theme="dark"] .dark-mode-btn:hover {
+            background-color: #21262d;
+        }
+        [data-theme="dark"] .edit-row-btn {
+            border-color: #58a6ff;
+            color: #58a6ff;
+        }
+        [data-theme="dark"] .edit-row-btn:hover {
+            background-color: #58a6ff;
+            color: #0d1117;
+        }
+        [data-theme="dark"] .add-contact-btn {
+            background-color: #1f6feb;
+        }
+        [data-theme="dark"] .add-contact-btn:hover {
+            background-color: #388bfd;
+        }
+        [data-theme="dark"] table {
+            color: #e6edf3;
+        }
+        /* Mobile dark mode adjustments */
+        @media (max-width: 600px) {
+            [data-theme="dark"] tr {
+                border-color: #30363d;
+                box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            }
+            [data-theme="dark"] td {
+                border-bottom-color: #21262d;
+            }
+            [data-theme="dark"] td[data-label]::before {
+                color: #6e7681;
+            }
+            [data-theme="dark"] .checkbox-cell {
+                background-color: #21262d;
+            }
+            [data-theme="dark"] .checkbox-cell::after {
+                color: #8b949e;
+            }
+        }
     </style>
 </head>
 <body>
@@ -643,7 +870,10 @@
         <header>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h1 style="margin: 0;">🎯 OSC Sales Contact List</h1>
-                <button class="add-contact-btn" onclick="openAddContactModal()">+ Add Contact</button>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="dark-mode-btn" id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</button>
+                    <button class="add-contact-btn" onclick="openAddContactModal()">+ Add Contact</button>
+                </div>
             </div>
             <div class="stats">
                 <div class="stat-card">
@@ -707,6 +937,7 @@
             <table>
                 <thead>
                     <tr>
+                        <th style="width:30px;"></th>
                         <th class="checkbox-cell">✓</th>
                         <th>Priority</th>
                         <th>Name / Organization</th>
@@ -759,12 +990,12 @@
         </div>
     </div>
 
-    <!-- Add Contact Modal -->
+    <!-- Add / Edit Contact Modal -->
     <div id="addContactModal" class="modal">
         <div class="modal-content" style="resize: none; min-height: unset;">
             <div class="modal-header">
                 <div>
-                    <h2>Add Contact Manually</h2>
+                    <h2 id="addContactModalTitle">Add Contact Manually</h2>
                 </div>
                 <button class="close-button" onclick="closeAddContactModal()">&times;</button>
             </div>
@@ -797,17 +1028,52 @@
                     <label for="ac-activity">Activity Summary</label>
                     <textarea id="ac-activity" rows="3" placeholder="Brief description of why this contact is relevant..."></textarea>
                 </div>
+                <div class="form-group">
+                    <label for="ac-notes">Notes</label>
+                    <textarea id="ac-notes" rows="3" placeholder="Internal notes, email drafts, follow-up reminders..."></textarea>
+                </div>
                 <p id="ac-error" style="color: #dc3545; font-size: 13px; display: none;"></p>
             </div>
             <div class="modal-footer">
-                <button class="close-button" onclick="closeAddContactModal()" style="background: #6c757d; color: white; font-size: 14px; width: auto; height: auto; padding: 10px 18px; border-radius: 6px;">Cancel</button>
-                <button class="save-button" onclick="submitAddContact()">➕ Add Contact</button>
+                <button onclick="closeAddContactModal()" style="background: #6c757d; color: white; border: none; padding: 10px 18px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer;">Cancel</button>
+                <button class="save-button" id="addContactSubmitBtn" onclick="submitAddContact()">➕ Add Contact</button>
             </div>
         </div>
     </div>
 
     <script>
         let contactsData = null;
+        let editingContactId = null;
+
+        // =========================================
+        // DARK MODE
+        // =========================================
+        function initDarkMode() {
+            const saved = localStorage.getItem('darkMode');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const isDark = saved !== null ? saved === 'true' : prefersDark;
+            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+            updateDarkModeButton(isDark);
+        }
+
+        function toggleDarkMode() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            const newMode = !isDark;
+            document.documentElement.setAttribute('data-theme', newMode ? 'dark' : 'light');
+            localStorage.setItem('darkMode', String(newMode));
+            updateDarkModeButton(newMode);
+        }
+
+        function updateDarkModeButton(isDark) {
+            const btn = document.getElementById('darkModeBtn');
+            if (!btn) return;
+            btn.textContent = isDark ? '☀️' : '🌙';
+            btn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+        }
+
+        // =========================================
+        // CONTACTS
+        // =========================================
 
         // Load contacts from API
         async function loadContacts() {
@@ -901,6 +1167,7 @@
                 <td data-label="First Seen">${contact.firstSeen}</td>
                 <td data-label="Context">
                     <a href="https://ops-ui.osaas.io/d/45a4f896-1072-4957-ad18-9b4f0c1e77ef/tenant?orgId=1&from=now-24h&to=now&timezone=browser&var-tenant=${encodeURIComponent(contact.tenantName)}&refresh=5m" class="slack-link" target="_blank">Grafana ↗</a>
+                    <button class="edit-row-btn" onclick="openEditModal('${contact.id}')">✏️ Edit</button>
                 </td>
             `;
 
@@ -1092,7 +1359,9 @@
             return contact ? (contact.notes || '') : '';
         }
 
-        // Modal popup functions
+        // =========================================
+        // NOTE MODAL
+        // =========================================
         let currentContactId = null;
         let currentContactName = null;
         let currentContactEmail = null;
@@ -1144,21 +1413,167 @@
             charCount.textContent = `${modalTextarea.value.length} characters`;
         }
 
-        // Close only addContactModal when clicking outside (not noteModal)
-        window.onclick = function(event) {
-            if (event.target === document.getElementById('addContactModal')) {
-                closeAddContactModal();
+        // =========================================
+        // ADD / EDIT CONTACT MODAL
+        // =========================================
+
+        function openAddContactModal() {
+            editingContactId = null;
+
+            // Clear form
+            document.getElementById('ac-name').value = '';
+            document.getElementById('ac-email').value = '';
+            document.getElementById('ac-tenant').value = '';
+            document.getElementById('ac-priority').value = 'medium';
+            document.getElementById('ac-activity').value = '';
+            document.getElementById('ac-notes').value = '';
+
+            // Reset modal title and button
+            document.getElementById('addContactModalTitle').textContent = 'Add Contact Manually';
+            document.getElementById('addContactSubmitBtn').textContent = '➕ Add Contact';
+
+            document.getElementById('ac-error').style.display = 'none';
+            document.getElementById('addContactModal').style.display = 'block';
+            document.getElementById('ac-name').focus();
+        }
+
+        function openEditModal(contactId) {
+            const contact = contactsData && contactsData.contacts.find(c => c.id === contactId);
+            if (!contact) return;
+
+            editingContactId = contactId;
+
+            // Prefill form with existing contact data
+            document.getElementById('ac-name').value = contact.name || '';
+            document.getElementById('ac-email').value = contact.email || '';
+            document.getElementById('ac-tenant').value = contact.tenantName || '';
+            document.getElementById('ac-priority').value = contact.priority || 'medium';
+            document.getElementById('ac-activity').value = contact.activitySummary || '';
+            document.getElementById('ac-notes').value = contact.notes || '';
+
+            // Update modal title and button for edit mode
+            document.getElementById('addContactModalTitle').textContent = '✏️ Edit Contact';
+            document.getElementById('addContactSubmitBtn').textContent = '💾 Save Changes';
+
+            document.getElementById('ac-error').style.display = 'none';
+            document.getElementById('addContactModal').style.display = 'block';
+            document.getElementById('ac-name').focus();
+        }
+
+        function closeAddContactModal() {
+            document.getElementById('addContactModal').style.display = 'none';
+            editingContactId = null;
+        }
+
+        async function submitAddContact() {
+            const name = document.getElementById('ac-name').value.trim();
+            const email = document.getElementById('ac-email').value.trim();
+            const tenantName = document.getElementById('ac-tenant').value.trim();
+            const priority = document.getElementById('ac-priority').value;
+            const activitySummary = document.getElementById('ac-activity').value.trim();
+            const notes = document.getElementById('ac-notes').value.trim();
+            const errorEl = document.getElementById('ac-error');
+
+            if (!name) {
+                errorEl.textContent = 'Name is required.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            errorEl.style.display = 'none';
+
+            if (editingContactId) {
+                // --- UPDATE existing contact ---
+                try {
+                    const response = await fetch(`/api/contacts/${editingContactId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, email, tenantName, priority, activitySummary, notes })
+                    });
+
+                    if (!response.ok) throw new Error('Failed to update contact');
+
+                    // Update local data
+                    if (contactsData) {
+                        const contact = contactsData.contacts.find(c => c.id === editingContactId);
+                        if (contact) {
+                            contact.name = name;
+                            contact.email = email;
+                            contact.tenantName = tenantName;
+                            contact.priority = priority;
+                            contact.activitySummary = activitySummary;
+                            contact.notes = notes;
+                        }
+                    }
+
+                    // Re-render the row in whichever table it currently lives
+                    const existingRow = document.querySelector(`[data-contact-id="${editingContactId}"]`);
+                    if (existingRow) {
+                        const updatedContact = contactsData.contacts.find(c => c.id === editingContactId);
+                        const newRow = createContactRow(updatedContact);
+                        // If it was archived, keep the archived-row class
+                        if (existingRow.classList.contains('archived-row')) {
+                            newRow.classList.add('archived-row');
+                        }
+                        existingRow.replaceWith(newRow);
+                        // Restore notes value in the inline textarea
+                        const noteField = document.getElementById(`note-${editingContactId}`);
+                        if (noteField) noteField.value = notes;
+                        // If it was checked (archived), restore the checkbox state
+                        const checkbox = document.getElementById(editingContactId);
+                        if (checkbox && existingRow.classList.contains('archived-row')) {
+                            checkbox.checked = true;
+                        }
+                    }
+
+                    closeAddContactModal();
+                } catch (err) {
+                    errorEl.textContent = 'Error updating contact. Please try again.';
+                    errorEl.style.display = 'block';
+                }
+            } else {
+                // --- CREATE new contact ---
+                try {
+                    const response = await fetch('/api/contacts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, email, tenantName, priority, activitySummary })
+                    });
+
+                    if (!response.ok) throw new Error('Failed to create contact');
+
+                    const result = await response.json();
+
+                    // Add new row to the top of the active table without full reload
+                    const contact = result.contact;
+                    if (contactsData) {
+                        contactsData.contacts.unshift(contact);
+                    }
+                    const row = createContactRow(contact);
+                    const tbody = document.getElementById('active-table-body');
+                    tbody.insertBefore(row, tbody.firstChild);
+                    // If notes were provided, save them
+                    if (notes) {
+                        saveNote(contact.id, notes);
+                        const noteField = document.getElementById(`note-${contact.id}`);
+                        if (noteField) noteField.value = notes;
+                    }
+                    // Save the new order so the position persists on reload
+                    saveRowOrder(tbody);
+                    updateStats();
+                    updateTabCounts();
+
+                    closeAddContactModal();
+                } catch (err) {
+                    errorEl.textContent = 'Error saving contact. Please try again.';
+                    errorEl.style.display = 'block';
+                }
             }
         }
 
-        // Close addContactModal with Escape key
-        document.addEventListener('keydown', function(event) {
-            if (event.key === 'Escape') {
-                if (document.getElementById('addContactModal').style.display === 'block') {
-                    closeAddContactModal();
-                }
-            }
-        });
+        // =========================================
+        // CONTACT MANAGEMENT
+        // =========================================
 
         // Toggle contact checkbox and move between tabs
         async function toggleContact(contactId) {
@@ -1199,22 +1614,6 @@
             activeTable.appendChild(row);
             row.classList.remove('archived-row');
             updateArchivedEmptyState();
-        }
-
-        // Sort active table by priority
-        function sortActiveTable() {
-            const tbody = document.getElementById('active-table-body');
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            const rank = { high: 1, medium: 2, low: 3 };
-
-            rows.sort((a, b) => {
-                const aSelect = a.querySelector('.priority-select');
-                const bSelect = b.querySelector('.priority-select');
-                return (rank[aSelect ? aSelect.value : 'low'] || 3) -
-                       (rank[bSelect ? bSelect.value : 'low'] || 3);
-            });
-
-            rows.forEach(row => tbody.appendChild(row));
         }
 
         // Update statistics
@@ -1285,71 +1684,34 @@
             });
         }
 
-        // Add Contact Modal
-        function openAddContactModal() {
-            document.getElementById('ac-name').value = '';
-            document.getElementById('ac-email').value = '';
-            document.getElementById('ac-tenant').value = '';
-            document.getElementById('ac-priority').value = 'medium';
-            document.getElementById('ac-activity').value = '';
-            document.getElementById('ac-error').style.display = 'none';
-            document.getElementById('addContactModal').style.display = 'block';
-            document.getElementById('ac-name').focus();
-        }
+        // =========================================
+        // EVENT LISTENERS
+        // =========================================
 
-        function closeAddContactModal() {
-            document.getElementById('addContactModal').style.display = 'none';
-        }
-
-        async function submitAddContact() {
-            const name = document.getElementById('ac-name').value.trim();
-            const email = document.getElementById('ac-email').value.trim();
-            const tenantName = document.getElementById('ac-tenant').value.trim();
-            const priority = document.getElementById('ac-priority').value;
-            const activitySummary = document.getElementById('ac-activity').value.trim();
-            const errorEl = document.getElementById('ac-error');
-
-            if (!name) {
-                errorEl.textContent = 'Name is required.';
-                errorEl.style.display = 'block';
-                return;
-            }
-
-            errorEl.style.display = 'none';
-
-            try {
-                const response = await fetch('/api/contacts', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, email, tenantName, priority, activitySummary })
-                });
-
-                if (!response.ok) throw new Error('Failed to create contact');
-
-                const result = await response.json();
-
-                // Add new row to the top of the active table without full reload
-                const contact = result.contact;
-                if (contactsData) {
-                    contactsData.contacts.unshift(contact);
-                }
-                const row = createContactRow(contact);
-                const tbody = document.getElementById('active-table-body');
-                tbody.insertBefore(row, tbody.firstChild);
-                // Save the new order so the position persists on reload
-                saveRowOrder(tbody);
-                updateStats();
-                updateTabCounts();
-
+        // Close addContactModal when clicking outside
+        window.onclick = function(event) {
+            if (event.target === document.getElementById('addContactModal')) {
                 closeAddContactModal();
-            } catch (err) {
-                errorEl.textContent = 'Error saving contact. Please try again.';
-                errorEl.style.display = 'block';
             }
         }
 
-        // Initialize on page load
+        // Escape key closes modals
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                if (document.getElementById('addContactModal').style.display === 'block') {
+                    closeAddContactModal();
+                }
+                if (document.getElementById('noteModal').style.display === 'block') {
+                    closeNoteModal();
+                }
+            }
+        });
+
+        // =========================================
+        // INIT
+        // =========================================
         window.addEventListener('DOMContentLoaded', () => {
+            initDarkMode();
             loadContacts();
         });
     </script>

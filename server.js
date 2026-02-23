@@ -296,6 +296,46 @@ app.patch('/api/contacts/:id/priority', async (req, res) => {
     }
 });
 
+// Update contact fields (name, email, tenantName, priority, activitySummary, notes)
+app.patch('/api/contacts/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, email, tenantName, priority, activitySummary, notes } = req.body;
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Contact not found' });
+        }
+
+        const doc = await getResponse.json();
+
+        if (name !== undefined) doc.name = name;
+        if (email !== undefined) doc.email = email;
+        if (tenantName !== undefined) doc.tenantName = tenantName;
+        if (priority !== undefined) doc.priority = priority;
+        if (activitySummary !== undefined) doc.activitySummary = activitySummary;
+        if (notes !== undefined) doc.notes = notes;
+        doc.updatedAt = new Date().toISOString();
+
+        const updateResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!updateResponse.ok) {
+            throw new Error('Failed to update contact');
+        }
+
+        res.json({ success: true, contact: { id, ...doc } });
+    } catch (error) {
+        console.error('Error updating contact:', error);
+        res.status(500).json({ error: 'Failed to update contact' });
+    }
+});
+
 // Mark contact as contacted (archived)
 app.patch('/api/contacts/:id/contacted', async (req, res) => {
     try {
