@@ -90,49 +90,68 @@ async function initializeCouchDB() {
 
 // Create design documents for querying
 async function createDesignDocuments() {
-    const designDoc = {
-        _id: '_design/contacts',
-        views: {
-            all_contacts: {
-                map: function(doc) {
-                    if (doc._id !== 'metadata') {
-                        emit(doc._id, doc);
-                    }
-                }.toString()
-            },
-            by_email: {
-                map: function(doc) {
-                    if (doc.email) {
-                        emit(doc.email, doc);
-                    }
-                }.toString()
-            },
-            by_tenant: {
-                map: function(doc) {
-                    if (doc.tenantName) {
-                        emit(doc.tenantName, doc);
-                    }
-                }.toString()
-            }
-        }
-    };
+    const checkUrl = `${dbUrl}/_design/contacts`;
 
     try {
-        // Check if design doc exists
-        const checkUrl = `${dbUrl}/_design/contacts`;
+        // Fetch existing design doc (if any)
         const checkResponse = await couchFetch(checkUrl);
+        let existingDoc = null;
 
-        if (checkResponse.status === 404) {
-            // Create design doc
-            const createResponse = await couchFetch(checkUrl, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(designDoc)
-            });
-
-            if (createResponse.ok) {
-                console.log('✅ Created CouchDB design documents');
+        if (checkResponse.ok) {
+            existingDoc = await checkResponse.json();
+            // Already has all_drafts view — nothing to do
+            if (existingDoc.views && existingDoc.views.all_drafts) {
+                return;
             }
+        }
+
+        // Build design doc (preserving _rev if updating)
+        const designDoc = {
+            _id: '_design/contacts',
+            ...(existingDoc ? { _rev: existingDoc._rev } : {}),
+            views: {
+                all_contacts: {
+                    map: function(doc) {
+                        if (doc._id !== 'metadata' && doc.type !== 'email_draft' && doc._id !== 'email_topics') {
+                            emit(doc._id, doc);
+                        }
+                    }.toString()
+                },
+                by_email: {
+                    map: function(doc) {
+                        if (doc.email) {
+                            emit(doc.email, doc);
+                        }
+                    }.toString()
+                },
+                by_tenant: {
+                    map: function(doc) {
+                        if (doc.tenantName) {
+                            emit(doc.tenantName, doc);
+                        }
+                    }.toString()
+                },
+                all_drafts: {
+                    map: function(doc) {
+                        if (doc.type === 'email_draft') {
+                            emit(doc.createdAt, doc);
+                        }
+                    }.toString()
+                }
+            }
+        };
+
+        const saveResponse = await couchFetch(checkUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(designDoc)
+        });
+
+        if (saveResponse.ok) {
+            console.log(existingDoc ? '✅ Updated CouchDB design documents (added all_drafts view)' : '✅ Created CouchDB design documents');
+        } else {
+            const err = await saveResponse.text();
+            console.warn('⚠️  Could not save design documents:', err);
         }
     } catch (error) {
         console.warn('⚠️  Could not create design documents:', error.message);
@@ -664,6 +683,205 @@ app.post('/api/contacts/reorder', async (req, res) => {
     } catch (error) {
         console.error('Error reordering contacts:', error);
         res.status(500).json({ error: 'Failed to reorder contacts' });
+    }
+});
+
+// ================================
+// EMAIL DRAFTS API
+// ================================
+
+// Get all email drafts
+app.get('/api/drafts', async (req, res) => {
+    try {
+        const viewUrl = `${dbUrl}/_design/contacts/_view/all_drafts`;
+        const viewResponse = await couchFetch(viewUrl);
+
+        if (!viewResponse.ok) {
+            // View may not exist yet — return empty list gracefully
+            return res.json({ drafts: [] });
+        }
+
+        const viewData = await viewResponse.json();
+        const drafts = viewData.rows.map(row => {
+            const { _id, _rev, type, ...draft } = row.value;
+            return { id: _id, ...draft };
+        });
+
+        // Newest first
+        drafts.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+        res.json({ drafts });
+    } catch (error) {
+        console.error('Error fetching drafts:', error);
+        res.status(500).json({ error: 'Failed to fetch drafts' });
+    }
+});
+
+// Create email draft
+app.post('/api/drafts', async (req, res) => {
+    try {
+        const { subject, body, topic } = req.body;
+
+        if (!subject) {
+            return res.status(400).json({ error: 'subject is required' });
+        }
+
+        const id = `draft-${Date.now()}`;
+        const doc = {
+            _id: id,
+            type: 'email_draft',
+            subject,
+            body: body || '',
+            topic: topic || 'General',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        const docUrl = `${dbUrl}/${id}`;
+        const response = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!response.ok) throw new Error('Failed to create draft');
+
+        res.json({ success: true, id, draft: { id, ...doc } });
+    } catch (error) {
+        console.error('Error creating draft:', error);
+        res.status(500).json({ error: 'Failed to create draft' });
+    }
+});
+
+// Update email draft
+app.patch('/api/drafts/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { subject, body, topic } = req.body;
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Draft not found' });
+        }
+
+        const doc = await getResponse.json();
+
+        if (subject !== undefined) doc.subject = subject;
+        if (body !== undefined) doc.body = body;
+        if (topic !== undefined) doc.topic = topic;
+        doc.updatedAt = new Date().toISOString();
+
+        const updateResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!updateResponse.ok) throw new Error('Failed to update draft');
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error updating draft:', error);
+        res.status(500).json({ error: 'Failed to update draft' });
+    }
+});
+
+// Delete email draft
+app.delete('/api/drafts/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Draft not found' });
+        }
+
+        const doc = await getResponse.json();
+        const deleteResponse = await couchFetch(`${docUrl}?rev=${doc._rev}`, {
+            method: 'DELETE'
+        });
+
+        if (!deleteResponse.ok) throw new Error('Failed to delete draft');
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting draft:', error);
+        res.status(500).json({ error: 'Failed to delete draft' });
+    }
+});
+
+// ================================
+// TOPICS API
+// ================================
+
+const DEFAULT_TOPICS = ['Onboarding', 'Re-engagement', 'Feature Announcement', 'Follow-up', 'General'];
+
+// Get all topics
+app.get('/api/topics', async (req, res) => {
+    try {
+        const docUrl = `${dbUrl}/email_topics`;
+        const response = await couchFetch(docUrl);
+
+        if (response.status === 404) {
+            return res.json({ topics: DEFAULT_TOPICS });
+        }
+
+        if (!response.ok) throw new Error('Failed to fetch topics');
+
+        const doc = await response.json();
+        res.json({ topics: doc.topics || DEFAULT_TOPICS });
+    } catch (error) {
+        console.error('Error fetching topics:', error);
+        res.status(500).json({ error: 'Failed to fetch topics' });
+    }
+});
+
+// Add a topic
+app.post('/api/topics', async (req, res) => {
+    try {
+        const { topic } = req.body;
+
+        if (!topic || !topic.trim()) {
+            return res.status(400).json({ error: 'topic is required' });
+        }
+
+        const trimmedTopic = topic.trim();
+        const docUrl = `${dbUrl}/email_topics`;
+        const getResponse = await couchFetch(docUrl);
+
+        let doc;
+        if (getResponse.status === 404) {
+            doc = { _id: 'email_topics', topics: [...DEFAULT_TOPICS] };
+        } else if (getResponse.ok) {
+            doc = await getResponse.json();
+            if (!doc.topics) doc.topics = [...DEFAULT_TOPICS];
+        } else {
+            throw new Error('Failed to fetch topics doc');
+        }
+
+        // Avoid case-insensitive duplicates
+        if (doc.topics.some(t => t.toLowerCase() === trimmedTopic.toLowerCase())) {
+            return res.json({ success: true, topics: doc.topics, message: 'Topic already exists' });
+        }
+
+        doc.topics.push(trimmedTopic);
+
+        const saveResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!saveResponse.ok) throw new Error('Failed to save topics');
+
+        res.json({ success: true, topics: doc.topics });
+    } catch (error) {
+        console.error('Error adding topic:', error);
+        res.status(500).json({ error: 'Failed to add topic' });
     }
 });
 

@@ -703,6 +703,225 @@
         }
         .add-contact-btn:hover { background-color: var(--color-primary-hover); }
 
+        /* =========================================
+           EMAIL DRAFTS TAB
+           ========================================= */
+        .tab-button.tab-drafts.active { color: #9b59b6; border-bottom-color: #9b59b6; }
+
+        .drafts-layout {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+            align-items: flex-start;
+        }
+
+        .topics-sidebar {
+            width: 180px;
+            flex-shrink: 0;
+            background: var(--color-surface-elevated);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 14px;
+            position: sticky;
+            top: 20px;
+        }
+        .topics-sidebar-title {
+            margin: 0 0 10px 0;
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+        .topic-filter-btn {
+            display: block;
+            width: 100%;
+            text-align: left;
+            padding: 7px 10px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 13px;
+            border-radius: 5px;
+            color: var(--color-text);
+            margin-bottom: 2px;
+            transition: background-color 0.15s;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .topic-filter-btn:hover { background: var(--color-border); }
+        .topic-filter-btn.active { background: var(--color-primary); color: white; font-weight: 600; }
+        .topics-divider { height: 1px; background: var(--color-border); margin: 10px 0; }
+        .add-topic-label {
+            display: block;
+            font-size: 11px;
+            color: var(--color-text-muted);
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .add-topic-row { display: flex; gap: 5px; }
+        .add-topic-input {
+            flex: 1;
+            padding: 5px 7px;
+            font-size: 12px;
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            background: var(--color-input-bg);
+            color: var(--color-text);
+            min-width: 0;
+        }
+        .add-topic-input:focus { outline: none; border-color: var(--color-primary); }
+        .add-topic-save {
+            padding: 5px 10px;
+            font-size: 16px;
+            line-height: 1;
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .add-topic-save:hover { background: var(--color-primary-hover); }
+
+        .drafts-grid-wrapper { flex: 1; min-width: 0; }
+        .drafts-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .drafts-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
+        .new-draft-btn {
+            padding: 8px 14px;
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        .new-draft-btn:hover { background: var(--color-primary-hover); }
+
+        .drafts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .draft-tile {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            transition: box-shadow 0.2s;
+        }
+        .draft-tile:hover { box-shadow: 0 4px 16px var(--color-shadow); }
+        .draft-tile-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .draft-topic-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.2px;
+        }
+        .draft-tile-subject {
+            font-weight: 700;
+            font-size: 15px;
+            margin: 0 0 8px 0;
+            line-height: 1.35;
+            color: var(--color-text);
+        }
+        .draft-tile-body {
+            font-size: 13px;
+            color: var(--color-text-muted);
+            line-height: 1.55;
+            flex: 1;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 5;
+            -webkit-box-orient: vertical;
+            margin-bottom: 14px;
+            white-space: pre-wrap;
+        }
+        .draft-tile-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .draft-copy-btn {
+            flex: 1;
+            padding: 6px 10px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: center;
+            min-width: 80px;
+        }
+        .copy-subject-btn {
+            background: var(--color-surface-elevated);
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+        }
+        .copy-subject-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+        .copy-subject-btn.copied { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+        .copy-body-btn {
+            background: var(--color-surface-elevated);
+            border: 1px solid var(--color-border);
+            color: var(--color-text);
+        }
+        .copy-body-btn:hover { border-color: var(--color-success); color: var(--color-success); }
+        .copy-body-btn.copied { background: var(--color-success); color: white; border-color: var(--color-success); }
+        .draft-edit-btn {
+            padding: 6px 10px;
+            font-size: 12px;
+            border: 1px solid var(--color-border);
+            border-radius: 5px;
+            cursor: pointer;
+            background: var(--color-surface-elevated);
+            color: var(--color-text-muted);
+            transition: all 0.15s;
+        }
+        .draft-edit-btn:hover { color: var(--color-text); border-color: var(--color-text-muted); }
+        .draft-delete-btn {
+            padding: 6px 10px;
+            font-size: 12px;
+            border: 1px solid transparent;
+            border-radius: 5px;
+            cursor: pointer;
+            background: none;
+            color: var(--color-text-subtle);
+            transition: all 0.15s;
+        }
+        .draft-delete-btn:hover { color: var(--color-danger); border-color: var(--color-danger); background: #fff0f0; }
+        html[data-theme="dark"] .draft-delete-btn:hover { background: #3a0d12; }
+
+        .drafts-empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--color-text-muted);
+        }
+        .drafts-empty-state svg { width: 48px; height: 48px; margin: 0 auto 12px; display: block; opacity: 0.35; }
+        .drafts-empty-state h3 { margin: 0 0 8px 0; font-size: 18px; color: var(--color-text); }
+        .drafts-empty-state p { margin: 0; font-size: 14px; }
+
+        @media (max-width: 700px) {
+            .drafts-layout { flex-direction: column; }
+            .topics-sidebar { width: 100%; position: static; }
+            .drafts-grid { grid-template-columns: 1fr; }
+        }
+
         /* Add Contact Modal Form */
         .form-group { margin-bottom: 16px; }
         .form-group label {
@@ -787,6 +1006,9 @@
             </button>
             <button class="tab-button tab-skip" data-tab="skip" onclick="switchTab('skip')">
                 Skip (<span id="skip-count">0</span>)
+            </button>
+            <button class="tab-button tab-drafts" data-tab="drafts" onclick="switchTab('drafts')">
+                Email Drafts (<span id="drafts-count">0</span>)
             </button>
         </div>
 
@@ -910,6 +1132,44 @@
                 <p>Contacts marked as Skip will permanently stay here — the Slack bot won't reactivate them.</p>
             </div>
         </div>
+
+        <!-- Email Drafts Tab -->
+        <div id="drafts-tab" class="tab-content">
+            <div class="drafts-layout">
+                <!-- Topic filter sidebar -->
+                <aside class="topics-sidebar">
+                    <p class="topics-sidebar-title">Topics</p>
+                    <div id="topics-filter-list">
+                        <button class="topic-filter-btn active" data-topic="all" onclick="filterDrafts('all')">All Drafts</button>
+                    </div>
+                    <div class="topics-divider"></div>
+                    <span class="add-topic-label">Add Topic</span>
+                    <div class="add-topic-row">
+                        <input type="text" class="add-topic-input" id="new-topic-input" placeholder="New topic..."
+                               onkeydown="if(event.key==='Enter') addTopic()">
+                        <button class="add-topic-save" onclick="addTopic()" title="Add topic">+</button>
+                    </div>
+                </aside>
+
+                <!-- Draft tiles grid -->
+                <div class="drafts-grid-wrapper">
+                    <div class="drafts-header">
+                        <h3 id="drafts-heading">All Email Drafts</h3>
+                        <button class="new-draft-btn" onclick="openDraftModal()">+ New Draft</button>
+                    </div>
+                    <div class="drafts-grid" id="drafts-grid">
+                        <div class="drafts-empty-state">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                                      d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                            <h3>No email drafts yet</h3>
+                            <p>Click "+ New Draft" to save your first email template.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Note Modal Popup -->
@@ -984,6 +1244,38 @@
             <div class="modal-footer">
                 <button class="cancel-button" onclick="closeAddContactModal()">Cancel</button>
                 <button class="save-button" id="addContactSubmitBtn" onclick="submitAddContact()">Add Contact</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Draft Create / Edit Modal -->
+    <div id="draftModal" class="modal">
+        <div class="modal-content" style="max-width: 620px; min-height: unset;">
+            <div class="modal-header">
+                <h2 id="draftModalTitle">New Email Draft</h2>
+                <button class="close-button" onclick="closeDraftModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="draft-topic-select">Topic</label>
+                        <select id="draft-topic-select"></select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="draft-subject">Subject *</label>
+                    <input type="text" id="draft-subject" placeholder="Email subject line...">
+                </div>
+                <div class="form-group">
+                    <label for="draft-body">Email Body</label>
+                    <textarea id="draft-body" rows="12"
+                              placeholder="Write your email template here...&#10;&#10;You can use placeholders like {{name}}, {{company}}, {{service}}"></textarea>
+                </div>
+                <p id="draft-error" class="load-error" style="display: none;"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-button" onclick="closeDraftModal()">Cancel</button>
+                <button class="save-button" id="draftSubmitBtn" onclick="saveDraft()">Save Draft</button>
             </div>
         </div>
     </div>
@@ -1389,6 +1681,10 @@
             document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             document.getElementById(`${tabName}-tab`).classList.add('active');
+
+            if (tabName === 'drafts' && !draftsLoaded) {
+                loadDraftsTab();
+            }
         }
 
         // =========================================
@@ -1685,17 +1981,336 @@
         }
 
         // =========================================
+        // EMAIL DRAFTS
+        // =========================================
+
+        let draftsData = [];
+        let topicsData = [];
+        let activeDraftTopic = 'all';
+        let editingDraftId = null;
+        let draftsLoaded = false;
+
+        // 8 rotating color palettes for topic badges (light / dark variants)
+        const TOPIC_PALETTES_LIGHT = [
+            { bg: '#dbeafe', text: '#1d4ed8', border: '#bfdbfe' },
+            { bg: '#dcfce7', text: '#166534', border: '#bbf7d0' },
+            { bg: '#fef3c7', text: '#92400e', border: '#fde68a' },
+            { bg: '#ede9fe', text: '#5b21b6', border: '#ddd6fe' },
+            { bg: '#fee2e2', text: '#991b1b', border: '#fecaca' },
+            { bg: '#d1fae5', text: '#065f46', border: '#a7f3d0' },
+            { bg: '#ffedd5', text: '#9a3412', border: '#fed7aa' },
+            { bg: '#e0f2fe', text: '#075985', border: '#bae6fd' },
+        ];
+        const TOPIC_PALETTES_DARK = [
+            { bg: '#1e3a5f', text: '#93c5fd', border: '#2a4e7a' },
+            { bg: '#0d3a1a', text: '#6ee7b7', border: '#1a5c2a' },
+            { bg: '#3a2a00', text: '#fcd34d', border: '#5a4100' },
+            { bg: '#2e1a5e', text: '#c4b5fd', border: '#4a2e8a' },
+            { bg: '#3a0d12', text: '#fca5a5', border: '#5c1520' },
+            { bg: '#0a3325', text: '#6ee7b7', border: '#155c3a' },
+            { bg: '#3a1a00', text: '#fdba74', border: '#5c2a00' },
+            { bg: '#0a2d45', text: '#7dd3fc', border: '#124060' },
+        ];
+
+        function getTopicPalette(topic) {
+            if (!topic) return TOPIC_PALETTES_LIGHT[0];
+            let hash = 0;
+            for (let i = 0; i < topic.length; i++) {
+                hash = ((hash << 5) - hash) + topic.charCodeAt(i);
+                hash |= 0;
+            }
+            const idx = Math.abs(hash) % TOPIC_PALETTES_LIGHT.length;
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+            return isDark ? TOPIC_PALETTES_DARK[idx] : TOPIC_PALETTES_LIGHT[idx];
+        }
+
+        async function loadDraftsTab() {
+            try {
+                const [draftsRes, topicsRes] = await Promise.all([
+                    fetch('/api/drafts'),
+                    fetch('/api/topics')
+                ]);
+                if (draftsRes.ok) {
+                    const data = await draftsRes.json();
+                    draftsData = data.drafts || [];
+                }
+                if (topicsRes.ok) {
+                    const data = await topicsRes.json();
+                    topicsData = data.topics || [];
+                }
+                draftsLoaded = true;
+                updateDraftsCount();
+                renderTopicsSidebar();
+                renderDraftsGrid();
+            } catch (err) {
+                console.error('Failed to load drafts:', err);
+            }
+        }
+
+        function updateDraftsCount() {
+            const el = document.getElementById('drafts-count');
+            if (el) el.textContent = draftsData.length;
+        }
+
+        function renderTopicsSidebar() {
+            const container = document.getElementById('topics-filter-list');
+            if (!container) return;
+            const allCount = draftsData.length;
+            let html = `<button class="topic-filter-btn ${activeDraftTopic === 'all' ? 'active' : ''}"
+                data-topic="all" onclick="filterDrafts('all')">All Drafts (${allCount})</button>`;
+
+            topicsData.forEach(topic => {
+                const count = draftsData.filter(d => d.topic === topic).length;
+                const isActive = activeDraftTopic === topic;
+                html += `<button class="topic-filter-btn ${isActive ? 'active' : ''}"
+                    data-topic="${escapeHtml(topic)}"
+                    onclick="filterDrafts('${escapeAttr(topic)}')"
+                    title="${escapeHtml(topic)}">${escapeHtml(topic)} (${count})</button>`;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function renderDraftsGrid() {
+            const grid = document.getElementById('drafts-grid');
+            const heading = document.getElementById('drafts-heading');
+            if (!grid) return;
+
+            const filtered = activeDraftTopic === 'all'
+                ? draftsData
+                : draftsData.filter(d => d.topic === activeDraftTopic);
+
+            if (heading) {
+                heading.textContent = activeDraftTopic === 'all' ? 'All Email Drafts' : `${activeDraftTopic} Drafts`;
+            }
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="drafts-empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                    </svg>
+                    <h3>No drafts here yet</h3>
+                    <p>Click "+ New Draft" to create your first email template.</p>
+                </div>`;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(draft => buildDraftTileHtml(draft)).join('');
+        }
+
+        function buildDraftTileHtml(draft) {
+            const pal = getTopicPalette(draft.topic);
+            const badgeStyle = `background-color:${pal.bg};color:${pal.text};border:1px solid ${pal.border};`;
+            const topBorderColor = pal.text;
+
+            return `<div class="draft-tile" data-draft-id="${escapeHtml(draft.id)}" style="border-top:3px solid ${topBorderColor};">
+                <div class="draft-tile-top">
+                    <span class="draft-topic-badge" style="${badgeStyle}">${escapeHtml(draft.topic || 'General')}</span>
+                </div>
+                <p class="draft-tile-subject">${escapeHtml(draft.subject)}</p>
+                <div class="draft-tile-body">${escapeHtml(draft.body || '')}</div>
+                <div class="draft-tile-actions">
+                    <button class="draft-copy-btn copy-subject-btn"
+                        onclick="copyDraftField('${escapeAttr(draft.id)}','subject')"
+                        title="Copy subject line">📋 Subject</button>
+                    <button class="draft-copy-btn copy-body-btn"
+                        onclick="copyDraftField('${escapeAttr(draft.id)}','body')"
+                        title="Copy email body">📋 Body</button>
+                    <button class="draft-edit-btn"
+                        onclick="openDraftModal('${escapeAttr(draft.id)}')"
+                        title="Edit draft">✏️</button>
+                    <button class="draft-delete-btn"
+                        onclick="confirmDeleteDraft('${escapeAttr(draft.id)}')"
+                        title="Delete draft">🗑</button>
+                </div>
+            </div>`;
+        }
+
+        function filterDrafts(topic) {
+            activeDraftTopic = topic;
+            renderTopicsSidebar();
+            renderDraftsGrid();
+        }
+
+        async function copyDraftField(draftId, field) {
+            const draft = draftsData.find(d => d.id === draftId);
+            if (!draft) return;
+            const text = field === 'subject' ? (draft.subject || '') : (draft.body || '');
+
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch (e) {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+
+            // Visual feedback on the button
+            const tile = document.querySelector(`[data-draft-id="${CSS.escape(draftId)}"]`);
+            if (tile) {
+                const selector = field === 'subject' ? '.copy-subject-btn' : '.copy-body-btn';
+                const btn = tile.querySelector(selector);
+                if (btn) {
+                    const orig = btn.innerHTML;
+                    btn.textContent = '✓ Copied!';
+                    btn.classList.add('copied');
+                    setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied'); }, 1500);
+                }
+            }
+        }
+
+        function openDraftModal(draftId) {
+            editingDraftId = draftId || null;
+            const modal = document.getElementById('draftModal');
+            const title = document.getElementById('draftModalTitle');
+            const submitBtn = document.getElementById('draftSubmitBtn');
+
+            // Populate topic <select>
+            const select = document.getElementById('draft-topic-select');
+            const opts = topicsData.length
+                ? topicsData
+                : ['Onboarding', 'Re-engagement', 'Feature Announcement', 'Follow-up', 'General'];
+            select.innerHTML = opts.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+
+            if (editingDraftId) {
+                const draft = draftsData.find(d => d.id === editingDraftId);
+                if (!draft) return;
+                title.textContent = 'Edit Email Draft';
+                submitBtn.textContent = 'Save Changes';
+                document.getElementById('draft-subject').value = draft.subject || '';
+                document.getElementById('draft-body').value = draft.body || '';
+                select.value = draft.topic || opts[0];
+            } else {
+                title.textContent = 'New Email Draft';
+                submitBtn.textContent = 'Save Draft';
+                document.getElementById('draft-subject').value = '';
+                document.getElementById('draft-body').value = '';
+                if (activeDraftTopic !== 'all') select.value = activeDraftTopic;
+            }
+
+            document.getElementById('draft-error').style.display = 'none';
+            submitBtn.disabled = false;
+            modal.style.display = 'block';
+            setTimeout(() => document.getElementById('draft-subject').focus(), 50);
+        }
+
+        function closeDraftModal() {
+            document.getElementById('draftModal').style.display = 'none';
+            editingDraftId = null;
+        }
+
+        async function saveDraft() {
+            const subject = document.getElementById('draft-subject').value.trim();
+            const body = document.getElementById('draft-body').value;
+            const topic = document.getElementById('draft-topic-select').value;
+            const errorEl = document.getElementById('draft-error');
+            const submitBtn = document.getElementById('draftSubmitBtn');
+
+            if (!subject) {
+                errorEl.textContent = 'Subject is required.';
+                errorEl.style.display = 'block';
+                return;
+            }
+
+            errorEl.style.display = 'none';
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Saving...';
+
+            try {
+                let response;
+                if (editingDraftId) {
+                    response = await fetch(`/api/drafts/${editingDraftId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ subject, body, topic })
+                    });
+                } else {
+                    response = await fetch('/api/drafts', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ subject, body, topic })
+                    });
+                }
+                if (!response.ok) throw new Error('Save failed');
+
+                // Refresh draft list
+                const draftsRes = await fetch('/api/drafts');
+                if (draftsRes.ok) {
+                    const data = await draftsRes.json();
+                    draftsData = data.drafts || [];
+                }
+
+                updateDraftsCount();
+                renderTopicsSidebar();
+                renderDraftsGrid();
+                closeDraftModal();
+            } catch (err) {
+                errorEl.textContent = 'Error saving draft. Please try again.';
+                errorEl.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.textContent = editingDraftId ? 'Save Changes' : 'Save Draft';
+            }
+        }
+
+        async function confirmDeleteDraft(draftId) {
+            const draft = draftsData.find(d => d.id === draftId);
+            if (!draft) return;
+            if (!confirm(`Delete the draft "${draft.subject}"?`)) return;
+
+            try {
+                const response = await fetch(`/api/drafts/${draftId}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error('Delete failed');
+                draftsData = draftsData.filter(d => d.id !== draftId);
+                updateDraftsCount();
+                renderTopicsSidebar();
+                renderDraftsGrid();
+            } catch (err) {
+                alert('Failed to delete draft. Please try again.');
+            }
+        }
+
+        async function addTopic() {
+            const input = document.getElementById('new-topic-input');
+            const topic = (input.value || '').trim();
+            if (!topic) return;
+
+            try {
+                const response = await fetch('/api/topics', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic })
+                });
+                if (!response.ok) throw new Error('Failed to add topic');
+                const data = await response.json();
+                topicsData = data.topics || topicsData;
+                input.value = '';
+                renderTopicsSidebar();
+            } catch (err) {
+                console.error('Failed to add topic:', err);
+            }
+        }
+
+        // =========================================
         // EVENT LISTENERS
         // =========================================
         window.onclick = function(event) {
             if (event.target === document.getElementById('addContactModal')) closeAddContactModal();
             if (event.target === document.getElementById('noteModal')) closeNoteModal();
+            if (event.target === document.getElementById('draftModal')) closeDraftModal();
         };
 
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
                 if (document.getElementById('addContactModal').style.display === 'block') closeAddContactModal();
                 if (document.getElementById('noteModal').style.display === 'block') closeNoteModal();
+                if (document.getElementById('draftModal').style.display === 'block') closeDraftModal();
             }
         });
 
