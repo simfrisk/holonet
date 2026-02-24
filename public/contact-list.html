@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" rel="stylesheet">
     <style>
         /* =========================================
            COLOR TOKENS
@@ -197,6 +198,11 @@
             font-size: 15px;
             line-height: 1;
         }
+        .pnav-icon .ti {
+            font-size: 16px;
+            vertical-align: middle;
+        }
+        .ti { vertical-align: middle; }
         .pnav-count {
             font-size: 12px;
             font-weight: 600;
@@ -1550,7 +1556,7 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <h1 style="margin: 0;">OSC Sales Contact List</h1>
                 <div style="display: flex; gap: 10px; align-items: center;">
-                    <button class="dark-mode-btn" id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle dark mode">🌙</button>
+                    <button class="dark-mode-btn" id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle dark mode"><i class="ti ti-moon"></i></button>
                     <button class="add-contact-btn" onclick="openAddContactModal()">+ Add Contact</button>
                 </div>
             </div>
@@ -1585,16 +1591,16 @@
         <!-- Primary Navigation -->
         <div class="primary-nav">
             <button class="primary-nav-btn active" data-section="contacts" onclick="switchSection('contacts')">
-                <span class="pnav-icon">👥</span> Contact List <span class="pnav-count" id="contacts-section-count">0</span>
+                <span class="pnav-icon"><i class="ti ti-users"></i></span> Contact List <span class="pnav-count" id="contacts-section-count">0</span>
             </button>
             <button class="primary-nav-btn" data-section="tracked" onclick="switchSection('tracked')">
-                <span class="pnav-icon">📌</span> Track Customers <span class="pnav-count" id="tracked-count">0</span>
+                <span class="pnav-icon"><i class="ti ti-pin"></i></span> Track Customers <span class="pnav-count" id="tracked-count">0</span>
             </button>
             <button class="primary-nav-btn" data-section="drafts" onclick="switchSection('drafts')">
-                <span class="pnav-icon">✉️</span> Email Drafts <span class="pnav-count" id="drafts-count">0</span>
+                <span class="pnav-icon"><i class="ti ti-mail"></i></span> Email Drafts <span class="pnav-count" id="drafts-count">0</span>
             </button>
             <button class="primary-nav-btn" data-section="todos" onclick="switchSection('todos')">
-                <span class="pnav-icon">✅</span> To-do <span class="pnav-count" id="todos-count">0</span>
+                <span class="pnav-icon"><i class="ti ti-circle-check"></i></span> To-do <span class="pnav-count" id="todos-count">0</span>
             </button>
         </div>
 
@@ -1783,9 +1789,9 @@
                            placeholder="Add a to-do… press Enter to save" autocomplete="off">
                     <select class="todo-add-priority" id="todo-add-priority" title="Priority">
                         <option value="">— priority</option>
-                        <option value="high">🔴 High</option>
-                        <option value="medium">🟡 Medium</option>
-                        <option value="low">🟢 Low</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
                     </select>
                     <input type="date" class="todo-add-date" id="todo-add-date" title="Due date">
                     <button type="submit" class="todo-add-btn">Add</button>
@@ -1815,7 +1821,7 @@
             <div class="tracked-empty">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 <h3>No tracked customers yet</h3>
-                <p>Add customers you're actively managing, or use the 📌 button from the Contact List.</p>
+                <p>Add customers you're actively managing, or use the Track button from the Contact List.</p>
             </div>
         </div>
     </div>
@@ -1970,7 +1976,7 @@
         function updateDarkModeButton(isDark) {
             const btn = document.getElementById('darkModeBtn');
             if (!btn) return;
-            btn.textContent = isDark ? '☀️' : '🌙';
+            btn.innerHTML = isDark ? '<i class="ti ti-sun"></i>' : '<i class="ti ti-moon"></i>';
             btn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
         }
 
@@ -2039,10 +2045,10 @@
                 return `<span class="contacted-badge">Contacted ${formatDateShort(contact.contactedAt)}</span>`;
             }
             if (contact.status === 'later') {
-                return `<span class="later-badge">⏱ Saved for later</span><span class="bot-note">Slack bot may reactivate</span>`;
+                return `<span class="later-badge"><i class="ti ti-clock"></i> Saved for later</span><span class="bot-note">Slack bot may reactivate</span>`;
             }
             if (contact.status === 'skip') {
-                return `<span class="skip-badge">✗ Skipped</span><span class="bot-note">Slack bot won't reactivate</span>`;
+                return `<span class="skip-badge"><i class="ti ti-ban"></i> Skipped</span><span class="bot-note">Slack bot won't reactivate</span>`;
             }
             return '';
         }
@@ -2063,16 +2069,16 @@
 
             row.innerHTML = `
                 <td style="width:30px; padding: 0 4px;">
-                    <span class="drag-handle" title="Drag to reorder">⠿</span>
+                    <span class="drag-handle" title="Drag to reorder"><i class="ti ti-grip-vertical"></i></span>
                 </td>
                 <td class="status-cell" data-label="Status">
                     <select class="status-select ${statusClass}"
                             onchange="updateStatus('${contact.id}', this)"
                             data-contact-id="${contact.id}">
                         <option value="" ${!contact.status ? 'selected' : ''}>— Active —</option>
-                        <option value="contacted" ${contact.status === 'contacted' ? 'selected' : ''}>✓ Contacted</option>
-                        <option value="later" ${contact.status === 'later' ? 'selected' : ''}>⏱ Later</option>
-                        <option value="skip" ${contact.status === 'skip' ? 'selected' : ''}>✗ Skip</option>
+                        <option value="contacted" ${contact.status === 'contacted' ? 'selected' : ''}>Contacted</option>
+                        <option value="later" ${contact.status === 'later' ? 'selected' : ''}>Later</option>
+                        <option value="skip" ${contact.status === 'skip' ? 'selected' : ''}>Skip</option>
                     </select>
                     <span id="status-badge-${contact.id}">${statusBadge}</span>
                 </td>
@@ -2104,7 +2110,7 @@
                     <a href="${grafanaLink}" class="slack-link" target="_blank">Grafana ↗</a>
                     ${slackLink ? `<a href="${slackLink}" class="slack-link" target="_blank">Slack ↗</a>` : ''}
                     <button class="edit-row-btn" onclick="openEditModal('${contact.id}')">Edit</button>
-                    <button class="track-btn" id="track-btn-${contact.id}" onclick="trackFromContact('${contact.id}')">📌 Track</button>
+                    <button class="track-btn" id="track-btn-${contact.id}" onclick="trackFromContact('${contact.id}')"><i class="ti ti-pin"></i> Track</button>
                 </td>
             `;
 
@@ -2225,9 +2231,9 @@
                 if (status === 'contacted' && contactedAt) {
                     badgeEl.innerHTML = `<span class="contacted-badge">Contacted ${formatDateShort(contactedAt)}</span>`;
                 } else if (status === 'later') {
-                    badgeEl.innerHTML = `<span class="later-badge">⏱ Saved for later</span><span class="bot-note">Slack bot may reactivate</span>`;
+                    badgeEl.innerHTML = `<span class="later-badge"><i class="ti ti-clock"></i> Saved for later</span><span class="bot-note">Slack bot may reactivate</span>`;
                 } else if (status === 'skip') {
-                    badgeEl.innerHTML = `<span class="skip-badge">✗ Skipped</span><span class="bot-note">Slack bot won't reactivate</span>`;
+                    badgeEl.innerHTML = `<span class="skip-badge"><i class="ti ti-ban"></i> Skipped</span><span class="bot-note">Slack bot won't reactivate</span>`;
                 } else {
                     badgeEl.innerHTML = '';
                 }
@@ -2758,7 +2764,7 @@
             if (filtered.length === 0) {
                 const msgs = {
                     all:    ['Nothing here yet', 'Type a task above and press Enter to add your first to-do.'],
-                    active: ['All done!', 'No active tasks — enjoy the clear list. 🎉'],
+                    active: ['All done!', 'No active tasks — enjoy the clear list.'],
                     done:   ['Nothing completed yet', 'Finish a task and it will show up here.']
                 };
                 const [title, sub] = msgs[todoFilter] || msgs.all;
@@ -3059,16 +3065,16 @@
                 <div class="draft-tile-actions">
                     <button class="draft-copy-btn copy-subject-btn"
                         onclick="copyDraftField('${escapeAttr(draft.id)}','subject')"
-                        title="Copy subject line">📋 Subject</button>
+                        title="Copy subject line"><i class="ti ti-clipboard"></i> Subject</button>
                     <button class="draft-copy-btn copy-body-btn"
                         onclick="copyDraftField('${escapeAttr(draft.id)}','body')"
-                        title="Copy email body">📋 Body</button>
+                        title="Copy email body"><i class="ti ti-clipboard-text"></i> Body</button>
                     <button class="draft-edit-btn"
                         onclick="openDraftModal('${escapeAttr(draft.id)}')"
-                        title="Edit draft">✏️</button>
+                        title="Edit draft"><i class="ti ti-pencil"></i></button>
                     <button class="draft-delete-btn"
                         onclick="confirmDeleteDraft('${escapeAttr(draft.id)}')"
-                        title="Delete draft">🗑</button>
+                        title="Delete draft"><i class="ti ti-trash"></i></button>
                 </div>
             </div>`;
         }
@@ -3105,7 +3111,7 @@
                 const btn = tile.querySelector(selector);
                 if (btn) {
                     const orig = btn.innerHTML;
-                    btn.textContent = '✓ Copied!';
+                    btn.textContent = 'Copied!';
                     btn.classList.add('copied');
                     setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied'); }, 1500);
                 }
@@ -3286,7 +3292,7 @@
                     <div class="tracked-empty">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         <h3>No tracked customers yet</h3>
-                        <p>Add customers you're actively managing, or use the 📌 button from the Contact List.</p>
+                        <p>Add customers you're actively managing, or use the Track button from the Contact List.</p>
                     </div>`;
                 return;
             }
@@ -3301,8 +3307,8 @@
             return labels[health] || health;
         }
         function touchpointIcon(type) {
-            const icons = { email: '✉️', call: '📞', slack: '💬', meeting: '🤝', other: '📝' };
-            return icons[type] || '📝';
+            const icons = { email: '<i class="ti ti-mail"></i>', call: '<i class="ti ti-phone"></i>', slack: '<i class="ti ti-brand-slack"></i>', meeting: '<i class="ti ti-calendar-event"></i>', other: '<i class="ti ti-note"></i>' };
+            return icons[type] || '<i class="ti ti-note"></i>';
         }
 
         function renderTrackedCard(c) {
@@ -3317,7 +3323,7 @@
                 ? (() => {
                     const today = new Date().toISOString().split('T')[0];
                     const overdue = c.nextFollowUp < today;
-                    return `<div class="tracked-meta-row ${overdue ? 'tracked-meta-overdue' : ''}"><span class="tracked-meta-icon">📅</span><span>Follow-up: ${c.nextFollowUp}${overdue ? ' (overdue)' : ''}</span></div>`;
+                    return `<div class="tracked-meta-row ${overdue ? 'tracked-meta-overdue' : ''}"><span class="tracked-meta-icon"><i class="ti ti-calendar"></i></span><span>Follow-up: ${c.nextFollowUp}${overdue ? ' (overdue)' : ''}</span></div>`;
                   })()
                 : '';
             const notesPreview = c.notes ? `<div class="tracked-card-notes-preview">${c.notes}</div>` : '';
@@ -3351,10 +3357,10 @@
             document.querySelectorAll('.track-btn').forEach(btn => {
                 const contactId = btn.id.replace('track-btn-', '');
                 if (trackedContactIds.has(contactId)) {
-                    btn.textContent = '✅ Tracked';
+                    btn.innerHTML = '<i class="ti ti-circle-check"></i> Tracked';
                     btn.classList.add('tracked');
                 } else {
-                    btn.textContent = '📌 Track';
+                    btn.innerHTML = '<i class="ti ti-pin"></i> Track';
                     btn.classList.remove('tracked');
                 }
             });
@@ -3498,10 +3504,10 @@
                     <div>
                         <label class="tracked-label">Health</label>
                         <select class="tracked-select health-${health}" id="tm-health" onchange="this.className='tracked-select health-'+this.value">
-                            <option value="good" ${health==='good'?'selected':''}>✅ Good</option>
-                            <option value="needs-attention" ${health==='needs-attention'?'selected':''}>⚠️ Needs Attention</option>
-                            <option value="at-risk" ${health==='at-risk'?'selected':''}>🔴 At Risk</option>
-                            <option value="unknown" ${health==='unknown'?'selected':''}>❓ Unknown</option>
+                            <option value="good" ${health==='good'?'selected':''}>Good</option>
+                            <option value="needs-attention" ${health==='needs-attention'?'selected':''}>Needs Attention</option>
+                            <option value="at-risk" ${health==='at-risk'?'selected':''}>At Risk</option>
+                            <option value="unknown" ${health==='unknown'?'selected':''}>Unknown</option>
                         </select>
                     </div>
                     <div>
@@ -3525,11 +3531,11 @@
                     <div class="touchpoint-list" id="tp-list">${tpListHtml}</div>
                     <div class="add-touchpoint-form">
                         <select class="tracked-select" id="tp-type" style="width:110px;flex-shrink:0">
-                            <option value="email">✉️ Email</option>
-                            <option value="call">📞 Call</option>
-                            <option value="slack">💬 Slack</option>
-                            <option value="meeting">🤝 Meeting</option>
-                            <option value="other">📝 Other</option>
+                            <option value="email">Email</option>
+                            <option value="call">Call</option>
+                            <option value="slack">Slack</option>
+                            <option value="meeting">Meeting</option>
+                            <option value="other">Other</option>
                         </select>
                         <input class="tracked-input" type="date" id="tp-date" value="${today}" style="width:145px;flex-shrink:0">
                         <input class="tracked-input" id="tp-note" placeholder="What happened? (press Enter to add)">
