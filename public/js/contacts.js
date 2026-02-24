@@ -15,18 +15,35 @@
             low:    { label: 'Low',    color: '#00c875' },
         };
 
+        function positionDropdown(dd, btn) {
+            const rect = btn.getBoundingClientRect();
+            const ddH = 170; // estimated dropdown height
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const top = spaceBelow >= ddH + 10
+                ? rect.bottom + 6
+                : rect.top - ddH - 6;
+            dd.style.top = top + 'px';
+            dd.style.left = (rect.left + rect.width / 2) + 'px';
+        }
+
         function toggleStatusDropdown(contactId, btn) {
             const dd = document.getElementById(`status-dd-${contactId}`);
             const isOpen = dd && dd.classList.contains('open');
             closeAllDropdowns();
-            if (!isOpen && dd) dd.classList.add('open');
+            if (!isOpen && dd) {
+                positionDropdown(dd, btn);
+                dd.classList.add('open');
+            }
         }
 
         function togglePriorityDropdown(contactId, btn) {
             const dd = document.getElementById(`priority-dd-${contactId}`);
             const isOpen = dd && dd.classList.contains('open');
             closeAllDropdowns();
-            if (!isOpen && dd) dd.classList.add('open');
+            if (!isOpen && dd) {
+                positionDropdown(dd, btn);
+                dd.classList.add('open');
+            }
         }
 
         function closeAllDropdowns() {

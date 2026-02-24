@@ -1857,8 +1857,8 @@
         .status-btn-chevron { font-size: 12px; opacity: 0.75; }
 
         .status-dropdown, .priority-dropdown {
-            display: none; position: absolute; top: calc(100% + 6px);
-            left: 50%; transform: translateX(-50%); z-index: 600;
+            display: none; position: fixed; z-index: 9999;
+            transform: translateX(-50%);
             background: var(--color-surface); border: 1px solid var(--color-border);
             border-radius: 10px; padding: 6px; min-width: 165px;
             box-shadow: 0 8px 32px rgba(0, 0, 20, 0.22);
