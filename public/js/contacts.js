@@ -1,4 +1,65 @@
         // =========================================
+        // STATUS / PRIORITY CONFIG
+        // =========================================
+
+        const STATUS_INFO = {
+            '':          { label: 'Active',     color: '#0073ea' },
+            'contacted': { label: 'Contacted',  color: '#00c875' },
+            'later':     { label: 'Later',      color: '#fdab3d' },
+            'skip':      { label: 'Skip',       color: '#e2445c' },
+        };
+
+        const PRIORITY_INFO = {
+            high:   { label: 'High',   color: '#e2445c' },
+            medium: { label: 'Medium', color: '#fdab3d' },
+            low:    { label: 'Low',    color: '#00c875' },
+        };
+
+        function toggleStatusDropdown(contactId, btn) {
+            const dd = document.getElementById(`status-dd-${contactId}`);
+            const isOpen = dd && dd.classList.contains('open');
+            closeAllDropdowns();
+            if (!isOpen && dd) dd.classList.add('open');
+        }
+
+        function togglePriorityDropdown(contactId, btn) {
+            const dd = document.getElementById(`priority-dd-${contactId}`);
+            const isOpen = dd && dd.classList.contains('open');
+            closeAllDropdowns();
+            if (!isOpen && dd) dd.classList.add('open');
+        }
+
+        function closeAllDropdowns() {
+            document.querySelectorAll('.status-dropdown.open, .priority-dropdown.open')
+                .forEach(d => d.classList.remove('open'));
+        }
+
+        function pickStatus(contactId, value) {
+            closeAllDropdowns();
+            const select = document.getElementById(`status-select-${contactId}`);
+            if (select) {
+                select.value = value;
+                select.dispatchEvent(new Event('change'));
+            }
+        }
+
+        function pickPriority(contactId, value) {
+            closeAllDropdowns();
+            const select = document.getElementById(`priority-select-${contactId}`);
+            if (select) {
+                select.value = value;
+                select.dispatchEvent(new Event('change'));
+            }
+        }
+
+        // Close dropdowns on outside click
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.status-td') && !e.target.closest('.priority-td')) {
+                closeAllDropdowns();
+            }
+        });
+
+        // =========================================
         // CONTACTS
         // =========================================
 
@@ -83,15 +144,37 @@
                 ? `https://eyevinn.slack.com/archives/${contact.slackChannelId}`
                 : null;
 
-            const statusClass = getStatusClass(contact.status);
-            const statusBadge = createStatusBadge(contact);
+            const statusKey = contact.status || '';
+            const statusInfo = STATUS_INFO[statusKey] || STATUS_INFO[''];
+            const priorityInfo = PRIORITY_INFO[contact.priority] || PRIORITY_INFO['low'];
+
+            const statusOptionsHtml = Object.entries(STATUS_INFO).map(([v, info]) => `
+                <div class="status-option${statusKey === v ? ' selected' : ''}" data-value="${v}" onclick="pickStatus('${contact.id}', '${v}')">
+                    <span class="status-swatch" style="background:${info.color}"></span>
+                    <span>${info.label}</span>
+                    ${statusKey === v ? '<i class="ti ti-check status-option-check"></i>' : ''}
+                </div>`).join('');
+
+            const priorityOptionsHtml = Object.entries(PRIORITY_INFO).map(([v, info]) => `
+                <div class="status-option${contact.priority === v ? ' selected' : ''}" data-value="${v}" onclick="pickPriority('${contact.id}', '${v}')">
+                    <span class="status-swatch" style="background:${info.color}"></span>
+                    <span>${info.label}</span>
+                    ${contact.priority === v ? '<i class="ti ti-check status-option-check"></i>' : ''}
+                </div>`).join('');
 
             row.innerHTML = `
                 <td style="width:30px; padding: 0 4px;">
                     <span class="drag-handle" title="Drag to reorder"><i class="ti ti-grip-vertical"></i></span>
                 </td>
-                <td class="status-td status-cell" data-label="Status" data-status="${contact.status || 'active'}">
-                    <select class="status-select ${statusClass}"
+                <td class="status-td" data-label="Status" data-status="${contact.status || 'active'}">
+                    <button class="status-btn" type="button" onclick="toggleStatusDropdown('${contact.id}', this)" title="Change status">
+                        <span class="status-btn-label">${statusInfo.label}</span>
+                        <i class="ti ti-chevron-down status-btn-chevron"></i>
+                    </button>
+                    <div class="status-dropdown" id="status-dd-${contact.id}">
+                        ${statusOptionsHtml}
+                    </div>
+                    <select id="status-select-${contact.id}" style="display:none"
                             onchange="updateStatus('${contact.id}', this)"
                             data-contact-id="${contact.id}">
                         <option value="" ${!contact.status ? 'selected' : ''}>Active</option>
@@ -99,10 +182,17 @@
                         <option value="later" ${contact.status === 'later' ? 'selected' : ''}>Later</option>
                         <option value="skip" ${contact.status === 'skip' ? 'selected' : ''}>Skip</option>
                     </select>
-                    <span id="status-badge-${contact.id}">${statusBadge}</span>
+                    <span id="status-badge-${contact.id}" style="display:none"></span>
                 </td>
                 <td class="priority-td" data-label="Priority" data-priority="${contact.priority}">
-                    <select class="priority-select ${contact.priority}"
+                    <button class="priority-btn" type="button" onclick="togglePriorityDropdown('${contact.id}', this)" title="Change priority">
+                        <span class="priority-btn-label">${priorityInfo.label}</span>
+                        <i class="ti ti-chevron-down status-btn-chevron"></i>
+                    </button>
+                    <div class="priority-dropdown" id="priority-dd-${contact.id}">
+                        ${priorityOptionsHtml}
+                    </div>
+                    <select id="priority-select-${contact.id}" class="priority-select ${contact.priority}" style="display:none"
                             onchange="updatePriority('${contact.id}', this)">
                         <option value="high" ${contact.priority === 'high' ? 'selected' : ''}>High</option>
                         <option value="medium" ${contact.priority === 'medium' ? 'selected' : ''}>Medium</option>
@@ -191,6 +281,27 @@
             // Update TD data attribute for Monday.com full-cell coloring
             const priorityTd = selectEl.closest('td');
             if (priorityTd) priorityTd.dataset.priority = priority;
+
+            // Update custom button label
+            const btnLabel = priorityTd?.querySelector('.priority-btn-label');
+            if (btnLabel) btnLabel.textContent = PRIORITY_INFO[priority]?.label || priority;
+
+            // Update dropdown checkmarks
+            const dd = document.getElementById(`priority-dd-${contactId}`);
+            if (dd) {
+                dd.querySelectorAll('.status-option').forEach(opt => {
+                    const sel = opt.dataset.value === priority;
+                    opt.classList.toggle('selected', sel);
+                    let check = opt.querySelector('.status-option-check');
+                    if (sel && !check) {
+                        const icon = document.createElement('i');
+                        icon.className = 'ti ti-check status-option-check';
+                        opt.appendChild(icon);
+                    } else if (!sel && check) {
+                        check.remove();
+                    }
+                });
+            }
 
             if (contactsData) {
                 const contact = contactsData.contacts.find(c => c.id === contactId);

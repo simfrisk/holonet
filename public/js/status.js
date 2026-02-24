@@ -13,6 +13,27 @@
             const statusTd = selectEl.closest('td');
             if (statusTd) statusTd.dataset.status = status || 'active';
 
+            // Update custom button label
+            const btnLabel = statusTd?.querySelector('.status-btn-label');
+            if (btnLabel) btnLabel.textContent = STATUS_INFO[status || '']?.label || 'Active';
+
+            // Update dropdown checkmarks
+            const dd = document.getElementById(`status-dd-${contactId}`);
+            if (dd) {
+                dd.querySelectorAll('.status-option').forEach(opt => {
+                    const sel = opt.dataset.value === (status || '');
+                    opt.classList.toggle('selected', sel);
+                    let check = opt.querySelector('.status-option-check');
+                    if (sel && !check) {
+                        const icon = document.createElement('i');
+                        icon.className = 'ti ti-check status-option-check';
+                        opt.appendChild(icon);
+                    } else if (!sel && check) {
+                        check.remove();
+                    }
+                });
+            }
+
             // Update in-memory data
             let contactedAt = null;
             if (contactsData) {
