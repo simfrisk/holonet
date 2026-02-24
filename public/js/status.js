@@ -9,6 +9,10 @@
             // Update select styling
             selectEl.className = `status-select ${status ? 'status-' + status : ''}`;
 
+            // Update TD data attribute for Monday.com full-cell coloring
+            const statusTd = selectEl.closest('td');
+            if (statusTd) statusTd.dataset.status = status || 'active';
+
             // Update in-memory data
             let contactedAt = null;
             if (contactsData) {
@@ -69,6 +73,7 @@
 
             updateStats();
             updateTabCounts();
+            addGroupHeadersToAllTabs();
         }
 
         function moveToActive(row) {

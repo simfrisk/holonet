@@ -1536,4 +1536,308 @@
         .track-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
         .track-btn.tracked { border-color: var(--color-success); color: var(--color-success); }
 
+        /* =========================================
+           MONDAY.COM VIBE DESIGN SYSTEM OVERRIDES
+           Inspired by monday.com's Vibe UI library
+           Primary font: Figtree | Colors: Vibe palette
+           ========================================= */
+
+        /* Font override */
+        body {
+            font-family: 'Figtree', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        /* Monday.com color token overrides */
+        :root {
+            --color-bg: #f6f7fb;
+            --color-surface: #ffffff;
+            --color-surface-elevated: #f0f2f8;
+            --color-border: #e6e9ef;
+            --color-text: #323338;
+            --color-text-muted: #676879;
+            --color-text-subtle: #c3c6d4;
+            --color-primary: #0073ea;
+            --color-primary-hover: #0060c0;
+            --color-success: #00c875;
+            --color-success-hover: #00a860;
+            --color-warning: #fdab3d;
+            --color-danger: #e2445c;
+            --color-neutral: #676879;
+            --color-neutral-hover: #575766;
+            --color-row-high-bg: transparent;
+            --color-row-medium-bg: transparent;
+            --color-row-low-bg: transparent;
+            --color-drag-placeholder-bg: #dde3f6;
+            --color-input-bg: #ffffff;
+            --color-modal-footer-bg: #f0f2f8;
+            --color-shadow: rgba(0, 0, 0, 0.08);
+            --color-shadow-modal: rgba(0, 0, 0, 0.2);
+            --color-drag-ghost-bg: #ffffff;
+            --color-drag-ghost-border: #0073ea;
+            --color-tenant-link-hover-bg: #ddeeff;
+            --color-status-contacted-bg: #e6faf2;
+            --color-status-contacted-text: #007a4d;
+            --color-status-contacted-border: #b3edd8;
+            --color-status-later-bg: #fff5e6;
+            --color-status-later-text: #c07000;
+            --color-status-later-border: #fcd280;
+            --color-status-skip-bg: #fdedef;
+            --color-status-skip-text: #b60020;
+            --color-status-skip-border: #f5a0ac;
+        }
+
+        html[data-theme="dark"] {
+            --color-bg: #1c1f3b;
+            --color-surface: #24273d;
+            --color-surface-elevated: #2e3150;
+            --color-border: #404468;
+            --color-text: #d5d8f0;
+            --color-text-muted: #7c84b0;
+            --color-text-subtle: #4a4f7a;
+            --color-primary: #0073ea;
+            --color-primary-hover: #0060c0;
+            --color-success: #00c875;
+            --color-success-hover: #00a860;
+            --color-warning: #fdab3d;
+            --color-danger: #e2445c;
+            --color-neutral: #404468;
+            --color-neutral-hover: #505580;
+            --color-row-high-bg: transparent;
+            --color-row-medium-bg: transparent;
+            --color-row-low-bg: transparent;
+            --color-drag-placeholder-bg: #2a3060;
+            --color-input-bg: #1c1f3b;
+            --color-modal-footer-bg: #2e3150;
+            --color-shadow: rgba(0, 0, 20, 0.4);
+            --color-shadow-modal: rgba(0, 0, 20, 0.6);
+            --color-drag-ghost-bg: #24273d;
+            --color-drag-ghost-border: #0073ea;
+            --color-tenant-link-hover-bg: #1a2450;
+            --color-status-contacted-bg: #003d25;
+            --color-status-contacted-text: #00c875;
+            --color-status-contacted-border: #006040;
+            --color-status-later-bg: #3d2800;
+            --color-status-later-text: #fdab3d;
+            --color-status-later-border: #7a5000;
+            --color-status-skip-bg: #3d0012;
+            --color-status-skip-text: #e2445c;
+            --color-status-skip-border: #7a0020;
+        }
+        html[data-theme="dark"] body {
+            background-image: radial-gradient(ellipse at 20% 0%, rgba(0, 115, 234, 0.05) 0%, transparent 60%);
+        }
+
+        /* ---- Table: compact rows + vertical separators ---- */
+        table {
+            margin-top: 8px;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th {
+            padding: 8px 12px;
+            font-weight: 500;
+            font-size: 12px;
+            text-transform: none;
+            letter-spacing: 0;
+            border-right: 1px solid var(--color-border);
+            white-space: nowrap;
+        }
+        th:last-child { border-right: none; }
+        td {
+            padding: 0 12px;
+            height: 42px;
+            vertical-align: middle;
+            border-right: 1px solid var(--color-border);
+            font-size: 13px;
+        }
+        td:last-child { border-right: none; }
+        tr:hover > td { background-color: var(--color-surface-elevated); }
+
+        /* Remove colored row backgrounds — rely on left stripe only */
+        .priority-high { background-color: transparent; border-left: 3px solid #e2445c; }
+        .priority-medium { background-color: transparent; border-left: 3px solid #fdab3d; }
+        .priority-low { background-color: transparent; border-left: 3px solid #00c875; }
+
+        /* ---- Monday.com Status cells: full-width colored block ---- */
+        td.status-td {
+            padding: 0 !important;
+            width: 120px;
+            min-width: 110px;
+        }
+        td.status-td[data-status="active"]    { background-color: #0073ea; }
+        td.status-td[data-status="contacted"] { background-color: #00c875; }
+        td.status-td[data-status="later"]     { background-color: #fdab3d; }
+        td.status-td[data-status="skip"]      { background-color: #e2445c; }
+
+        td.status-td .status-select {
+            appearance: none;
+            -webkit-appearance: none;
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 0 12px;
+            color: white;
+            width: 100%;
+            height: 42px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            font-family: inherit;
+        }
+        td.status-td[data-status="later"] .status-select { color: #2b1800; }
+        td.status-td .status-select:focus { outline: none; }
+        td.status-td .status-select option { background: #24273d; color: #d5d8f0; font-weight: 500; }
+
+        /* Hide sub-badges inside status cells — color communicates status */
+        td.status-td .contacted-badge,
+        td.status-td .later-badge,
+        td.status-td .skip-badge,
+        td.status-td .bot-note { display: none !important; }
+
+        /* ---- Monday.com Priority cells: full-width colored block ---- */
+        td.priority-td {
+            padding: 0 !important;
+            width: 100px;
+            min-width: 90px;
+        }
+        td.priority-td[data-priority="high"]   { background-color: #e2445c; }
+        td.priority-td[data-priority="medium"] { background-color: #fdab3d; }
+        td.priority-td[data-priority="low"]    { background-color: #00c875; }
+
+        td.priority-td .priority-select {
+            appearance: none;
+            -webkit-appearance: none;
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            padding: 0 12px;
+            color: white;
+            width: 100%;
+            height: 42px;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            font-family: inherit;
+        }
+        td.priority-td[data-priority="medium"] .priority-select { color: #2b1800; }
+        td.priority-td .priority-select:focus { outline: none; }
+        td.priority-td .priority-select option { background: #24273d; color: #d5d8f0; font-weight: 500; }
+
+        /* NEW badge — displayed alongside name, not inside a colored cell */
+        .new-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 10px;
+            vertical-align: middle;
+            margin-left: 6px;
+            letter-spacing: 0.3px;
+        }
+
+        /* Hover on colored cells */
+        tr:hover td.status-td,
+        tr:hover td.priority-td {
+            filter: brightness(0.88);
+        }
+
+        /* ---- Monday.com Group Header rows ---- */
+        tr.group-header > td {
+            background-color: var(--color-surface-elevated) !important;
+            font-size: 13px;
+            font-weight: 700;
+            padding: 8px 12px !important;
+            height: auto !important;
+            color: var(--color-text);
+            cursor: pointer;
+            user-select: none;
+            border-right: none !important;
+        }
+        tr.group-header:hover > td {
+            filter: brightness(0.95);
+        }
+        .group-header-arrow {
+            display: inline-block;
+            margin-right: 8px;
+            font-size: 11px;
+            color: var(--color-text-muted);
+            transition: transform 0.18s ease;
+            vertical-align: middle;
+        }
+        tr.group-header.collapsed .group-header-arrow {
+            transform: rotate(-90deg);
+        }
+        .group-header-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+        .group-header-count {
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--color-text-muted);
+            margin-left: 6px;
+        }
+        tr.group-collapsed-row { display: none; }
+
+        /* ---- Stat cards Monday.com style ---- */
+        .stat-card {
+            border-radius: 6px;
+            border-left: none;
+            border-top: 3px solid var(--color-primary);
+        }
+        .stat-card.stat-contacted { border-top-color: #00c875; border-left: none; }
+        .stat-card.stat-later     { border-top-color: #fdab3d; border-left: none; }
+        .stat-card.stat-skip      { border-top-color: #e2445c; border-left: none; }
+        .stat-card strong { font-size: 24px; }
+
+        /* ---- Navigation: Monday.com-style active tab ---- */
+        .primary-nav-btn.active {
+            background-color: rgba(0, 115, 234, 0.1);
+            border-color: rgba(0, 115, 234, 0.3);
+            color: #0073ea;
+        }
+        html[data-theme="dark"] .primary-nav-btn.active {
+            background-color: rgba(0, 115, 234, 0.15);
+            border-color: rgba(0, 115, 234, 0.4);
+            color: #4da6ff;
+        }
+        .primary-nav-btn.active .pnav-count {
+            background: #0073ea;
+            color: white;
+        }
+        .tab-button.active { color: #0073ea; border-bottom-color: #0073ea; }
+        .tab-button.tab-archived.active { color: #00c875; border-bottom-color: #00c875; }
+        .tab-button.tab-later.active    { color: #fdab3d; border-bottom-color: #fdab3d; }
+        .tab-button.tab-skip.active     { color: #e2445c; border-bottom-color: #e2445c; }
+
+        /* ---- Notes cell: more compact ---- */
+        .notes-field {
+            min-height: 36px;
+            max-height: 80px;
+            font-size: 12px;
+        }
+        .notes-cell { max-width: 240px; }
+
+        /* ---- Activity summary: slightly smaller max-width ---- */
+        .activity-summary {
+            font-size: 12px;
+            max-width: 220px;
+        }
+
+        /* ---- Add contact button: Monday.com blue ---- */
+        .add-contact-btn {
+            background-color: #0073ea;
+        }
+        .add-contact-btn:hover { background-color: #0060c0; }
+
         @media (max-width: 700px) { .tracked-grid { grid-template-columns: 1fr; } }

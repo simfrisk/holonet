@@ -51,6 +51,7 @@
             updateTabCounts();
             updateAllEmptyStates();
             initDragAndDrop();
+            addGroupHeadersToAllTabs();
         }
 
         function getStatusClass(status) {
@@ -89,23 +90,23 @@
                 <td style="width:30px; padding: 0 4px;">
                     <span class="drag-handle" title="Drag to reorder"><i class="ti ti-grip-vertical"></i></span>
                 </td>
-                <td class="status-cell" data-label="Status">
+                <td class="status-td status-cell" data-label="Status" data-status="${contact.status || 'active'}">
                     <select class="status-select ${statusClass}"
                             onchange="updateStatus('${contact.id}', this)"
                             data-contact-id="${contact.id}">
-                        <option value="" ${!contact.status ? 'selected' : ''}>— Active —</option>
+                        <option value="" ${!contact.status ? 'selected' : ''}>Active</option>
                         <option value="contacted" ${contact.status === 'contacted' ? 'selected' : ''}>Contacted</option>
                         <option value="later" ${contact.status === 'later' ? 'selected' : ''}>Later</option>
                         <option value="skip" ${contact.status === 'skip' ? 'selected' : ''}>Skip</option>
                     </select>
                     <span id="status-badge-${contact.id}">${statusBadge}</span>
                 </td>
-                <td data-label="Priority">
+                <td class="priority-td" data-label="Priority" data-priority="${contact.priority}">
                     <select class="priority-select ${contact.priority}"
                             onchange="updatePriority('${contact.id}', this)">
-                        <option value="high" ${contact.priority === 'high' ? 'selected' : ''}>HIGH</option>
-                        <option value="medium" ${contact.priority === 'medium' ? 'selected' : ''}>MEDIUM</option>
-                        <option value="low" ${contact.priority === 'low' ? 'selected' : ''}>LOW</option>
+                        <option value="high" ${contact.priority === 'high' ? 'selected' : ''}>High</option>
+                        <option value="medium" ${contact.priority === 'medium' ? 'selected' : ''}>Medium</option>
+                        <option value="low" ${contact.priority === 'low' ? 'selected' : ''}>Low</option>
                     </select>
                     ${contact.isNew ? '<span class="new-badge">NEW</span>' : ''}
                 </td>
@@ -187,6 +188,10 @@
             const row = selectEl.closest('tr');
             row.className = row.className.replace(/priority-\w+/, `priority-${priority}`);
 
+            // Update TD data attribute for Monday.com full-cell coloring
+            const priorityTd = selectEl.closest('td');
+            if (priorityTd) priorityTd.dataset.priority = priority;
+
             if (contactsData) {
                 const contact = contactsData.contacts.find(c => c.id === contactId);
                 if (contact) contact.priority = priority;
@@ -196,6 +201,67 @@
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ priority })
+            });
+
+            // Re-render group headers after priority change
+            const tbody = row.closest('tbody');
+            if (tbody) addGroupHeaders(tbody);
+        }
+
+        // =========================================
+        // MONDAY.COM GROUP HEADERS
+        // =========================================
+
+        const GROUP_COLORS = { high: '#e2445c', medium: '#fdab3d', low: '#00c875' };
+        const GROUP_LABELS = { high: 'High Priority', medium: 'Medium Priority', low: 'Low Priority' };
+
+        function addGroupHeaders(tbody) {
+            // Remove existing group headers
+            tbody.querySelectorAll('tr.group-header').forEach(r => r.remove());
+            tbody.querySelectorAll('tr').forEach(r => r.classList.remove('group-collapsed-row'));
+
+            const rows = Array.from(tbody.querySelectorAll('tr[data-contact-id]'));
+            if (rows.length === 0) return;
+
+            // Group rows by priority
+            const groups = {};
+            rows.forEach(row => {
+                const p = row.className.match(/priority-(\w+)/)?.[1] || 'low';
+                if (!groups[p]) groups[p] = [];
+                groups[p].push(row);
+            });
+
+            // Insert a header row before the first row of each group
+            ['high', 'medium', 'low'].forEach(p => {
+                if (!groups[p] || groups[p].length === 0) return;
+                const firstRow = groups[p][0];
+                const header = document.createElement('tr');
+                header.className = 'group-header';
+                header.dataset.group = p;
+                header.innerHTML = `<td colspan="9">
+                    <span class="group-header-arrow">▼</span>
+                    <span class="group-header-dot" style="background:${GROUP_COLORS[p]}"></span>
+                    ${GROUP_LABELS[p]}
+                    <span class="group-header-count">${groups[p].length} item${groups[p].length !== 1 ? 's' : ''}</span>
+                </td>`;
+                header.addEventListener('click', () => toggleGroup(tbody, p));
+                tbody.insertBefore(header, firstRow);
+            });
+        }
+
+        function toggleGroup(tbody, priority) {
+            const header = tbody.querySelector(`tr.group-header[data-group="${priority}"]`);
+            if (!header) return;
+            const collapsed = header.classList.toggle('collapsed');
+            tbody.querySelectorAll(`tr.priority-${priority}[data-contact-id]`).forEach(row => {
+                row.classList.toggle('group-collapsed-row', collapsed);
+            });
+        }
+
+        function addGroupHeadersToAllTabs() {
+            ['active-table-body', 'archived-table-body', 'later-table-body', 'skip-table-body'].forEach(id => {
+                const tbody = document.getElementById(id);
+                if (tbody) addGroupHeaders(tbody);
             });
         }
 
