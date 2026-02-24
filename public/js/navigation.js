@@ -1,0 +1,71 @@
+        const CONTACT_TABS = ['active', 'archived', 'later', 'skip'];
+        let activeSection = 'contacts';
+        let activeContactTab = 'active';
+        let trackedLoaded = false;
+        let trackedCustomers = []; // in-memory cache
+
+        function switchSection(sectionName, skipHash) {
+            activeSection = sectionName;
+            if (!skipHash) {
+                const hash = sectionName === 'contacts' ? `contacts-${activeContactTab}` : sectionName;
+                history.replaceState(null, '', `#${hash}`);
+            }
+
+            // Update primary nav buttons
+            document.querySelectorAll('.primary-nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
+
+            // Show/hide sub-nav
+            const subNav = document.getElementById('contact-sub-nav');
+            if (sectionName === 'contacts') {
+                subNav.classList.remove('hidden');
+                // Restore last active contact sub-tab
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(`${activeContactTab}-tab`).classList.add('active');
+            } else {
+                subNav.classList.add('hidden');
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                document.getElementById(`${sectionName}-tab`).classList.add('active');
+
+                if (sectionName === 'drafts' && !draftsLoaded) {
+                    loadDraftsTab();
+                }
+                if (sectionName === 'todos' && !todosLoaded) {
+                    loadTodosTab();
+                }
+                if (sectionName === 'tracked' && !trackedLoaded) {
+                    loadTrackedTab();
+                }
+            }
+        }
+
+        function switchTab(tabName, skipHash) {
+            activeContactTab = tabName;
+            if (!skipHash) {
+                history.replaceState(null, '', `#contacts-${tabName}`);
+            }
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        function restoreNavFromHash() {
+            const hash = window.location.hash.slice(1);
+            const CONTACT_SUB_TABS = ['active', 'archived', 'later', 'skip'];
+            const TOP_SECTIONS = ['drafts', 'todos', 'tracked'];
+
+            if (TOP_SECTIONS.includes(hash)) {
+                switchSection(hash, true);
+            } else if (hash.startsWith('contacts-')) {
+                const sub = hash.replace('contacts-', '');
+                if (CONTACT_SUB_TABS.includes(sub)) {
+                    activeContactTab = sub;
+                    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                    const btn = document.querySelector(`[data-tab="${sub}"]`);
+                    if (btn) btn.classList.add('active');
+                }
+                switchSection('contacts', true);
+            }
+            // default (no hash or unknown): stays on contacts/active
+        }
