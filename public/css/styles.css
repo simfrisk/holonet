@@ -1856,20 +1856,25 @@
 
         .status-btn-chevron { font-size: 12px; opacity: 0.75; }
 
+        /* Popover API: reset UA defaults, then apply our styling */
         .status-dropdown, .priority-dropdown {
-            display: none; position: fixed; z-index: 9999;
-            transform: translateX(-50%);
-            background: var(--color-surface); border: 1px solid var(--color-border);
+            position: absolute; inset: auto; margin: 0; border: none; padding: 0;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
             border-radius: 10px; padding: 6px; min-width: 165px;
             box-shadow: 0 8px 32px rgba(0, 0, 20, 0.22);
+            /* Animate in */
+            opacity: 0; transform: scale(0.95) translateY(-4px);
+            transition: opacity 0.12s ease, transform 0.12s ease,
+                        display 0.12s allow-discrete, overlay 0.12s allow-discrete;
         }
-        .status-dropdown.open, .priority-dropdown.open {
-            display: block;
-            animation: ddSlideIn 0.12s ease;
+        .status-dropdown:popover-open, .priority-dropdown:popover-open {
+            opacity: 1; transform: scale(1) translateY(0);
         }
-        @keyframes ddSlideIn {
-            from { opacity: 0; transform: translateX(-50%) translateY(-6px); }
-            to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        @starting-style {
+            .status-dropdown:popover-open, .priority-dropdown:popover-open {
+                opacity: 0; transform: scale(0.95) translateY(-4px);
+            }
         }
 
         .status-option {

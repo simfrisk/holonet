@@ -15,66 +15,63 @@
             low:    { label: 'Low',    color: '#00c875' },
         };
 
+        // Position a popover below (or above) its trigger button using document-absolute coords
         function positionDropdown(dd, btn) {
-            const rect = btn.getBoundingClientRect();
-            const ddH = 170; // estimated dropdown height
-            const spaceBelow = window.innerHeight - rect.bottom;
-            const top = spaceBelow >= ddH + 10
-                ? rect.bottom + 6
-                : rect.top - ddH - 6;
-            dd.style.top = top + 'px';
-            dd.style.left = (rect.left + rect.width / 2) + 'px';
+            const btnRect = btn.getBoundingClientRect();
+            const ddRect  = dd.getBoundingClientRect(); // valid after showPopover()
+            const ddH     = ddRect.height || 170;
+            const ddW     = ddRect.width  || 170;
+            const gap     = 6;
+
+            // Flip above if not enough room below
+            const spaceBelow = window.innerHeight - btnRect.bottom;
+            const top = spaceBelow >= ddH + gap + 10
+                ? btnRect.bottom + window.scrollY + gap
+                : btnRect.top   + window.scrollY - ddH - gap;
+
+            // Center under button, clamped to viewport
+            let left = btnRect.left + window.scrollX + btnRect.width / 2 - ddW / 2;
+            left = Math.max(window.scrollX + 8,
+                   Math.min(left, window.scrollX + window.innerWidth - ddW - 8));
+
+            dd.style.top  = top  + 'px';
+            dd.style.left = left + 'px';
         }
 
         function toggleStatusDropdown(contactId, btn) {
             const dd = document.getElementById(`status-dd-${contactId}`);
-            const isOpen = dd && dd.classList.contains('open');
+            if (!dd) return;
+            const isOpen = dd.matches(':popover-open');
             closeAllDropdowns();
-            if (!isOpen && dd) {
-                positionDropdown(dd, btn);
-                dd.classList.add('open');
-            }
+            if (!isOpen) { dd.showPopover(); positionDropdown(dd, btn); }
         }
 
         function togglePriorityDropdown(contactId, btn) {
             const dd = document.getElementById(`priority-dd-${contactId}`);
-            const isOpen = dd && dd.classList.contains('open');
+            if (!dd) return;
+            const isOpen = dd.matches(':popover-open');
             closeAllDropdowns();
-            if (!isOpen && dd) {
-                positionDropdown(dd, btn);
-                dd.classList.add('open');
-            }
+            if (!isOpen) { dd.showPopover(); positionDropdown(dd, btn); }
         }
 
         function closeAllDropdowns() {
-            document.querySelectorAll('.status-dropdown.open, .priority-dropdown.open')
-                .forEach(d => d.classList.remove('open'));
+            document.querySelectorAll('.status-dropdown, .priority-dropdown').forEach(d => {
+                if (d.matches(':popover-open')) d.hidePopover();
+            });
         }
 
         function pickStatus(contactId, value) {
             closeAllDropdowns();
             const select = document.getElementById(`status-select-${contactId}`);
-            if (select) {
-                select.value = value;
-                select.dispatchEvent(new Event('change'));
-            }
+            if (select) { select.value = value; select.dispatchEvent(new Event('change')); }
         }
 
         function pickPriority(contactId, value) {
             closeAllDropdowns();
             const select = document.getElementById(`priority-select-${contactId}`);
-            if (select) {
-                select.value = value;
-                select.dispatchEvent(new Event('change'));
-            }
+            if (select) { select.value = value; select.dispatchEvent(new Event('change')); }
         }
-
-        // Close dropdowns on outside click
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.status-td') && !e.target.closest('.priority-td')) {
-                closeAllDropdowns();
-            }
-        });
+        // Outside-click dismiss is handled automatically by popover="auto"
 
         // =========================================
         // CONTACTS
@@ -188,7 +185,7 @@
                         <span class="status-btn-label">${statusInfo.label}</span>
                         <i class="ti ti-chevron-down status-btn-chevron"></i>
                     </button>
-                    <div class="status-dropdown" id="status-dd-${contact.id}">
+                    <div class="status-dropdown" id="status-dd-${contact.id}" popover="auto">
                         ${statusOptionsHtml}
                     </div>
                     <select id="status-select-${contact.id}" style="display:none"
@@ -206,7 +203,7 @@
                         <span class="priority-btn-label">${priorityInfo.label}</span>
                         <i class="ti ti-chevron-down status-btn-chevron"></i>
                     </button>
-                    <div class="priority-dropdown" id="priority-dd-${contact.id}">
+                    <div class="priority-dropdown" id="priority-dd-${contact.id}" popover="auto">
                         ${priorityOptionsHtml}
                     </div>
                     <select id="priority-select-${contact.id}" class="priority-select ${contact.priority}" style="display:none"
