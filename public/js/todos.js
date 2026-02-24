@@ -3,7 +3,7 @@
         // =========================================
 
         let todosData = [];
-        let todoFilter = 'all';
+        let todoFilter = 'active';
         let todosLoaded = false;
 
         async function loadTodosTab() {
