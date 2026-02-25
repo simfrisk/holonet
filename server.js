@@ -1604,7 +1604,7 @@ app.get('/api/tracked', async (req, res) => {
 // Create tracked customer (optionally from a contact)
 app.post('/api/tracked', async (req, res) => {
     try {
-        const { contactId, name, organization, tenantName, email, health, stage, notes, nextFollowUp } = req.body;
+        const { contactId, name, organization, tenantName, email, health, stage, notes, nextFollowUp, customFields, todos } = req.body;
 
         if (!name) {
             return res.status(400).json({ error: 'name is required' });
@@ -1623,6 +1623,8 @@ app.post('/api/tracked', async (req, res) => {
             stage: stage || 'Onboarding',
             notes: notes || '',
             nextFollowUp: nextFollowUp || null,
+            customFields: customFields || [],
+            todos: todos || [],
             touchpoints: [],
             category: null,
             addedAt: new Date().toISOString(),
@@ -1827,7 +1829,7 @@ app.delete('/api/tracked/:id', async (req, res) => {
 app.post('/api/tracked/:id/touchpoints', async (req, res) => {
     try {
         const { id } = req.params;
-        const { date, type, note } = req.body;
+        const { date, type, note, description } = req.body;
 
         if (!note) {
             return res.status(400).json({ error: 'note is required' });
@@ -1846,7 +1848,8 @@ app.post('/api/tracked/:id/touchpoints', async (req, res) => {
             id: `tp-${Date.now()}`,
             date: date || new Date().toISOString().split('T')[0],
             type: type || 'other',
-            note
+            note,
+            description: description || null
         };
 
         doc.touchpoints = doc.touchpoints || [];

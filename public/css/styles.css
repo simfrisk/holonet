@@ -3122,3 +3122,96 @@
         .todo-add-btn:hover {
             filter: brightness(1.1);
         }
+
+        .todo-date {
+            font-size: 11px;
+            color: var(--color-text-subtle);
+            border: 1px solid transparent;
+            background: transparent;
+            padding: 2px 4px;
+            border-radius: 3px;
+            cursor: pointer;
+            flex-shrink: 0;
+            font-family: inherit;
+            transition: border-color 0.1s, background 0.1s;
+        }
+
+        .todo-date::-webkit-calendar-picker-indicator { opacity: 0.4; cursor: pointer; }
+
+        .todo-item:hover .todo-date {
+            border-color: var(--color-border);
+            background: var(--color-surface);
+        }
+
+        .todo-date:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            background: var(--color-surface);
+        }
+
+        /* ---- Touchpoint description ---- */
+        .touchpoint-desc {
+            font-size: 13px;
+            color: var(--color-text-muted);
+            line-height: 1.5;
+            margin-top: 4px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .tp-expand-btn {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            border: none;
+            background: transparent;
+            color: var(--color-text-subtle);
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 3px;
+            align-self: flex-start;
+            margin-top: 2px;
+            transition: background 0.1s, color 0.1s;
+        }
+
+        .tp-expand-btn:hover { background: var(--color-border); color: var(--color-text); }
+
+        .tp-desc-toggle-btn {
+            flex-shrink: 0;
+            padding: 5px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            background: transparent;
+            border: 1px dashed var(--color-border);
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            white-space: nowrap;
+            transition: border-color 0.1s, color 0.1s;
+        }
+
+        .tp-desc-toggle-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+        .tp-description-input {
+            width: 100%;
+            margin-top: 6px;
+            padding: 8px 10px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 13px;
+            line-height: 1.5;
+            background: var(--color-input-bg, var(--color-surface));
+            color: var(--color-text);
+            resize: vertical;
+            min-height: 60px;
+            box-sizing: border-box;
+        }
+
+        .tp-description-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px rgba(85, 120, 245, 0.12);
+        }

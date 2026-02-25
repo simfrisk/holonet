@@ -224,10 +224,12 @@
             if (trackedId) {
                 const c = trackedCustomers.find(t => t.id === trackedId);
                 if (!c) return;
+                originalGlobalTodoIds = (c.todos || []).filter(t => t.globalTodoId).map(t => t.globalTodoId);
                 document.getElementById('tracked-modal-title').textContent = c.name;
                 document.getElementById('tracked-modal-subtitle').textContent = [c.organization, c.tenantName, c.email].filter(Boolean).join(' · ');
                 bodyEl.innerHTML = buildTrackedModalBody(c);
             } else {
+                originalGlobalTodoIds = [];
                 document.getElementById('tracked-modal-title').textContent = 'New Customer';
                 document.getElementById('tracked-modal-subtitle').textContent = '';
                 bodyEl.innerHTML = buildTrackedModalBody(null);
@@ -253,11 +255,87 @@
                 </div>`;
         }
 
+        // ---- Customers list sync ----
+        let customersListId = null;
+        let originalGlobalTodoIds = [];
+
+        async function getOrCreateCustomersTodoList() {
+            if (customersListId) return customersListId;
+            try {
+                const res = await fetch('/api/todolists');
+                if (!res.ok) return null;
+                const data = await res.json();
+                const existing = (data.lists || []).find(l => l.name === 'Customers');
+                if (existing) { customersListId = existing.id; return existing.id; }
+                const createRes = await fetch('/api/todolists', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: 'Customers' })
+                });
+                if (!createRes.ok) return null;
+                const createData = await createRes.json();
+                customersListId = createData.id;
+                // Refresh the todo tab list tabs if it's loaded
+                if (typeof renderTodoLists === 'function') renderTodoLists();
+                return customersListId;
+            } catch { return null; }
+        }
+
+        async function syncCustomerTodos(customerName, todos) {
+            const listId = await getOrCreateCustomersTodoList();
+            if (!listId) return todos;
+
+            // Delete todos that were removed from the card
+            const currentGlobalIds = todos.filter(t => t.globalTodoId).map(t => t.globalTodoId);
+            for (const gid of originalGlobalTodoIds) {
+                if (!currentGlobalIds.includes(gid)) {
+                    await fetch(`/api/todos/${gid}`, { method: 'DELETE' }).catch(() => {});
+                }
+            }
+
+            // Create or update each todo
+            const synced = [];
+            for (const todo of todos) {
+                const globalText = `[${customerName}] ${todo.text}`;
+                if (todo.globalTodoId) {
+                    await fetch(`/api/todos/${todo.globalTodoId}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: globalText, done: todo.done, dueDate: todo.dueDate || null })
+                    }).catch(() => {});
+                    synced.push(todo);
+                } else {
+                    try {
+                        const res = await fetch('/api/todos', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ text: globalText, done: todo.done, dueDate: todo.dueDate || null, listId })
+                        });
+                        if (res.ok) {
+                            const data = await res.json();
+                            synced.push({ ...todo, globalTodoId: data.id });
+                        } else { synced.push(todo); }
+                    } catch { synced.push(todo); }
+                }
+            }
+            originalGlobalTodoIds = synced.filter(t => t.globalTodoId).map(t => t.globalTodoId);
+            // Refresh the todos tab if it's currently visible
+            if (typeof loadTodosTab === 'function' && document.getElementById('todos-section')?.style.display !== 'none') {
+                loadTodosTab();
+            }
+            return synced;
+        }
+
+        // ---- Todo item helpers ----
+
         function renderTodoItem(todo) {
+            const globalId = todo.globalTodoId || '';
+            const dueDate = todo.dueDate || '';
             return `
-                <div class="todo-item" data-todo-id="${todo.id}">
+                <div class="todo-item" data-todo-id="${todo.id}" data-global-todo-id="${globalId}">
                     <input type="checkbox" class="todo-check" ${todo.done ? 'checked' : ''}>
                     <span class="todo-text">${escapeHtml(todo.text)}</span>
+                    <input type="date" class="todo-date" value="${dueDate}" title="Due date (optional)">
                     <button class="todo-delete" title="Remove" onclick="deleteTodo('${todo.id}')">×</button>
                 </div>`;
         }
@@ -280,8 +358,10 @@
         function collectTodos() {
             return Array.from(document.querySelectorAll('.todo-item[data-todo-id]')).map(item => ({
                 id: item.dataset.todoId,
+                globalTodoId: item.dataset.globalTodoId || null,
                 text: item.querySelector('.todo-text')?.textContent || '',
-                done: item.querySelector('.todo-check')?.checked || false
+                done: item.querySelector('.todo-check')?.checked || false,
+                dueDate: item.querySelector('.todo-date')?.value || null
             }));
         }
 
@@ -299,18 +379,7 @@
             const todosHtml = savedTodos.map(t => renderTodoItem(t)).join('');
 
             const tpListHtml = touchpoints.length > 0
-                ? touchpoints.map(tp => `
-                    <div class="touchpoint-item" id="tp-${tp.id}">
-                        <span class="touchpoint-icon">${touchpointIcon(tp.type)}</span>
-                        <div class="touchpoint-body">
-                            <div class="touchpoint-note">${tp.note}</div>
-                            <div class="touchpoint-meta">
-                                <span class="touchpoint-type-badge">${tp.type}</span>
-                                ${tp.date}
-                            </div>
-                        </div>
-                        <button class="touchpoint-delete" title="Delete" onclick="deleteTouchpoint('${tp.id}')">×</button>
-                    </div>`).join('')
+                ? touchpoints.map(tp => `<div class="touchpoint-item" id="tp-${tp.id}">${renderTouchpointItem(tp)}</div>`).join('')
                 : '<p style="font-size:13px;color:var(--color-text-subtle);margin:0">No touchpoints yet — log your first interaction below.</p>';
 
             const tenantVal = c ? (c.tenantName || '') : '';
@@ -389,9 +458,11 @@
                             <option value="other">Other</option>
                         </select>
                         <input class="tracked-input" type="date" id="tp-date" value="${today}" style="width:145px;flex-shrink:0">
-                        <input class="tracked-input" id="tp-note" placeholder="What happened? (press Enter to add)">
+                        <input class="tracked-input" id="tp-note" placeholder="Title / what happened (Enter to add)">
+                        <button class="tp-desc-toggle-btn" id="tp-desc-toggle" onclick="toggleTpDescForm()" title="Add description">+ desc</button>
                         <button class="add-tp-btn" onclick="addTouchpoint()">Add</button>
                     </div>
+                    <textarea class="tp-description-input" id="tp-description" placeholder="Additional details or context…" style="display:none"></textarea>
                 </div>
                 <div class="notion-modal-footer">
                     <span class="notion-save-status" id="notion-save-status"></span>
@@ -496,13 +567,17 @@
             })).filter(f => f.label);
         }
 
-        async function saveTrackedModal() {
+        async function autoSaveTrackedModal() {
+            await saveTrackedModal(true);
+        }
+
+        async function saveTrackedModal(closeAfter = false) {
             const health = document.getElementById('tm-health')?.value;
             const stage = document.getElementById('tm-stage')?.value || '';
             const notes = document.getElementById('tm-notes')?.value || '';
             const nextFollowUp = document.getElementById('tm-followup')?.value || null;
             const customFields = collectCustomFields();
-            const todos = collectTodos();
+            let todos = collectTodos();
 
             const statusEl = document.getElementById('notion-save-status');
             if (statusEl) statusEl.textContent = 'Saving…';
@@ -510,11 +585,12 @@
             if (!trackedModalId) {
                 // New manual customer
                 const name = document.getElementById('tm-name')?.value?.trim();
-                if (!name) { alert('Name is required.'); return; }
+                if (!name) { if (statusEl) statusEl.textContent = ''; alert('Name is required.'); return; }
                 const org = document.getElementById('tm-org')?.value?.trim() || null;
                 const tenant = document.getElementById('tm-tenant')?.value?.trim() || null;
                 const email = document.getElementById('tm-email')?.value?.trim() || null;
                 try {
+                    todos = await syncCustomerTodos(name, todos);
                     const response = await fetch('/api/tracked', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -529,11 +605,12 @@
                 } catch (err) { if (statusEl) statusEl.textContent = 'Save failed'; else alert('Failed to save.'); }
             } else {
                 const name = document.getElementById('tm-name')?.value?.trim();
-                if (!name) { alert('Name is required.'); return; }
+                if (!name) { if (statusEl) statusEl.textContent = ''; alert('Name is required.'); return; }
                 const org = document.getElementById('tm-org')?.value?.trim() || null;
                 const tenant = document.getElementById('tm-tenant')?.value?.trim() || null;
                 const email = document.getElementById('tm-email')?.value?.trim() || null;
                 try {
+                    todos = await syncCustomerTodos(name, todos);
                     const response = await fetch(`/api/tracked/${trackedModalId}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
@@ -548,9 +625,50 @@
                     document.getElementById('tracked-modal-subtitle').textContent = [org, tenant, email].filter(Boolean).join(' · ');
                     document.getElementById('tracked-count').textContent = trackedCustomers.length;
                     renderTrackedGrid();
-                    if (statusEl) { statusEl.textContent = 'Saved'; setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000); }
+                    if (closeAfter) {
+                        closeTrackedModal();
+                    } else {
+                        if (statusEl) { statusEl.textContent = 'Saved ✓'; setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000); }
+                    }
                 } catch (err) { if (statusEl) statusEl.textContent = 'Save failed'; else alert('Failed to save.'); }
             }
+        }
+
+        function renderTouchpointItem(tp) {
+            const hasDesc = tp.description && tp.description.trim();
+            return `
+                <span class="touchpoint-icon">${touchpointIcon(tp.type)}</span>
+                <div class="touchpoint-body">
+                    <div class="touchpoint-note">${escapeHtml(tp.note)}</div>
+                    ${hasDesc ? `<div class="touchpoint-desc" style="display:none">${escapeHtml(tp.description)}</div>` : ''}
+                    <div class="touchpoint-meta">
+                        <span class="touchpoint-type-badge">${tp.type}</span>
+                        ${tp.date}
+                    </div>
+                </div>
+                ${hasDesc ? `<button class="tp-expand-btn" onclick="toggleTpDesc('${tp.id}')" title="Show description">▸</button>` : ''}
+                <button class="touchpoint-delete" title="Delete" onclick="deleteTouchpoint('${tp.id}')">×</button>`;
+        }
+
+        function toggleTpDesc(tpId) {
+            const item = document.getElementById(`tp-${tpId}`);
+            if (!item) return;
+            const desc = item.querySelector('.touchpoint-desc');
+            const btn = item.querySelector('.tp-expand-btn');
+            if (!desc) return;
+            const expanded = desc.style.display !== 'none';
+            desc.style.display = expanded ? 'none' : 'block';
+            if (btn) btn.textContent = expanded ? '▸' : '▾';
+        }
+
+        function toggleTpDescForm() {
+            const textarea = document.getElementById('tp-description');
+            const btn = document.getElementById('tp-desc-toggle');
+            if (!textarea) return;
+            const visible = textarea.style.display !== 'none';
+            textarea.style.display = visible ? 'none' : 'block';
+            if (btn) btn.textContent = visible ? '+ desc' : '− desc';
+            if (!visible) textarea.focus();
         }
 
         async function addTouchpoint() {
@@ -558,13 +676,14 @@
             const type = document.getElementById('tp-type')?.value || 'other';
             const date = document.getElementById('tp-date')?.value || new Date().toISOString().split('T')[0];
             const note = document.getElementById('tp-note')?.value?.trim();
+            const description = document.getElementById('tp-description')?.value?.trim() || null;
             if (!note) return;
 
             try {
                 const response = await fetch(`/api/tracked/${trackedModalId}/touchpoints`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ type, date, note })
+                    body: JSON.stringify({ type, date, note, description })
                 });
                 if (!response.ok) throw new Error('Failed');
                 const data = await response.json();
@@ -582,18 +701,16 @@
                 const item = document.createElement('div');
                 item.className = 'touchpoint-item';
                 item.id = `tp-${tp.id}`;
-                item.innerHTML = `
-                    <span class="touchpoint-icon">${touchpointIcon(tp.type)}</span>
-                    <div class="touchpoint-body">
-                        <div class="touchpoint-note">${tp.note}</div>
-                        <div class="touchpoint-meta"><span class="touchpoint-type-badge">${tp.type}</span>${tp.date}</div>
-                    </div>
-                    <button class="touchpoint-delete" title="Delete" onclick="deleteTouchpoint('${tp.id}')">×</button>`;
+                item.innerHTML = renderTouchpointItem(tp);
                 // Remove empty state if present
                 const emptyMsg = listEl.querySelector('p');
                 if (emptyMsg) emptyMsg.remove();
                 listEl.insertBefore(item, listEl.firstChild);
                 document.getElementById('tp-note').value = '';
+                const descEl = document.getElementById('tp-description');
+                if (descEl) { descEl.value = ''; descEl.style.display = 'none'; }
+                const toggleBtn = document.getElementById('tp-desc-toggle');
+                if (toggleBtn) toggleBtn.textContent = '+ desc';
             } catch (err) { alert('Failed to add touchpoint.'); }
         }
 
