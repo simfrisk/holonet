@@ -301,6 +301,23 @@
             <h3>Tracked Customers</h3>
             <button class="add-tracked-btn" onclick="openTrackedModal(null)">+ Add Customer</button>
         </div>
+
+        <!-- In Focus section -->
+        <div class="tracked-section-header tracked-focus-header">
+            <span class="tracked-section-dot tracked-focus-dot"></span>
+            <span class="tracked-section-title">In Focus</span>
+        </div>
+        <div class="tracked-focus-zone" id="tracked-focus-zone">
+            <div class="tracked-focus-empty" id="tracked-focus-empty">
+                <span>Drag cards here to focus on them</span>
+            </div>
+        </div>
+
+        <!-- All Tracked section -->
+        <div class="tracked-section-header tracked-all-header">
+            <span class="tracked-section-dot tracked-all-dot"></span>
+            <span class="tracked-section-title">All Tracked</span>
+        </div>
         <div class="tracked-grid" id="tracked-grid">
             <div class="tracked-empty">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>

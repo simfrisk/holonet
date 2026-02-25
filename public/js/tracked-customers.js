@@ -17,19 +17,39 @@
 
         function renderTrackedGrid() {
             const grid = document.getElementById('tracked-grid');
+            const focusZone = document.getElementById('tracked-focus-zone');
+            const focusEmpty = document.getElementById('tracked-focus-empty');
             document.getElementById('tracked-count').textContent = trackedCustomers.length;
 
-            if (trackedCustomers.length === 0) {
+            const focusCards = trackedCustomers.filter(c => c.inFocus === true);
+            const regularCards = trackedCustomers.filter(c => c.inFocus !== true);
+
+            // Render focus zone
+            if (focusCards.length === 0) {
+                // Remove all cards but keep the empty placeholder
+                Array.from(focusZone.querySelectorAll('.tracked-card')).forEach(el => el.remove());
+                if (focusEmpty) focusEmpty.style.display = '';
+            } else {
+                if (focusEmpty) focusEmpty.style.display = 'none';
+                // Clear old cards, re-render
+                Array.from(focusZone.querySelectorAll('.tracked-card')).forEach(el => el.remove());
+                focusCards.forEach(c => {
+                    focusZone.insertAdjacentHTML('beforeend', renderTrackedCard(c, true));
+                });
+            }
+
+            // Render regular grid
+            if (regularCards.length === 0) {
                 grid.innerHTML = `
                     <div class="tracked-empty">
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         <h3>No tracked customers yet</h3>
                         <p>Add customers you're actively managing, or use the Track button from the Contact List.</p>
                     </div>`;
-                return;
+            } else {
+                grid.innerHTML = regularCards.map(c => renderTrackedCard(c, false)).join('');
             }
 
-            grid.innerHTML = trackedCustomers.map(c => renderTrackedCard(c)).join('');
             // sync track buttons in contact list
             syncTrackButtons();
             // Wire up drag-and-drop handlers
@@ -45,7 +65,8 @@
             return icons[type] || '<i class="ti ti-note"></i>';
         }
 
-        function renderTrackedCard(c) {
+        function renderTrackedCard(c, inFocusContext) {
+            const isFocused = c.inFocus === true;
             const tenantLink = c.tenantName
                 ? `<a href="https://app.osaas.io/admin/tenant/${c.tenantName}" class="tracked-card-tenant" target="_blank">${c.tenantName} ↗</a>`
                 : '';
@@ -61,9 +82,10 @@
                   })()
                 : '';
             const notesPreview = c.notes ? `<div class="tracked-card-notes-preview">${c.notes}</div>` : '';
+            const focusClass = isFocused ? ' tracked-card-focused' : '';
 
             return `
-                <div class="tracked-card" draggable="true" data-tracked-id="${c.id}" onclick="openTrackedModal('${c.id}')">
+                <div class="tracked-card${focusClass}" draggable="true" data-tracked-id="${c.id}" data-in-focus="${isFocused}" onclick="openTrackedModal('${c.id}')">
                     <div class="tracked-card-top">
                         <span class="tracked-drag-handle" title="Drag to reorder" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()">⠿</span>
                         <div class="tracked-card-badges">
@@ -399,22 +421,38 @@
         }
 
         // =========================================
-        // TRACKED CARD DRAG-AND-DROP (Feature 2)
+        // TRACKED CARD DRAG-AND-DROP (Feature 2 + In Focus)
         // =========================================
 
         let trackedDragSrcId = null;
 
         function initTrackedDragDrop() {
             const grid = document.getElementById('tracked-grid');
-            if (!grid) return;
+            const focusZone = document.getElementById('tracked-focus-zone');
+            if (!grid && !focusZone) return;
 
-            grid.querySelectorAll('.tracked-card[draggable]').forEach(card => {
+            // Wire up cards in both containers
+            document.querySelectorAll('.tracked-card[draggable]').forEach(card => {
                 card.addEventListener('dragstart', onTrackedDragStart);
                 card.addEventListener('dragend',   onTrackedDragEnd);
                 card.addEventListener('dragover',  onTrackedDragOver);
                 card.addEventListener('dragleave', onTrackedDragLeave);
                 card.addEventListener('drop',      onTrackedDrop);
             });
+
+            // Wire up the focus zone itself (so you can drop onto the empty zone)
+            if (focusZone) {
+                focusZone.addEventListener('dragover',  onFocusZoneDragOver);
+                focusZone.addEventListener('dragleave', onFocusZoneDragLeave);
+                focusZone.addEventListener('drop',      onFocusZoneDrop);
+            }
+
+            // Wire up the regular grid as a drop target (for moving out of focus)
+            if (grid) {
+                grid.addEventListener('dragover',  onRegularGridDragOver);
+                grid.addEventListener('dragleave', onRegularGridDragLeave);
+                grid.addEventListener('drop',      onRegularGridDrop);
+            }
         }
 
         function onTrackedDragStart(e) {
@@ -429,10 +467,15 @@
             document.querySelectorAll('.tracked-card').forEach(c => {
                 c.classList.remove('tracked-card-dragging', 'tracked-card-drag-over');
             });
+            const focusZone = document.getElementById('tracked-focus-zone');
+            if (focusZone) focusZone.classList.remove('tracked-focus-zone-over');
+            const grid = document.getElementById('tracked-grid');
+            if (grid) grid.classList.remove('tracked-grid-zone-over');
         }
 
         function onTrackedDragOver(e) {
             e.preventDefault();
+            e.stopPropagation(); // prevent zone handler from also firing
             e.dataTransfer.dropEffect = 'move';
             if (this.dataset.trackedId !== trackedDragSrcId) {
                 this.classList.add('tracked-card-drag-over');
@@ -445,25 +488,149 @@
 
         async function onTrackedDrop(e) {
             e.preventDefault();
+            e.stopPropagation();
             this.classList.remove('tracked-card-drag-over');
 
             const targetId = this.dataset.trackedId;
             if (!trackedDragSrcId || trackedDragSrcId === targetId) return;
 
+            const srcCustomer = trackedCustomers.find(c => c.id === trackedDragSrcId);
+            const tgtCustomer = trackedCustomers.find(c => c.id === targetId);
+            if (!srcCustomer || !tgtCustomer) return;
+
+            const srcWasFocused = srcCustomer.inFocus === true;
+            const tgtIsFocused  = tgtCustomer.inFocus === true;
+
             // Reorder in-memory array
             const srcIdx = trackedCustomers.findIndex(c => c.id === trackedDragSrcId);
             const tgtIdx = trackedCustomers.findIndex(c => c.id === targetId);
-            if (srcIdx === -1 || tgtIdx === -1) return;
-
             const moved = trackedCustomers.splice(srcIdx, 1)[0];
             trackedCustomers.splice(tgtIdx, 0, moved);
+
+            // If the source card is dropped onto a card in the other section,
+            // update inFocus accordingly
+            const focusChanged = srcWasFocused !== tgtIsFocused;
+            moved.inFocus = tgtIsFocused;
 
             // Re-render immediately
             renderTrackedGrid();
 
+            // Persist: update focus if changed, then persist order
+            if (focusChanged) {
+                try {
+                    await fetch(`/api/tracked/${moved.id}/focus`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ inFocus: tgtIsFocused })
+                    });
+                } catch (err) {
+                    console.error('Failed to persist inFocus:', err);
+                }
+            }
+
+            await persistTrackedOrder();
+        }
+
+        // Drop on empty focus zone (no cards there yet, or between cards)
+        function onFocusZoneDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            document.getElementById('tracked-focus-zone').classList.add('tracked-focus-zone-over');
+        }
+
+        function onFocusZoneDragLeave(e) {
+            // Only remove if leaving the zone itself (not entering a child card)
+            if (!e.currentTarget.contains(e.relatedTarget)) {
+                document.getElementById('tracked-focus-zone').classList.remove('tracked-focus-zone-over');
+            }
+        }
+
+        async function onFocusZoneDrop(e) {
+            e.preventDefault();
+            const focusZone = document.getElementById('tracked-focus-zone');
+            focusZone.classList.remove('tracked-focus-zone-over');
+
+            if (!trackedDragSrcId) return;
+            const srcCustomer = trackedCustomers.find(c => c.id === trackedDragSrcId);
+            if (!srcCustomer) return;
+            if (srcCustomer.inFocus === true) return; // already focused, handled by card drop
+
+            // Move to focus
+            srcCustomer.inFocus = true;
+
+            // Move to front of array (in-focus cards sort first)
+            const srcIdx = trackedCustomers.findIndex(c => c.id === trackedDragSrcId);
+            const moved = trackedCustomers.splice(srcIdx, 1)[0];
+            // Insert at beginning (before any existing focus cards, or just at front)
+            const firstNonFocusIdx = trackedCustomers.findIndex(c => c.inFocus !== true);
+            if (firstNonFocusIdx === -1) {
+                trackedCustomers.push(moved);
+            } else {
+                trackedCustomers.splice(firstNonFocusIdx, 0, moved);
+            }
+
+            renderTrackedGrid();
+
+            try {
+                await fetch(`/api/tracked/${moved.id}/focus`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ inFocus: true })
+                });
+            } catch (err) {
+                console.error('Failed to persist inFocus:', err);
+            }
+            await persistTrackedOrder();
+        }
+
+        // Drop on regular grid area (to move out of focus)
+        function onRegularGridDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            document.getElementById('tracked-grid').classList.add('tracked-grid-zone-over');
+        }
+
+        function onRegularGridDragLeave(e) {
+            if (!e.currentTarget.contains(e.relatedTarget)) {
+                document.getElementById('tracked-grid').classList.remove('tracked-grid-zone-over');
+            }
+        }
+
+        async function onRegularGridDrop(e) {
+            e.preventDefault();
+            const grid = document.getElementById('tracked-grid');
+            grid.classList.remove('tracked-grid-zone-over');
+
+            if (!trackedDragSrcId) return;
+            const srcCustomer = trackedCustomers.find(c => c.id === trackedDragSrcId);
+            if (!srcCustomer) return;
+            if (srcCustomer.inFocus !== true) return; // already in regular, handled by card drop
+
+            // Move out of focus
+            srcCustomer.inFocus = false;
+
+            // Move to after all focus cards
+            const srcIdx = trackedCustomers.findIndex(c => c.id === trackedDragSrcId);
+            const moved = trackedCustomers.splice(srcIdx, 1)[0];
+            trackedCustomers.push(moved);
+
+            renderTrackedGrid();
+
+            try {
+                await fetch(`/api/tracked/${moved.id}/focus`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ inFocus: false })
+                });
+            } catch (err) {
+                console.error('Failed to persist inFocus:', err);
+            }
+            await persistTrackedOrder();
+        }
+
+        async function persistTrackedOrder() {
             // Persist order: assign cardOrder based on current array positions
             const order = trackedCustomers.map((c, i) => ({ id: c.id, cardOrder: i }));
-            // Also update in-memory cardOrder so next sort is stable
             order.forEach(({ id, cardOrder }) => {
                 const c = trackedCustomers.find(x => x.id === id);
                 if (c) c.cardOrder = cardOrder;

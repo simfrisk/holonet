@@ -87,6 +87,9 @@ async function initializeCouchDB() {
         // Ensure the default todo list document exists
         await ensureDefaultTodoList();
 
+        // Migrate tracked customers to ensure they have an inFocus field (default false)
+        await migrateTrackedInFocus();
+
     } catch (error) {
         console.error('❌ CouchDB initialization error:', error.message);
         console.log('⚠️  Server will not function without CouchDB');
@@ -269,6 +272,48 @@ async function migrateTodoListIds() {
         }
     } catch (error) {
         console.warn('⚠️  Could not run todo listId migration:', error.message);
+    }
+}
+
+// Migrate tracked customers to add inFocus field defaulting to false
+async function migrateTrackedInFocus() {
+    try {
+        const viewUrl = `${dbUrl}/_design/contacts/_view/all_tracked`;
+        const viewResponse = await couchFetch(viewUrl);
+        if (!viewResponse.ok) return;
+
+        const viewData = await viewResponse.json();
+        const toMigrate = viewData.rows
+            .map(row => row.value)
+            .filter(doc => doc.inFocus === undefined);
+
+        if (toMigrate.length === 0) {
+            console.log('✅ No tracked customers need inFocus migration');
+            return;
+        }
+
+        console.log(`🔄 Migrating ${toMigrate.length} tracked customers to add inFocus field...`);
+
+        const migratedDocs = toMigrate.map(doc => ({
+            ...doc,
+            inFocus: false,
+            updatedAt: new Date().toISOString()
+        }));
+
+        const bulkUrl = `${dbUrl}/_bulk_docs`;
+        const bulkResponse = await couchFetch(bulkUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ docs: migratedDocs })
+        });
+
+        if (bulkResponse.ok) {
+            console.log(`✅ Migrated ${toMigrate.length} tracked customers to have inFocus field`);
+        } else {
+            console.warn('⚠️  inFocus migration bulk update failed');
+        }
+    } catch (error) {
+        console.warn('⚠️  Could not run inFocus migration:', error.message);
     }
 }
 
@@ -1407,8 +1452,13 @@ app.get('/api/tracked', async (req, res) => {
             return { id: _id, ...item };
         });
 
-        // Sort by cardOrder (if set), fall back to addedAt ascending
+        // Sort: in-focus first (by cardOrder within focus group), then regular (by cardOrder)
         tracked.sort((a, b) => {
+            const aFocus = a.inFocus === true;
+            const bFocus = b.inFocus === true;
+            if (aFocus && !bFocus) return -1;
+            if (!aFocus && bFocus) return 1;
+            // Same focus group: sort by cardOrder, fall back to addedAt
             if (a.cardOrder != null && b.cardOrder != null) return a.cardOrder - b.cardOrder;
             if (a.cardOrder != null) return -1;
             if (b.cardOrder != null) return 1;
@@ -1445,6 +1495,7 @@ app.post('/api/tracked', async (req, res) => {
             notes: notes || '',
             nextFollowUp: nextFollowUp || null,
             touchpoints: [],
+            inFocus: false,
             addedAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
@@ -1502,6 +1553,42 @@ app.patch('/api/tracked/:id', async (req, res) => {
     } catch (error) {
         console.error('Error updating tracked customer:', error);
         res.status(500).json({ error: 'Failed to update tracked customer' });
+    }
+});
+
+// Toggle inFocus on a tracked customer
+app.patch('/api/tracked/:id/focus', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { inFocus } = req.body;
+
+        if (typeof inFocus !== 'boolean') {
+            return res.status(400).json({ error: 'inFocus must be a boolean' });
+        }
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Tracked customer not found' });
+        }
+
+        const doc = await getResponse.json();
+        doc.inFocus = inFocus;
+        doc.updatedAt = new Date().toISOString();
+
+        const updateResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!updateResponse.ok) throw new Error('Failed to update inFocus');
+
+        res.json({ success: true, inFocus });
+    } catch (error) {
+        console.error('Error updating inFocus:', error);
+        res.status(500).json({ error: 'Failed to update inFocus' });
     }
 });
 

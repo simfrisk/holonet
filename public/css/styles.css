@@ -1916,6 +1916,88 @@
         @media (max-width: 700px) { .tracked-grid { grid-template-columns: 1fr; } }
 
         /* =========================================
+           IN FOCUS SECTION
+           ========================================= */
+        .tracked-section-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0 8px 0;
+            margin-bottom: 12px;
+        }
+        .tracked-section-header:not(:first-of-type) {
+            margin-top: 28px;
+        }
+        .tracked-section-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+        .tracked-focus-dot { background: #a25afd; }
+        .tracked-all-dot   { background: var(--color-primary); }
+        .tracked-section-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Focus drop zone */
+        .tracked-focus-zone {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+            min-height: 80px;
+            border: 2px dashed transparent;
+            border-radius: 10px;
+            padding: 2px;
+            transition: border-color 0.2s, background-color 0.2s;
+            margin-bottom: 4px;
+        }
+        .tracked-focus-zone.tracked-focus-zone-over {
+            border-color: #a25afd;
+            background-color: rgba(162, 90, 253, 0.06);
+        }
+
+        /* Regular grid drop-zone highlight when dragging out of focus */
+        .tracked-grid.tracked-grid-zone-over {
+            border: 2px dashed var(--color-primary);
+            border-radius: 10px;
+            background-color: rgba(0, 115, 234, 0.04);
+        }
+
+        /* Empty focus placeholder */
+        .tracked-focus-empty {
+            grid-column: 1 / -1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 76px;
+            color: var(--color-text-subtle);
+            font-size: 13px;
+            font-style: italic;
+            pointer-events: none;
+        }
+
+        /* Focused card styling: purple left border */
+        .tracked-card.tracked-card-focused {
+            border-left: 3px solid #a25afd;
+        }
+        .tracked-card.tracked-card-focused:hover {
+            border-color: #a25afd;
+            box-shadow: 0 4px 20px rgba(162, 90, 253, 0.18);
+        }
+
+        /* Focused card drag-over highlight */
+        .tracked-card-focused.tracked-card-drag-over {
+            border-color: #a25afd !important;
+            border-style: dashed !important;
+            box-shadow: 0 0 0 2px rgba(162, 90, 253, 0.3) !important;
+        }
+
+        /* =========================================
            TODO IMPROVEMENTS (Feature 3)
            ========================================= */
 
