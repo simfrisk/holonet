@@ -1913,7 +1913,11 @@
             box-shadow: 0 8px 32px rgba(0, 0, 40, 0.55);
         }
 
-        @media (max-width: 700px) { .tracked-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 700px) {
+            .tracked-focus-zone,
+            .tracked-category-zone,
+            .tracked-grid { grid-template-columns: 1fr; }
+        }
 
         /* =========================================
            IN FOCUS SECTION
@@ -1934,8 +1938,10 @@
             border-radius: 2px;
             flex-shrink: 0;
         }
-        .tracked-focus-dot { background: #a25afd; }
-        .tracked-all-dot   { background: var(--color-primary); }
+        .tracked-focus-dot   { background: #a25afd; }
+        .tracked-paying-dot  { background: #00c875; }
+        .tracked-trial-dot   { background: #fdab3d; }
+        .tracked-all-dot     { background: var(--color-text-subtle); }
         .tracked-section-title {
             font-size: 13px;
             font-weight: 700;
@@ -1944,8 +1950,10 @@
             letter-spacing: 0.5px;
         }
 
-        /* Focus drop zone */
-        .tracked-focus-zone {
+        /* Shared drop zone layout (focus, paying, trial, grid all share this grid pattern) */
+        .tracked-focus-zone,
+        .tracked-category-zone,
+        .tracked-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 16px;
@@ -1956,20 +1964,28 @@
             transition: border-color 0.2s, background-color 0.2s;
             margin-bottom: 4px;
         }
-        .tracked-focus-zone.tracked-focus-zone-over {
+
+        /* Shared drop-zone over highlight */
+        .tracked-focus-zone.tracked-zone-over {
             border-color: #a25afd;
             background-color: rgba(162, 90, 253, 0.06);
         }
-
-        /* Regular grid drop-zone highlight when dragging out of focus */
-        .tracked-grid.tracked-grid-zone-over {
-            border: 2px dashed var(--color-primary);
-            border-radius: 10px;
-            background-color: rgba(0, 115, 234, 0.04);
+        #tracked-paying-zone.tracked-zone-over {
+            border-color: #00c875;
+            background-color: rgba(0, 200, 117, 0.06);
+        }
+        #tracked-trial-zone.tracked-zone-over {
+            border-color: #fdab3d;
+            background-color: rgba(253, 171, 61, 0.06);
+        }
+        .tracked-grid.tracked-zone-over {
+            border-color: var(--color-text-subtle);
+            background-color: rgba(0, 0, 0, 0.03);
         }
 
-        /* Empty focus placeholder */
-        .tracked-focus-empty {
+        /* Shared empty placeholder for all category zones */
+        .tracked-focus-empty,
+        .tracked-category-empty {
             grid-column: 1 / -1;
             display: flex;
             align-items: center;
@@ -1981,20 +1997,44 @@
             pointer-events: none;
         }
 
-        /* Focused card styling: purple left border */
-        .tracked-card.tracked-card-focused {
+        /* Category card borders */
+        .tracked-card.tracked-card-category-focus {
             border-left: 3px solid #a25afd;
         }
-        .tracked-card.tracked-card-focused:hover {
+        .tracked-card.tracked-card-category-focus:hover {
             border-color: #a25afd;
             box-shadow: 0 4px 20px rgba(162, 90, 253, 0.18);
         }
+        .tracked-card.tracked-card-category-paying {
+            border-left: 3px solid #00c875;
+        }
+        .tracked-card.tracked-card-category-paying:hover {
+            border-color: #00c875;
+            box-shadow: 0 4px 20px rgba(0, 200, 117, 0.18);
+        }
+        .tracked-card.tracked-card-category-trial {
+            border-left: 3px solid #fdab3d;
+        }
+        .tracked-card.tracked-card-category-trial:hover {
+            border-color: #fdab3d;
+            box-shadow: 0 4px 20px rgba(253, 171, 61, 0.18);
+        }
 
-        /* Focused card drag-over highlight */
-        .tracked-card-focused.tracked-card-drag-over {
+        /* Card drag-over highlight respects category color */
+        .tracked-card-category-focus.tracked-card-drag-over {
             border-color: #a25afd !important;
             border-style: dashed !important;
             box-shadow: 0 0 0 2px rgba(162, 90, 253, 0.3) !important;
+        }
+        .tracked-card-category-paying.tracked-card-drag-over {
+            border-color: #00c875 !important;
+            border-style: dashed !important;
+            box-shadow: 0 0 0 2px rgba(0, 200, 117, 0.3) !important;
+        }
+        .tracked-card-category-trial.tracked-card-drag-over {
+            border-color: #fdab3d !important;
+            border-style: dashed !important;
+            box-shadow: 0 0 0 2px rgba(253, 171, 61, 0.3) !important;
         }
 
         /* =========================================

@@ -87,8 +87,8 @@ async function initializeCouchDB() {
         // Ensure the default todo list document exists
         await ensureDefaultTodoList();
 
-        // Migrate tracked customers to ensure they have an inFocus field (default false)
-        await migrateTrackedInFocus();
+        // Migrate tracked customers from inFocus boolean to category string
+        await migrateTrackedCategory();
 
     } catch (error) {
         console.error('❌ CouchDB initialization error:', error.message);
@@ -275,30 +275,37 @@ async function migrateTodoListIds() {
     }
 }
 
-// Migrate tracked customers to add inFocus field defaulting to false
-async function migrateTrackedInFocus() {
+// Migrate tracked customers from old inFocus boolean to new category string field
+// Migration rules:
+//   inFocus === true  → category: 'focus', remove inFocus
+//   inFocus === false/undefined → category: null, remove inFocus
+async function migrateTrackedCategory() {
     try {
         const viewUrl = `${dbUrl}/_design/contacts/_view/all_tracked`;
         const viewResponse = await couchFetch(viewUrl);
         if (!viewResponse.ok) return;
 
         const viewData = await viewResponse.json();
+        // Migrate docs that still have the old inFocus field OR have no category field at all
         const toMigrate = viewData.rows
             .map(row => row.value)
-            .filter(doc => doc.inFocus === undefined);
+            .filter(doc => doc.category === undefined);
 
         if (toMigrate.length === 0) {
-            console.log('✅ No tracked customers need inFocus migration');
+            console.log('✅ No tracked customers need category migration');
             return;
         }
 
-        console.log(`🔄 Migrating ${toMigrate.length} tracked customers to add inFocus field...`);
+        console.log(`🔄 Migrating ${toMigrate.length} tracked customers to category field...`);
 
-        const migratedDocs = toMigrate.map(doc => ({
-            ...doc,
-            inFocus: false,
-            updatedAt: new Date().toISOString()
-        }));
+        const migratedDocs = toMigrate.map(doc => {
+            const { inFocus, ...rest } = doc;
+            return {
+                ...rest,
+                category: inFocus === true ? 'focus' : null,
+                updatedAt: new Date().toISOString()
+            };
+        });
 
         const bulkUrl = `${dbUrl}/_bulk_docs`;
         const bulkResponse = await couchFetch(bulkUrl, {
@@ -308,12 +315,12 @@ async function migrateTrackedInFocus() {
         });
 
         if (bulkResponse.ok) {
-            console.log(`✅ Migrated ${toMigrate.length} tracked customers to have inFocus field`);
+            console.log(`✅ Migrated ${toMigrate.length} tracked customers to category field`);
         } else {
-            console.warn('⚠️  inFocus migration bulk update failed');
+            console.warn('⚠️  Category migration bulk update failed');
         }
     } catch (error) {
-        console.warn('⚠️  Could not run inFocus migration:', error.message);
+        console.warn('⚠️  Could not run category migration:', error.message);
     }
 }
 
@@ -1452,13 +1459,13 @@ app.get('/api/tracked', async (req, res) => {
             return { id: _id, ...item };
         });
 
-        // Sort: in-focus first (by cardOrder within focus group), then regular (by cardOrder)
+        // Sort: focus first, then paying, then trial, then unassigned — each group by cardOrder
+        const categoryOrder = { 'focus': 0, 'paying': 1, 'trial': 2, null: 3, undefined: 3 };
         tracked.sort((a, b) => {
-            const aFocus = a.inFocus === true;
-            const bFocus = b.inFocus === true;
-            if (aFocus && !bFocus) return -1;
-            if (!aFocus && bFocus) return 1;
-            // Same focus group: sort by cardOrder, fall back to addedAt
+            const aRank = categoryOrder[a.category] ?? 3;
+            const bRank = categoryOrder[b.category] ?? 3;
+            if (aRank !== bRank) return aRank - bRank;
+            // Same category: sort by cardOrder, fall back to addedAt
             if (a.cardOrder != null && b.cardOrder != null) return a.cardOrder - b.cardOrder;
             if (a.cardOrder != null) return -1;
             if (b.cardOrder != null) return 1;
@@ -1495,7 +1502,7 @@ app.post('/api/tracked', async (req, res) => {
             notes: notes || '',
             nextFollowUp: nextFollowUp || null,
             touchpoints: [],
-            inFocus: false,
+            category: null,
             addedAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
@@ -1556,14 +1563,17 @@ app.patch('/api/tracked/:id', async (req, res) => {
     }
 });
 
-// Toggle inFocus on a tracked customer
-app.patch('/api/tracked/:id/focus', async (req, res) => {
+// Set category on a tracked customer
+// Body: { category: 'focus' | 'paying' | 'trial' | null }
+const VALID_TRACKED_CATEGORIES = ['focus', 'paying', 'trial', null];
+
+app.patch('/api/tracked/:id/category', async (req, res) => {
     try {
         const { id } = req.params;
-        const { inFocus } = req.body;
+        const { category } = req.body;
 
-        if (typeof inFocus !== 'boolean') {
-            return res.status(400).json({ error: 'inFocus must be a boolean' });
+        if (!VALID_TRACKED_CATEGORIES.includes(category)) {
+            return res.status(400).json({ error: 'category must be focus, paying, trial, or null' });
         }
 
         const docUrl = `${dbUrl}/${id}`;
@@ -1574,7 +1584,7 @@ app.patch('/api/tracked/:id/focus', async (req, res) => {
         }
 
         const doc = await getResponse.json();
-        doc.inFocus = inFocus;
+        doc.category = category;
         doc.updatedAt = new Date().toISOString();
 
         const updateResponse = await couchFetch(docUrl, {
@@ -1583,12 +1593,50 @@ app.patch('/api/tracked/:id/focus', async (req, res) => {
             body: JSON.stringify(doc)
         });
 
-        if (!updateResponse.ok) throw new Error('Failed to update inFocus');
+        if (!updateResponse.ok) throw new Error('Failed to update category');
 
-        res.json({ success: true, inFocus });
+        res.json({ success: true, category });
     } catch (error) {
-        console.error('Error updating inFocus:', error);
-        res.status(500).json({ error: 'Failed to update inFocus' });
+        console.error('Error updating category:', error);
+        res.status(500).json({ error: 'Failed to update category' });
+    }
+});
+
+// Legacy alias: PATCH /api/tracked/:id/focus → maps to category endpoint
+app.patch('/api/tracked/:id/focus', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { inFocus } = req.body;
+
+        if (typeof inFocus !== 'boolean') {
+            return res.status(400).json({ error: 'inFocus must be a boolean' });
+        }
+
+        const category = inFocus ? 'focus' : null;
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Tracked customer not found' });
+        }
+
+        const doc = await getResponse.json();
+        doc.category = category;
+        doc.updatedAt = new Date().toISOString();
+
+        const updateResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!updateResponse.ok) throw new Error('Failed to update category');
+
+        res.json({ success: true, inFocus, category });
+    } catch (error) {
+        console.error('Error updating focus (legacy):', error);
+        res.status(500).json({ error: 'Failed to update focus' });
     }
 });
 
