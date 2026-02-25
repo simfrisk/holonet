@@ -380,11 +380,13 @@ app.get('/api/contacts', async (req, res) => {
         const contactedCount = contacts.filter(c => c.status === 'contacted').length;
         const laterCount = contacts.filter(c => c.status === 'later').length;
         const skipCount = contacts.filter(c => c.status === 'skip').length;
+        const focusCount = contacts.filter(c => c.priority === 'focus').length;
 
         res.json({
             metadata: {
                 totalContacts: contacts.length,
                 pendingOutreach: activeCount,
+                focus: focusCount,
                 contacted: contactedCount,
                 later: laterCount,
                 skip: skipCount,
@@ -441,8 +443,8 @@ app.patch('/api/contacts/:id/priority', async (req, res) => {
         const { id } = req.params;
         const { priority } = req.body;
 
-        if (!['high', 'medium', 'low'].includes(priority)) {
-            return res.status(400).json({ error: 'priority must be high, medium, or low' });
+        if (!['focus', 'high', 'medium', 'low'].includes(priority)) {
+            return res.status(400).json({ error: 'priority must be focus, high, medium, or low' });
         }
 
         const docUrl = `${dbUrl}/${id}`;

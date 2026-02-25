@@ -155,8 +155,11 @@
             const contacted = document.getElementById('archived-table-body').children.length;
             const later = document.getElementById('later-table-body').children.length;
             const skip = document.getElementById('skip-table-body').children.length;
+            // Count "In Focus" priority contacts across all visible rows
+            const focusCount = document.querySelectorAll('[data-contact-id].priority-focus').length;
 
             document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-focus').textContent = focusCount;
             document.getElementById('stat-pending').textContent = active;
             document.getElementById('stat-contacted').textContent = contacted;
             document.getElementById('stat-later').textContent = later;

@@ -131,6 +131,8 @@
             border-radius: 8px;
             border-left: 3px solid var(--color-primary);
         }
+        .stat-card.stat-focus { border-left-color: #a25afd; }
+        .stat-card.stat-focus strong { color: #a25afd; }
         .stat-card.stat-contacted { border-left-color: var(--color-success); }
         .stat-card.stat-later { border-left-color: var(--color-warning); }
         .stat-card.stat-skip { border-left-color: var(--color-danger); }
@@ -1795,6 +1797,7 @@
             border-left: none;
             border-top: 3px solid var(--color-primary);
         }
+        .stat-card.stat-focus     { border-top-color: #a25afd; border-left: none; }
         .stat-card.stat-contacted { border-top-color: #00c875; border-left: none; }
         .stat-card.stat-later     { border-top-color: #fdab3d; border-left: none; }
         .stat-card.stat-skip      { border-top-color: #e2445c; border-left: none; }

@@ -10,9 +10,10 @@
         };
 
         const PRIORITY_INFO = {
-            high:   { label: 'High',   color: '#e2445c' },
-            medium: { label: 'Medium', color: '#fdab3d' },
-            low:    { label: 'Low',    color: '#00c875' },
+            focus:  { label: 'In Focus', color: '#a25afd' },
+            high:   { label: 'High',     color: '#e2445c' },
+            medium: { label: 'Medium',   color: '#fdab3d' },
+            low:    { label: 'Low',      color: '#00c875' },
         };
 
         // Position a popover below (or above) its trigger button using document-absolute coords
@@ -208,6 +209,7 @@
                     </div>
                     <select id="priority-select-${contact.id}" class="priority-select ${contact.priority}" style="display:none"
                             onchange="updatePriority('${contact.id}', this)">
+                        <option value="focus" ${contact.priority === 'focus' ? 'selected' : ''}>In Focus</option>
                         <option value="high" ${contact.priority === 'high' ? 'selected' : ''}>High</option>
                         <option value="medium" ${contact.priority === 'medium' ? 'selected' : ''}>Medium</option>
                         <option value="low" ${contact.priority === 'low' ? 'selected' : ''}>Low</option>
@@ -337,8 +339,8 @@
         // MONDAY.COM GROUP HEADERS
         // =========================================
 
-        const GROUP_COLORS = { high: '#e2445c', medium: '#fdab3d', low: '#00c875' };
-        const GROUP_LABELS = { high: 'High Priority', medium: 'Medium Priority', low: 'Low Priority' };
+        const GROUP_COLORS = { focus: '#a25afd', high: '#e2445c', medium: '#fdab3d', low: '#00c875' };
+        const GROUP_LABELS = { focus: 'In Focus', high: 'High Priority', medium: 'Medium Priority', low: 'Low Priority' };
 
         function addGroupHeaders(tbody) {
             // Remove existing group headers
@@ -357,7 +359,7 @@
             });
 
             // Insert a header row before the first row of each group
-            ['high', 'medium', 'low'].forEach(p => {
+            ['focus', 'high', 'medium', 'low'].forEach(p => {
                 if (!groups[p] || groups[p].length === 0) return;
                 const firstRow = groups[p][0];
                 const header = document.createElement('tr');
