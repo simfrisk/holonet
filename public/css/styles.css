@@ -773,14 +773,25 @@
             background-color: var(--color-primary);
             color: white;
             border: none;
-            padding: 10px 18px;
+            padding: 7px 14px;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 600;
             cursor: pointer;
+            white-space: nowrap;
+            flex-shrink: 0;
             transition: background-color 0.2s;
         }
         .add-contact-btn:hover { background-color: var(--color-primary-hover); }
+
+        /* Sub-nav right group: search + add contact button */
+        .sub-nav-actions {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 2px;
+        }
 
         /* =========================================
            EMAIL DRAFTS TAB
@@ -2182,12 +2193,39 @@
            CONTACT SEARCH (Feature 1)
            ========================================= */
         .contact-search-wrap {
-            margin-left: auto;
             display: flex;
             align-items: center;
             position: relative;
-            padding-bottom: 2px;
         }
+
+        /* Compact icon-only buttons inside link tiles */
+        .link-icon-btn {
+            flex: none !important;
+            min-width: unset !important;
+            width: 26px;
+            height: 26px;
+            padding: 0;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Links tab search input */
+        .links-search-input {
+            padding: 5px 10px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            font-size: 13px;
+            background: var(--color-input-bg);
+            color: var(--color-text);
+            font-family: inherit;
+            width: 180px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+        .links-search-input:focus { border-color: var(--color-primary); }
+        .links-search-input::placeholder { color: var(--color-text-subtle); }
         .contact-search-input {
             padding: 5px 28px 5px 10px;
             border: 1px solid var(--color-border);

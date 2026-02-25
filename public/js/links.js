@@ -22,6 +22,14 @@
             const grid = document.getElementById('links-grid');
             if (!grid) return;
 
+            const query = (document.getElementById('links-search')?.value || '').toLowerCase().trim();
+            const filtered = query
+                ? linksData.filter(l =>
+                    l.name.toLowerCase().includes(query) ||
+                    (l.url || '').toLowerCase().includes(query) ||
+                    (l.username || '').toLowerCase().includes(query))
+                : linksData;
+
             if (linksData.length === 0) {
                 grid.innerHTML = `<div class="drafts-empty-state">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -34,7 +42,16 @@
                 return;
             }
 
-            grid.innerHTML = linksData.map(link => buildLinkTileHtml(link)).join('');
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="drafts-empty-state">
+                    <i class="ti ti-search" style="font-size:2em;color:var(--color-text-subtle);"></i>
+                    <h3>No results</h3>
+                    <p>No links match &ldquo;${escapeHtml(query)}&rdquo;.</p>
+                </div>`;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(link => buildLinkTileHtml(link)).join('');
         }
 
         function buildLinkTileHtml(link) {
@@ -63,17 +80,17 @@
                     <div style="display:flex;align-items:center;gap:6px;">
                         <span style="font-size:11px;color:var(--color-text-subtle);font-weight:600;text-transform:uppercase;letter-spacing:.04em;min-width:68px;">Username</span>
                         <span style="font-size:12px;color:var(--color-text-muted);background:var(--color-surface);border:1px solid var(--color-border);border-radius:4px;padding:2px 7px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace;">${escapeHtml(link.username)}</span>
-                        <button class="draft-copy-btn copy-subject-btn" onclick="copyLinkField('${escapeAttr(link.id)}','username',this)" title="Copy username"><i class="ti ti-clipboard"></i></button>
+                        <button class="draft-copy-btn copy-subject-btn link-icon-btn" onclick="copyLinkField('${escapeAttr(link.id)}','username',this)" title="Copy username"><i class="ti ti-clipboard"></i></button>
                     </div>` : ''}
 
                     ${hasPw ? `
                     <div style="display:flex;align-items:center;gap:6px;">
                         <span style="font-size:11px;color:var(--color-text-subtle);font-weight:600;text-transform:uppercase;letter-spacing:.04em;min-width:68px;">Password</span>
                         <span id="${pwId}" style="font-size:12px;color:var(--color-text-muted);background:var(--color-surface);border:1px solid var(--color-border);border-radius:4px;padding:2px 7px;flex:1;font-family:monospace;letter-spacing:.1em;">••••••••</span>
-                        <button class="draft-copy-btn" onclick="toggleLinkPw('${pwId}','${escapeAttr(link.password)}',this)" title="Show/hide password">
+                        <button class="draft-copy-btn link-icon-btn" onclick="toggleLinkPw('${pwId}','${escapeAttr(link.password)}',this)" title="Show/hide password">
                             <i class="ti ti-eye"></i>
                         </button>
-                        <button class="draft-copy-btn copy-body-btn" onclick="copyLinkField('${escapeAttr(link.id)}','password',this)" title="Copy password"><i class="ti ti-clipboard"></i></button>
+                        <button class="draft-copy-btn copy-body-btn link-icon-btn" onclick="copyLinkField('${escapeAttr(link.id)}','password',this)" title="Copy password"><i class="ti ti-clipboard"></i></button>
                     </div>` : ''}
                 </div>
 

@@ -18,7 +18,6 @@
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <button class="dark-mode-btn" id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle dark mode"><i class="ti ti-moon"></i></button>
                     <a href="/api/logout" class="dark-mode-btn" title="Sign out" style="text-decoration:none;"><i class="ti ti-logout"></i></a>
-                    <button class="add-contact-btn" onclick="openAddContactModal()">+ Add Contact</button>
                 </div>
             </div>
         </header>
@@ -62,12 +61,15 @@
             <button class="tab-button tab-all" data-tab="all" onclick="switchTab('all')">
                 All (<span id="all-count">0</span>)
             </button>
-            <div class="contact-search-wrap">
-                <input type="text" id="contact-search" class="contact-search-input"
-                       placeholder="Search contacts…" autocomplete="off"
-                       oninput="onContactSearch(this.value)">
-                <button class="contact-search-clear" id="contact-search-clear"
-                        onclick="clearContactSearch()" title="Clear search" style="display:none">×</button>
+            <div class="sub-nav-actions">
+                <div class="contact-search-wrap">
+                    <input type="text" id="contact-search" class="contact-search-input"
+                           placeholder="Search contacts…" autocomplete="off"
+                           oninput="onContactSearch(this.value)">
+                    <button class="contact-search-clear" id="contact-search-clear"
+                            onclick="clearContactSearch()" title="Clear search" style="display:none">×</button>
+                </div>
+                <button class="add-contact-btn" onclick="openAddContactModal()"><i class="ti ti-plus"></i> Add Contact</button>
             </div>
         </div>
 
@@ -539,7 +541,10 @@
         <div class="drafts-grid-wrapper">
             <div class="drafts-header">
                 <h3>Quick Links</h3>
-                <button class="new-draft-btn" onclick="openLinkModal()">+ Add Link</button>
+                <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+                    <input type="search" id="links-search" class="links-search-input" placeholder="Search links…" oninput="renderLinksGrid()">
+                    <button class="new-draft-btn" onclick="openLinkModal()"><i class="ti ti-plus"></i> Add Link</button>
+                </div>
             </div>
             <div class="drafts-grid" id="links-grid">
                 <!-- Rendered by links.js -->
