@@ -739,8 +739,9 @@
             tr.priority-high { border-left: 4px solid var(--color-danger); }
             tr.priority-medium { border-left: 4px solid var(--color-warning); }
             tr.priority-low { border-left: 4px solid var(--color-success); }
-            td { padding: 8px 12px; border-bottom: 1px solid var(--color-surface-elevated); text-align: left; }
+            td { padding: 8px 12px; border-bottom: 1px solid var(--color-surface-elevated); text-align: left; height: auto; border-right: none; }
             td:last-child { border-bottom: none; }
+            .activity-summary { max-width: 100%; }
             td[data-label]::before {
                 content: attr(data-label);
                 display: block;
@@ -2427,6 +2428,11 @@
             /* --- Contact table: card layout ---
                Works WITH the existing display:block card layout (set above).
                Uses float for status+priority side-by-side (tr has overflow:hidden = clearfix). */
+
+            /* Override the global td height:42px for mobile cards —
+               cells must grow with content, not clip */
+            td { height: auto !important; }
+            .activity-summary { max-width: 100% !important; }
 
             /* Hide drag handle (td has no data-label) */
             tr:not(.group-header) td:not([data-label]) { display: none !important; }
