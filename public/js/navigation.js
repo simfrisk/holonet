@@ -43,6 +43,9 @@
                     updateStats(); // refresh pipeline counts
                     statsLoaded = true;
                 }
+                if (sectionName === 'links') {
+                    renderLinksGrid();
+                }
             }
         }
 
@@ -62,7 +65,7 @@
         function restoreNavFromHash() {
             const hash = window.location.hash.slice(1);
             const CONTACT_SUB_TABS = ['active', 'archived', 'later', 'skip', 'all'];
-            const TOP_SECTIONS = ['drafts', 'todos', 'tracked', 'stats'];
+            const TOP_SECTIONS = ['drafts', 'todos', 'tracked', 'stats', 'links'];
 
             if (TOP_SECTIONS.includes(hash)) {
                 switchSection(hash, true);

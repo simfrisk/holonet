@@ -39,9 +39,9 @@
             <button class="primary-nav-btn" data-section="stats" onclick="switchSection('stats')">
                 <span class="pnav-icon"><i class="ti ti-chart-bar"></i></span> Stats
             </button>
-            <a href="/links.html" class="primary-nav-btn" style="text-decoration:none;">
+            <button class="primary-nav-btn" data-section="links" onclick="switchSection('links')">
                 <span class="pnav-icon"><i class="ti ti-link"></i></span> Quick Links
-            </a>
+            </button>
         </div>
 
         <!-- Sub Navigation (contact list sub-tabs) -->
@@ -533,6 +533,74 @@
     </div>
 
     <!-- Email Draft Create / Edit Modal -->
+    <!-- Quick Links Tab -->
+    <div id="links-tab" class="tab-content">
+        <div class="drafts-grid-wrapper">
+            <div class="drafts-header">
+                <h3>Quick Links</h3>
+                <button class="new-draft-btn" onclick="openLinkModal()">+ Add Link</button>
+            </div>
+            <div class="drafts-grid" id="links-grid">
+                <!-- Rendered by links.js -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Link Add/Edit Modal -->
+    <div id="linkModal" class="modal" onclick="if(event.target===this)closeLinkModal()">
+        <div class="modal-content" style="max-width:460px;min-height:unset;">
+            <div class="modal-header">
+                <h2 id="linkModalTitle">Add Link</h2>
+                <button class="close-button" onclick="closeLinkModal()">&#x2715;</button>
+            </div>
+            <div class="modal-body" style="padding:20px 24px;">
+                <input type="hidden" id="linkEditId">
+                <div class="form-group">
+                    <label for="linkFieldName">Name <span style="color:var(--color-danger)">*</span></label>
+                    <input type="text" id="linkFieldName" placeholder="e.g. FreeScout Admin">
+                </div>
+                <div class="form-group">
+                    <label for="linkFieldUrl">URL</label>
+                    <input type="url" id="linkFieldUrl" placeholder="https://example.com">
+                </div>
+                <div class="form-group">
+                    <label for="linkFieldUsername">Username</label>
+                    <input type="text" id="linkFieldUsername" placeholder="admin@example.com">
+                </div>
+                <div class="form-group">
+                    <label for="linkFieldPassword">Password</label>
+                    <input type="text" id="linkFieldPassword" placeholder="your-password">
+                    <small style="color:var(--color-text-subtle);font-size:11px;">Stored locally in your browser only.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-button" onclick="closeLinkModal()">Cancel</button>
+                <button class="save-button" onclick="saveLinkCard()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Link Delete Confirm Modal -->
+    <div id="linkConfirmModal" class="modal" onclick="if(event.target===this)closeLinkConfirmModal()">
+        <div class="modal-content" style="max-width:400px;min-height:unset;">
+            <div class="modal-header">
+                <h2>Delete Link?</h2>
+                <button class="close-button" onclick="closeLinkConfirmModal()">&#x2715;</button>
+            </div>
+            <div class="modal-body" style="padding:20px 24px;">
+                <p style="font-size:14px;color:var(--color-text-muted);">
+                    Are you sure you want to delete <strong id="linkConfirmName" style="color:var(--color-text)"></strong>? This cannot be undone.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-button" onclick="closeLinkConfirmModal()">Cancel</button>
+                <button class="save-button" style="background-color:var(--color-danger);" onclick="confirmLinkDelete()">
+                    <i class="ti ti-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="draftModal" class="modal">
         <div class="modal-content" style="max-width: 620px; min-height: unset;">
             <div class="modal-header">
@@ -576,6 +644,7 @@
     <script src="js/email-drafts.js"></script>
     <script src="js/tracked-customers.js"></script>
     <script src="js/stats.js"></script>
+    <script src="js/links.js"></script>
     <script src="js/init.js"></script>
 </body>
 </html>
