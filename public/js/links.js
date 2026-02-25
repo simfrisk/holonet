@@ -95,7 +95,7 @@
                 </div>
 
                 <div class="draft-tile-actions" style="margin-top:8px;">
-                    ${hasUrl ? `<a class="draft-copy-btn" href="${escapeHtml(link.url)}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+                    ${hasUrl ? `<a class="draft-copy-btn copy-subject-btn" href="${escapeHtml(link.url)}" target="_blank" rel="noopener" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
                         <i class="ti ti-external-link"></i> Open</a>` : ''}
                     <button class="draft-edit-btn" onclick="openLinkModal('${escapeAttr(link.id)}')" title="Edit link">
                         <i class="ti ti-pencil"></i>
