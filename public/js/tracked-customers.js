@@ -253,6 +253,38 @@
                 </div>`;
         }
 
+        function renderTodoItem(todo) {
+            return `
+                <div class="todo-item" data-todo-id="${todo.id}">
+                    <input type="checkbox" class="todo-check" ${todo.done ? 'checked' : ''}>
+                    <span class="todo-text">${escapeHtml(todo.text)}</span>
+                    <button class="todo-delete" title="Remove" onclick="deleteTodo('${todo.id}')">×</button>
+                </div>`;
+        }
+
+        function addTodo() {
+            const input = document.getElementById('todo-input');
+            const text = input.value.trim();
+            if (!text) return;
+            const id = 'todo-' + Date.now();
+            const list = document.getElementById('tm-todo-list');
+            list.insertAdjacentHTML('beforeend', renderTodoItem({ id, text, done: false }));
+            input.value = '';
+            input.focus();
+        }
+
+        function deleteTodo(todoId) {
+            document.querySelector(`.todo-item[data-todo-id="${todoId}"]`)?.remove();
+        }
+
+        function collectTodos() {
+            return Array.from(document.querySelectorAll('.todo-item[data-todo-id]')).map(item => ({
+                id: item.dataset.todoId,
+                text: item.querySelector('.todo-text')?.textContent || '',
+                done: item.querySelector('.todo-check')?.checked || false
+            }));
+        }
+
         function buildTrackedModalBody(c) {
             const health = c ? (c.health || 'unknown') : 'unknown';
             const stage = c ? (c.stage || '') : '';
@@ -260,9 +292,11 @@
             const nextFollowUp = c ? (c.nextFollowUp || '') : '';
             const touchpoints = c ? (c.touchpoints || []) : [];
             const customFields = c ? (c.customFields || []) : [];
+            const savedTodos = c ? (c.todos || []) : [];
             const today = new Date().toISOString().split('T')[0];
 
             const customFieldsHtml = customFields.map(f => renderCustomFieldRow(f)).join('');
+            const todosHtml = savedTodos.map(t => renderTodoItem(t)).join('');
 
             const tpListHtml = touchpoints.length > 0
                 ? touchpoints.map(tp => `
@@ -290,6 +324,14 @@
                         <div class="notion-section">
                             <label class="notion-section-label">Notes</label>
                             <textarea class="notion-notes" id="tm-notes" placeholder="Add notes, paste data, write anything here...">${escapeHtml(notes)}</textarea>
+                        </div>
+                        <div class="notion-section notion-todos-section">
+                            <label class="notion-section-label">To-do</label>
+                            <div class="todo-list" id="tm-todo-list">${todosHtml}</div>
+                            <div class="todo-add-row">
+                                <input class="todo-add-input" id="todo-input" placeholder="Add a to-do…">
+                                <button class="todo-add-btn" onclick="addTodo()">Add</button>
+                            </div>
                         </div>
                     </div>
                     <div class="notion-props-pane">
@@ -433,11 +475,15 @@
             });
         }
 
-        // Enter key on touchpoint note field
+        // Enter key on touchpoint note field and todo input
         document.addEventListener('keydown', e => {
             if (e.key === 'Enter' && e.target.id === 'tp-note') {
                 e.preventDefault();
                 addTouchpoint();
+            }
+            if (e.key === 'Enter' && e.target.id === 'todo-input') {
+                e.preventDefault();
+                addTodo();
             }
         });
 
@@ -456,6 +502,7 @@
             const notes = document.getElementById('tm-notes')?.value || '';
             const nextFollowUp = document.getElementById('tm-followup')?.value || null;
             const customFields = collectCustomFields();
+            const todos = collectTodos();
 
             const statusEl = document.getElementById('notion-save-status');
             if (statusEl) statusEl.textContent = 'Saving…';
@@ -471,7 +518,7 @@
                     const response = await fetch('/api/tracked', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, organization: org, tenantName: tenant, email, health, stage, notes, nextFollowUp, customFields })
+                        body: JSON.stringify({ name, organization: org, tenantName: tenant, email, health, stage, notes, nextFollowUp, customFields, todos })
                     });
                     if (!response.ok) throw new Error('Failed');
                     const data = await response.json();
@@ -490,12 +537,12 @@
                     const response = await fetch(`/api/tracked/${trackedModalId}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, organization: org, tenantName: tenant, email, health, stage, notes, nextFollowUp: nextFollowUp || null, customFields })
+                        body: JSON.stringify({ name, organization: org, tenantName: tenant, email, health, stage, notes, nextFollowUp: nextFollowUp || null, customFields, todos })
                     });
                     if (!response.ok) throw new Error('Failed');
                     const idx = trackedCustomers.findIndex(c => c.id === trackedModalId);
                     if (idx !== -1) {
-                        trackedCustomers[idx] = { ...trackedCustomers[idx], name, organization: org, tenantName: tenant, email, health, stage, notes, nextFollowUp: nextFollowUp || null, customFields };
+                        trackedCustomers[idx] = { ...trackedCustomers[idx], name, organization: org, tenantName: tenant, email, health, stage, notes, nextFollowUp: nextFollowUp || null, customFields, todos };
                     }
                     document.getElementById('tracked-modal-title').textContent = name;
                     document.getElementById('tracked-modal-subtitle').textContent = [org, tenant, email].filter(Boolean).join(' · ');
