@@ -313,13 +313,18 @@
             background: none;
             border: 1px solid var(--color-border);
             border-radius: 5px;
-            padding: 3px 7px;
+            width: 26px;
+            height: 26px;
+            padding: 0;
             cursor: pointer;
-            font-size: 11px;
+            font-size: 14px;
             font-family: inherit;
             font-weight: 500;
             color: var(--color-text-muted);
-            white-space: nowrap;
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             transition: background-color 0.15s, border-color 0.15s, color 0.15s;
         }
 
@@ -337,6 +342,35 @@
 
         html[data-theme="dark"] .icon-btn.copied {
             background-color: #0d2e1c;
+        }
+
+        /* Search / add toolbar */
+        .links-toolbar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1.5px solid var(--color-border);
+            border-radius: 7px;
+            font-size: 13px;
+            font-family: inherit;
+            background-color: var(--color-input-bg);
+            color: var(--color-text);
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .search-input:focus {
+            border-color: var(--color-primary);
+        }
+
+        .search-input::placeholder {
+            color: var(--color-text-subtle);
         }
 
         /* Tile actions */
@@ -509,12 +543,16 @@
                 <button class="dark-mode-btn" id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle dark mode">
                     <i class="ti ti-moon"></i>
                 </button>
-                <button class="btn btn-primary" onclick="openAddModal()">
-                    <i class="ti ti-plus"></i> Add Link
-                </button>
             </div>
         </div>
     </header>
+
+    <div class="links-toolbar">
+        <input type="search" id="searchInput" class="search-input" placeholder="Search links..." oninput="renderCards()">
+        <button class="btn btn-primary" onclick="openAddModal()">
+            <i class="ti ti-plus"></i> Add Link
+        </button>
+    </div>
 
     <div class="links-grid" id="linksGrid">
         <!-- Rendered by JS -->
@@ -621,6 +659,14 @@
     // =========================================
     function renderCards() {
         const grid = document.getElementById('linksGrid');
+        const query = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
+        const filtered = query
+            ? links.filter(l =>
+                l.name.toLowerCase().includes(query) ||
+                (l.url || '').toLowerCase().includes(query) ||
+                (l.username || '').toLowerCase().includes(query))
+            : links;
+
         if (links.length === 0) {
             grid.innerHTML = `
                 <div class="empty-state">
@@ -630,7 +676,18 @@
                 </div>`;
             return;
         }
-        grid.innerHTML = links.map(buildTile).join('');
+
+        if (filtered.length === 0) {
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <i class="ti ti-search"></i>
+                    <h3>No results</h3>
+                    <p>No links match "<em>${esc(query)}</em>".</p>
+                </div>`;
+            return;
+        }
+
+        grid.innerHTML = filtered.map(buildTile).join('');
     }
 
     function buildTile(link) {
@@ -657,7 +714,7 @@
                 <div class="field-row">
                     <span class="field-label">Username</span>
                     <span class="field-val" title="${esc(link.username)}">${esc(link.username)}</span>
-                    <button class="icon-btn" onclick="copyText('${escAttr(link.username)}', this)">Copy</button>
+                    <button class="icon-btn" onclick="copyText('${escAttr(link.username)}', this)" title="Copy"><i class="ti ti-clipboard"></i></button>
                 </div>` : ''}
 
                 ${hasPw ? `
@@ -665,8 +722,8 @@
                     <span class="field-label">Password</span>
                     <div class="pw-wrapper">
                         <span class="field-val" id="${pwId}">••••••••</span>
-                        <button class="icon-btn" onclick="togglePw('${pwId}', '${escAttr(link.password)}', this)">Show</button>
-                        <button class="icon-btn" onclick="copyText('${escAttr(link.password)}', this)">Copy</button>
+                        <button class="icon-btn" onclick="togglePw('${pwId}', '${escAttr(link.password)}', this)" title="Show/hide"><i class="ti ti-eye"></i></button>
+                        <button class="icon-btn" onclick="copyText('${escAttr(link.password)}', this)" title="Copy"><i class="ti ti-clipboard"></i></button>
                     </div>
                 </div>` : ''}
             </div>
@@ -692,22 +749,24 @@
 
     function togglePw(elId, pw, btn) {
         const el = document.getElementById(elId);
-        if (btn.textContent === 'Show') {
+        const isHidden = el.textContent === '••••••••';
+        if (isHidden) {
             el.textContent = pw;
-            btn.textContent = 'Hide';
+            btn.innerHTML = '<i class="ti ti-eye-off"></i>';
+            btn.title = 'Hide';
         } else {
             el.textContent = '••••••••';
-            btn.textContent = 'Show';
+            btn.innerHTML = '<i class="ti ti-eye"></i>';
+            btn.title = 'Show';
         }
     }
 
     function copyText(text, btn) {
         navigator.clipboard.writeText(text).then(() => {
-            const orig = btn.textContent;
-            btn.textContent = 'Copied!';
+            btn.innerHTML = '<i class="ti ti-check"></i>';
             btn.classList.add('copied');
             setTimeout(() => {
-                btn.textContent = orig;
+                btn.innerHTML = '<i class="ti ti-clipboard"></i>';
                 btn.classList.remove('copied');
             }, 1500);
         });
