@@ -807,6 +807,25 @@ app.post('/api/sync', verifyApiKey, async (req, res) => {
     }
 });
 
+// Delete a contact
+app.delete('/api/contacts/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Contact not found' });
+        }
+        const doc = await getResponse.json();
+        const deleteResponse = await couchFetch(`${docUrl}?rev=${doc._rev}`, { method: 'DELETE' });
+        if (!deleteResponse.ok) throw new Error('Failed to delete contact');
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting contact:', error);
+        res.status(500).json({ error: 'Failed to delete contact' });
+    }
+});
+
 // Bulk reorder contacts
 app.post('/api/contacts/reorder', async (req, res) => {
     try {
@@ -866,8 +885,13 @@ app.get('/api/drafts', async (req, res) => {
             return { id: _id, ...draft };
         });
 
-        // Newest first
-        drafts.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        // Sort by sortOrder if present, then newest first
+        drafts.sort((a, b) => {
+            if (a.sortOrder != null && b.sortOrder != null) return a.sortOrder - b.sortOrder;
+            if (a.sortOrder != null) return -1;
+            if (b.sortOrder != null) return 1;
+            return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        });
 
         res.json({ drafts });
     } catch (error) {
@@ -970,6 +994,37 @@ app.delete('/api/drafts/:id', async (req, res) => {
     } catch (error) {
         console.error('Error deleting draft:', error);
         res.status(500).json({ error: 'Failed to delete draft' });
+    }
+});
+
+// Reorder email drafts
+app.post('/api/drafts/reorder', async (req, res) => {
+    try {
+        const { order } = req.body; // [{ id, sortOrder }, ...]
+        if (!Array.isArray(order)) {
+            return res.status(400).json({ error: 'order must be an array' });
+        }
+        const docs = await Promise.all(order.map(async ({ id, sortOrder }) => {
+            const docUrl = `${dbUrl}/${id}`;
+            const getResponse = await couchFetch(docUrl);
+            if (!getResponse.ok) return null;
+            const doc = await getResponse.json();
+            doc.sortOrder = sortOrder;
+            doc.updatedAt = new Date().toISOString();
+            return doc;
+        }));
+        const validDocs = docs.filter(Boolean);
+        const bulkUrl = `${dbUrl}/_bulk_docs`;
+        const bulkResponse = await couchFetch(bulkUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ docs: validDocs })
+        });
+        if (!bulkResponse.ok) throw new Error('Bulk reorder failed');
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error reordering drafts:', error);
+        res.status(500).json({ error: 'Failed to reorder drafts' });
     }
 });
 

@@ -267,27 +267,28 @@
                     </div>`).join('')
                 : '<p style="font-size:13px;color:var(--color-text-subtle);margin:0">No touchpoints yet — log your first interaction below.</p>';
 
-            const nameRow = !c ? `
+            // Always show name/org/email/tenant (editable for both new and existing)
+            const nameRow = `
                 <div class="tracked-form-row">
                     <div>
                         <label class="tracked-label">Name *</label>
-                        <input class="tracked-input" id="tm-name" placeholder="Full name" value="">
+                        <input class="tracked-input" id="tm-name" placeholder="Full name" value="${escapeHtml(c ? (c.name || '') : '')}">
                     </div>
                     <div>
                         <label class="tracked-label">Organization</label>
-                        <input class="tracked-input" id="tm-org" placeholder="Company name" value="">
+                        <input class="tracked-input" id="tm-org" placeholder="Company name" value="${escapeHtml(c ? (c.organization || '') : '')}">
                     </div>
                 </div>
                 <div class="tracked-form-row">
                     <div>
                         <label class="tracked-label">Tenant Name</label>
-                        <input class="tracked-input" id="tm-tenant" placeholder="e.g. acme-corp" value="">
+                        <input class="tracked-input" id="tm-tenant" placeholder="e.g. acme-corp" value="${escapeHtml(c ? (c.tenantName || '') : '')}">
                     </div>
                     <div>
                         <label class="tracked-label">Email</label>
-                        <input class="tracked-input" id="tm-email" type="email" placeholder="email@example.com" value="">
+                        <input class="tracked-input" id="tm-email" type="email" placeholder="email@example.com" value="${escapeHtml(c ? (c.email || '') : '')}">
                     </div>
-                </div>` : '';
+                </div>`;
 
             return `
                 ${nameRow}
@@ -375,17 +376,25 @@
                     closeTrackedModal();
                 } catch (err) { alert('Failed to save.'); }
             } else {
+                const name = document.getElementById('tm-name')?.value?.trim();
+                if (!name) { alert('Name is required.'); return; }
+                const org = document.getElementById('tm-org')?.value?.trim() || null;
+                const tenant = document.getElementById('tm-tenant')?.value?.trim() || null;
+                const email = document.getElementById('tm-email')?.value?.trim() || null;
                 try {
                     const response = await fetch(`/api/tracked/${trackedModalId}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ health, stage, notes, nextFollowUp: nextFollowUp || null })
+                        body: JSON.stringify({ name, organization: org, tenantName: tenant, email, health, stage, notes, nextFollowUp: nextFollowUp || null })
                     });
                     if (!response.ok) throw new Error('Failed');
                     const idx = trackedCustomers.findIndex(c => c.id === trackedModalId);
                     if (idx !== -1) {
-                        trackedCustomers[idx] = { ...trackedCustomers[idx], health, stage, notes, nextFollowUp: nextFollowUp || null };
+                        trackedCustomers[idx] = { ...trackedCustomers[idx], name, organization: org, tenantName: tenant, email, health, stage, notes, nextFollowUp: nextFollowUp || null };
                     }
+                    // Update modal header
+                    document.getElementById('tracked-modal-title').textContent = name;
+                    document.getElementById('tracked-modal-subtitle').textContent = [org, tenant, email].filter(Boolean).join(' · ');
                     document.getElementById('tracked-count').textContent = trackedCustomers.length;
                     renderTrackedGrid();
                     closeTrackedModal();

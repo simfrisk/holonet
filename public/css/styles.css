@@ -2233,3 +2233,229 @@
             color: var(--color-text-muted);
             font-size: 14px;
         }
+
+        /* =========================================
+           NOTES CELL OVERFLOW FIX
+           ========================================= */
+        .notes-cell {
+            overflow: hidden;
+        }
+        .notes-field {
+            resize: vertical;
+            box-sizing: border-box;
+            max-width: 100%;
+        }
+
+        /* =========================================
+           PAGINATION
+           ========================================= */
+        tr.row-page-hidden { display: none !important; }
+        .load-more-wrap {
+            padding: 12px 0;
+            text-align: center;
+        }
+        .load-more-btn {
+            background: none;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            font-size: 13px;
+            font-family: inherit;
+            padding: 7px 18px;
+            transition: border-color 0.15s, color 0.15s, background 0.15s;
+        }
+        .load-more-btn:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+            background: rgba(0, 102, 204, 0.04);
+        }
+
+        /* =========================================
+           PRIORITY FLASH ANIMATION
+           ========================================= */
+        @keyframes priority-flash {
+            0%   { background-color: #fde68a; }
+            40%  { background-color: #fbbf24; }
+            100% { background-color: transparent; }
+        }
+        html[data-theme="dark"] @keyframes priority-flash {
+            0%   { background-color: #78350f; }
+            40%  { background-color: #92400e; }
+            100% { background-color: transparent; }
+        }
+        tr.priority-flash > td {
+            animation: priority-flash 1.5s ease-out forwards;
+        }
+
+        /* =========================================
+           DELETE BUTTON
+           ========================================= */
+        .delete-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: none;
+            border: 1px solid var(--color-danger);
+            border-radius: 6px;
+            color: var(--color-danger);
+            cursor: pointer;
+            font-size: 13px;
+            font-family: inherit;
+            padding: 7px 14px;
+            transition: background 0.15s, color 0.15s;
+        }
+        .delete-button:hover {
+            background: var(--color-danger);
+            color: #fff;
+        }
+
+        /* =========================================
+           DRAFTS EXPAND TOGGLE
+           ========================================= */
+        .drafts-header-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+        #drafts-heading {
+            flex: 1;
+            margin: 0;
+        }
+        .drafts-expand-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: none;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            font-size: 12px;
+            font-family: inherit;
+            padding: 5px 12px;
+            transition: border-color 0.15s, color 0.15s;
+            flex-shrink: 0;
+        }
+        .drafts-expand-toggle:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+        .drafts-expand-toggle.active {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+            background: rgba(0, 102, 204, 0.06);
+        }
+
+        /* Draft tile body: truncated by default, full when expanded */
+        .draft-tile-body {
+            font-size: 12px;
+            color: var(--color-text-muted);
+            white-space: pre-wrap;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            line-height: 1.5;
+            margin-bottom: 10px;
+            word-break: break-word;
+        }
+        .drafts-grid.expanded .draft-tile-body {
+            display: block;
+            -webkit-line-clamp: unset;
+            overflow: visible;
+            white-space: pre-wrap;
+        }
+
+        /* Draft tile drag-and-drop */
+        .draft-tile[draggable="true"] { cursor: default; }
+        .draft-tile.draft-dragging { opacity: 0.4; }
+        .draft-tile.draft-drag-over {
+            border-color: var(--color-primary) !important;
+            box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
+        }
+
+        /* =========================================
+           MOBILE IMPROVEMENTS
+           ========================================= */
+        @media (max-width: 600px) {
+            body { overflow-x: hidden; }
+
+            /* Primary nav: compact, scrollable row */
+            .primary-nav {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                gap: 2px;
+                padding-bottom: 4px;
+                scrollbar-width: none;
+            }
+            .primary-nav::-webkit-scrollbar { display: none; }
+            .primary-nav-btn {
+                padding: 7px 12px;
+                font-size: 12px;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+            .pnav-count { font-size: 10px; }
+
+            /* Sub-nav: scrollable, search below */
+            .sub-nav {
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                gap: 2px;
+                scrollbar-width: none;
+                align-items: center;
+            }
+            .sub-nav::-webkit-scrollbar { display: none; }
+            .tab-button {
+                white-space: nowrap;
+                flex-shrink: 0;
+                padding: 6px 10px;
+                font-size: 12px;
+            }
+            .contact-search-wrap {
+                flex-shrink: 0;
+            }
+            .contact-search-input { width: 140px; }
+            .contact-search-input:focus { width: 160px; }
+
+            /* Stats: 2 columns */
+            .stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+
+            /* Group headers in mobile card view */
+            tr.group-header { display: block; width: 100%; margin-top: 8px; border: none; box-shadow: none; background: transparent; }
+            tr.group-header td { background: transparent; padding: 6px 4px 2px; }
+
+            /* Load more */
+            .load-more-wrap { padding: 8px 0; }
+
+            /* Drafts layout: stacked */
+            .drafts-layout { flex-direction: column; }
+            .topics-sidebar { width: 100%; position: static; max-height: 200px; overflow-y: auto; }
+            .drafts-grid { grid-template-columns: 1fr !important; }
+            .drafts-header-row { flex-direction: column; align-items: flex-start; gap: 6px; }
+
+            /* Tracked customers: single column */
+            .tracked-focus-zone,
+            .tracked-category-zone,
+            .tracked-grid {
+                grid-template-columns: 1fr !important;
+            }
+            .tracked-zones { gap: 12px; }
+            .tracked-card { min-width: 0; }
+
+            /* Modals: full screen */
+            .tracked-modal-content { margin: 0; width: 100%; height: 100%; border-radius: 0; max-height: 100vh; }
+            .tracked-form-row { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 400px) {
+            body { padding: 6px; }
+            .container { padding: 10px; border-radius: 8px; }
+            h1 { font-size: 17px; }
+            .primary-nav-btn { padding: 6px 9px; font-size: 11px; }
+        }

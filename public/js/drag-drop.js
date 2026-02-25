@@ -78,7 +78,20 @@
             else tbody.appendChild(placeholder);
         }
 
-        function onDragPointerUp() {
+        function getPriorityGroupForRow(row) {
+            const tbody = row.closest('tbody');
+            if (!tbody) return null;
+            const rows = Array.from(tbody.children);
+            const rowIdx = rows.indexOf(row);
+            for (let i = rowIdx - 1; i >= 0; i--) {
+                if (rows[i].classList.contains('group-header')) {
+                    return rows[i].dataset.group || null;
+                }
+            }
+            return null;
+        }
+
+        async function onDragPointerUp() {
             if (!dragState) return;
             const { row, ghost, placeholder, tbody } = dragState;
             placeholder.replaceWith(row);
@@ -89,6 +102,22 @@
             document.removeEventListener('pointerup', onDragPointerUp);
             if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
             dragState = null;
+
+            // Detect if row landed in a different priority group
+            const contactId = row.dataset.contactId;
+            const newGroup = getPriorityGroupForRow(row);
+            if (newGroup && contactId) {
+                const currentPriority = Array.from(row.classList)
+                    .find(c => c.startsWith('priority-'))?.replace('priority-', '');
+                if (currentPriority !== newGroup) {
+                    const selectEl = document.getElementById(`priority-select-${contactId}`);
+                    if (selectEl) {
+                        selectEl.value = newGroup;
+                        await updatePriority(contactId, selectEl);
+                    }
+                }
+            }
+
             saveRowOrder(tbody);
         }
 

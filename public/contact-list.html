@@ -83,6 +83,9 @@
             <button class="tab-button tab-skip" data-tab="skip" onclick="switchTab('skip')">
                 Skip (<span id="skip-count">0</span>)
             </button>
+            <button class="tab-button tab-all" data-tab="all" onclick="switchTab('all')">
+                All (<span id="all-count">0</span>)
+            </button>
             <div class="contact-search-wrap">
                 <input type="text" id="contact-search" class="contact-search-input"
                        placeholder="Search contacts…" autocomplete="off"
@@ -115,6 +118,9 @@
                 </thead>
                 <tbody id="active-table-body"></tbody>
             </table>
+            <div id="active-load-more-wrap" style="display:none; text-align:center; padding:12px;">
+                <button class="load-more-btn" onclick="loadMoreRows('active')">Load more</button>
+            </div>
             <div class="empty-state" style="display: none;" id="active-empty">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -143,6 +149,9 @@
                 </thead>
                 <tbody id="archived-table-body"></tbody>
             </table>
+            <div id="archived-load-more-wrap" style="display:none; text-align:center; padding:12px;">
+                <button class="load-more-btn" onclick="loadMoreRows('archived')">Load more</button>
+            </div>
             <div class="empty-state" style="display: none;" id="archived-empty">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -171,6 +180,9 @@
                 </thead>
                 <tbody id="later-table-body"></tbody>
             </table>
+            <div id="later-load-more-wrap" style="display:none; text-align:center; padding:12px;">
+                <button class="load-more-btn" onclick="loadMoreRows('later')">Load more</button>
+            </div>
             <div class="empty-state" style="display: none;" id="later-empty">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -203,6 +215,9 @@
                 </thead>
                 <tbody id="skip-table-body"></tbody>
             </table>
+            <div id="skip-load-more-wrap" style="display:none; text-align:center; padding:12px;">
+                <button class="load-more-btn" onclick="loadMoreRows('skip')">Load more</button>
+            </div>
             <div class="empty-state" style="display: none;" id="skip-empty">
                 <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -210,6 +225,37 @@
                 </svg>
                 <h3>No Skipped Contacts</h3>
                 <p>Contacts marked as Skip will permanently stay here — the Slack bot won't reactivate them.</p>
+            </div>
+        </div>
+
+        <!-- All Contacts Tab -->
+        <div id="all-tab" class="tab-content">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:30px;"></th>
+                        <th class="status-cell">Status</th>
+                        <th>Priority</th>
+                        <th>Name / Organization</th>
+                        <th>Email</th>
+                        <th>Activity Summary</th>
+                        <th>Notes</th>
+                        <th>First Seen</th>
+                        <th>Links</th>
+                    </tr>
+                </thead>
+                <tbody id="all-table-body"></tbody>
+            </table>
+            <div id="all-load-more-wrap" style="display:none; text-align:center; padding:12px;">
+                <button class="load-more-btn" onclick="loadMoreRows('all')">Load more</button>
+            </div>
+            <div class="empty-state" style="display: none;" id="all-empty">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <h3>No contacts yet</h3>
+                <p>Add contacts manually or wait for the next Slack sync.</p>
             </div>
         </div>
 
@@ -235,7 +281,12 @@
                 <div class="drafts-grid-wrapper">
                     <div class="drafts-header">
                         <h3 id="drafts-heading">All Email Drafts</h3>
-                        <button class="new-draft-btn" onclick="openDraftModal()">+ New Draft</button>
+                        <div style="display:flex;gap:8px;align-items:center;">
+                            <button class="drafts-expand-toggle" id="drafts-expand-toggle" onclick="toggleDraftsExpand()" title="Expand all cards to see full messages">
+                                <i class="ti ti-arrows-maximize"></i> Expand
+                            </button>
+                            <button class="new-draft-btn" onclick="openDraftModal()">+ New Draft</button>
+                        </div>
                     </div>
                     <div class="drafts-grid" id="drafts-grid">
                         <div class="drafts-empty-state">
@@ -435,6 +486,9 @@
                 <p id="ac-error" class="load-error" style="display: none;"></p>
             </div>
             <div class="modal-footer">
+                <button class="delete-button" id="ac-delete-btn" style="display:none; margin-right:auto;" onclick="deleteContact(editingContactId)">
+                    <i class="ti ti-trash"></i> Delete Contact
+                </button>
                 <button class="cancel-button" onclick="closeAddContactModal()">Cancel</button>
                 <button class="save-button" id="addContactSubmitBtn" onclick="submitAddContact()">Add Contact</button>
             </div>

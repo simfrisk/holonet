@@ -15,8 +15,35 @@
             submitBtn.textContent = 'Add Contact';
             submitBtn.disabled = false;
             document.getElementById('ac-error').style.display = 'none';
+            // Hide delete button when adding new contact
+            const deleteBtn = document.getElementById('ac-delete-btn');
+            if (deleteBtn) deleteBtn.style.display = 'none';
             document.getElementById('addContactModal').style.display = 'block';
             document.getElementById('ac-name').focus();
+        }
+
+        async function deleteContact(contactId) {
+            if (!contactId) return;
+            if (!confirm('Delete this contact? This cannot be undone.')) return;
+            try {
+                const response = await fetch(`/api/contacts/${contactId}`, { method: 'DELETE' });
+                if (!response.ok) throw new Error('Delete failed');
+                // Remove from in-memory data
+                if (contactsData) {
+                    contactsData.contacts = contactsData.contacts.filter(c => c.id !== contactId);
+                }
+                // Remove all DOM rows with this contact id (could be in multiple tabs)
+                document.querySelectorAll(`[data-contact-id="${contactId}"]`).forEach(el => el.remove());
+                updateStats();
+                updateTabCounts();
+                updateAllEmptyStates();
+                addGroupHeadersToAllTabs();
+                applyPaginationToAll();
+                closeAddContactModal();
+            } catch (err) {
+                console.error('Error deleting contact:', err);
+                alert('Failed to delete contact. Please try again.');
+            }
         }
 
         function openEditModal(contactId) {
@@ -34,6 +61,9 @@
             submitBtn.textContent = 'Save Changes';
             submitBtn.disabled = false;
             document.getElementById('ac-error').style.display = 'none';
+            // Show delete button when editing
+            const deleteBtn = document.getElementById('ac-delete-btn');
+            if (deleteBtn) deleteBtn.style.display = 'inline-flex';
             document.getElementById('addContactModal').style.display = 'block';
             document.getElementById('ac-name').focus();
         }

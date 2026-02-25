@@ -135,6 +135,9 @@
             }
 
             grid.innerHTML = filtered.map(draft => buildDraftTileHtml(draft)).join('');
+            // Re-apply expanded state after re-render
+            if (draftsExpanded) grid.classList.add('expanded');
+            initDraftDragDrop();
         }
 
         function buildDraftTileHtml(draft) {
@@ -142,7 +145,7 @@
             const badgeStyle = `background-color:${pal.bg};color:${pal.text};border:1px solid ${pal.border};`;
             const topBorderColor = pal.text;
 
-            return `<div class="draft-tile" data-draft-id="${escapeHtml(draft.id)}" style="border-top:3px solid ${topBorderColor};">
+            return `<div class="draft-tile" draggable="true" data-draft-id="${escapeHtml(draft.id)}" style="border-top:3px solid ${topBorderColor};">
                 <div class="draft-tile-top">
                     <span class="draft-topic-badge" style="${badgeStyle}">${escapeHtml(draft.topic || 'General')}</span>
                 </div>
@@ -311,6 +314,106 @@
                 renderDraftsGrid();
             } catch (err) {
                 alert('Failed to delete draft. Please try again.');
+            }
+        }
+
+        // =========================================
+        // DRAFTS EXPAND TOGGLE
+        // =========================================
+        let draftsExpanded = false;
+
+        function toggleDraftsExpand() {
+            draftsExpanded = !draftsExpanded;
+            const grid = document.getElementById('drafts-grid');
+            const btn = document.getElementById('drafts-expand-toggle');
+            if (grid) grid.classList.toggle('expanded', draftsExpanded);
+            if (btn) {
+                btn.classList.toggle('active', draftsExpanded);
+                btn.innerHTML = draftsExpanded
+                    ? '<i class="ti ti-arrows-minimize"></i> Collapse'
+                    : '<i class="ti ti-arrows-maximize"></i> Expand';
+            }
+        }
+
+        // =========================================
+        // DRAFT TILE DRAG-AND-DROP
+        // =========================================
+        let draftDragSrcId = null;
+
+        function initDraftDragDrop() {
+            const grid = document.getElementById('drafts-grid');
+            if (!grid) return;
+            grid.querySelectorAll('.draft-tile[draggable="true"]').forEach(tile => {
+                tile.addEventListener('dragstart', onDraftDragStart);
+                tile.addEventListener('dragend',   onDraftDragEnd);
+                tile.addEventListener('dragover',  onDraftDragOver);
+                tile.addEventListener('dragleave', onDraftDragLeave);
+                tile.addEventListener('drop',      onDraftDrop);
+            });
+        }
+
+        function onDraftDragStart(e) {
+            draftDragSrcId = this.dataset.draftId;
+            this.classList.add('draft-dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', draftDragSrcId);
+        }
+
+        function onDraftDragEnd() {
+            draftDragSrcId = null;
+            document.querySelectorAll('.draft-tile').forEach(t => {
+                t.classList.remove('draft-dragging', 'draft-drag-over');
+            });
+        }
+
+        function onDraftDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (this.dataset.draftId !== draftDragSrcId) {
+                this.classList.add('draft-drag-over');
+            }
+        }
+
+        function onDraftDragLeave() {
+            this.classList.remove('draft-drag-over');
+        }
+
+        async function onDraftDrop(e) {
+            e.preventDefault();
+            this.classList.remove('draft-drag-over');
+            const targetId = this.dataset.draftId;
+            if (!draftDragSrcId || draftDragSrcId === targetId) return;
+
+            const srcIdx = draftsData.findIndex(d => d.id === draftDragSrcId);
+            const tgtIdx = draftsData.findIndex(d => d.id === targetId);
+            if (srcIdx === -1 || tgtIdx === -1) return;
+
+            // Reorder in-memory array
+            const moved = draftsData.splice(srcIdx, 1)[0];
+            draftsData.splice(tgtIdx, 0, moved);
+
+            // Move DOM tile
+            const grid = document.getElementById('drafts-grid');
+            const srcEl = grid.querySelector(`[data-draft-id="${CSS.escape(draftDragSrcId)}"]`);
+            const tgtEl = this;
+            if (srcEl && tgtEl) {
+                if (srcIdx < tgtIdx) {
+                    tgtEl.after(srcEl);
+                } else {
+                    tgtEl.before(srcEl);
+                }
+            }
+
+            // Persist order
+            const order = draftsData.map((d, i) => ({ id: d.id, sortOrder: i }));
+            try {
+                await fetch('/api/drafts/reorder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ order })
+                });
+            } catch (err) {
+                console.error('Failed to save draft order:', err);
             }
         }
 

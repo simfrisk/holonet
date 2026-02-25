@@ -1,4 +1,4 @@
-        const CONTACT_TABS = ['active', 'archived', 'later', 'skip'];
+        const CONTACT_TABS = ['active', 'archived', 'later', 'skip', 'all'];
         let activeSection = 'contacts';
         let activeContactTab = 'active';
         let trackedLoaded = false;
@@ -22,6 +22,7 @@
                 // Restore last active contact sub-tab
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                 document.getElementById(`${activeContactTab}-tab`).classList.add('active');
+                if (activeContactTab === 'all') renderAllTab();
             } else {
                 subNav.classList.add('hidden');
                 document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
@@ -48,11 +49,13 @@
             document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
             document.getElementById(`${tabName}-tab`).classList.add('active');
+            // All tab renders fresh from contactsData each time it's activated
+            if (tabName === 'all') renderAllTab();
         }
 
         function restoreNavFromHash() {
             const hash = window.location.hash.slice(1);
-            const CONTACT_SUB_TABS = ['active', 'archived', 'later', 'skip'];
+            const CONTACT_SUB_TABS = ['active', 'archived', 'later', 'skip', 'all'];
             const TOP_SECTIONS = ['drafts', 'todos', 'tracked'];
 
             if (TOP_SECTIONS.includes(hash)) {

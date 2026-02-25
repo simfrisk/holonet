@@ -167,15 +167,24 @@
         }
 
         function updateTabCounts() {
-            const activeCount = document.getElementById('active-table-body').children.length;
-            const archivedCount = document.getElementById('archived-table-body').children.length;
-            const laterCount = document.getElementById('later-table-body').children.length;
-            const skipCount = document.getElementById('skip-table-body').children.length;
+            // Count visible (non-header, non-hidden) rows per tab body
+            function visibleRows(tbodyId) {
+                const tbody = document.getElementById(tbodyId);
+                if (!tbody) return 0;
+                return Array.from(tbody.querySelectorAll('tr[data-contact-id]')).length;
+            }
+            const activeCount = visibleRows('active-table-body');
+            const archivedCount = visibleRows('archived-table-body');
+            const laterCount = visibleRows('later-table-body');
+            const skipCount = visibleRows('skip-table-body');
+            const allCount = activeCount + archivedCount + laterCount + skipCount;
 
             document.getElementById('active-count').textContent = activeCount;
             document.getElementById('archived-count').textContent = archivedCount;
             document.getElementById('later-count').textContent = laterCount;
             document.getElementById('skip-count').textContent = skipCount;
+            const allEl = document.getElementById('all-count');
+            if (allEl) allEl.textContent = allCount;
 
             // Update primary nav badge (show active contact count)
             document.getElementById('contacts-section-count').textContent = activeCount;
@@ -187,7 +196,8 @@
                 const body = document.getElementById(`${tab}-table-body`);
                 const empty = document.getElementById(`${tab}-empty`);
                 if (!body || !empty) return;
-                if (body.children.length === 0) {
+                const hasRows = body.querySelectorAll('tr[data-contact-id]').length > 0;
+                if (!hasRows) {
                     body.style.display = 'none';
                     empty.style.display = 'block';
                 } else {
@@ -195,4 +205,11 @@
                     empty.style.display = 'none';
                 }
             });
+            // All tab empty state
+            const allBody = document.getElementById('all-table-body');
+            const allEmpty = document.getElementById('all-empty');
+            if (allBody && allEmpty) {
+                const hasRows = allBody.querySelectorAll('tr[data-contact-id]').length > 0;
+                allEmpty.style.display = hasRows ? 'none' : 'block';
+            }
         }

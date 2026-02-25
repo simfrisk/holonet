@@ -102,6 +102,43 @@
             return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         }
 
+        // =========================================
+        // PAGINATION
+        // =========================================
+        const PAGE_SIZE = 30;
+        const paginationState = {}; // { 'active': 1, 'archived': 1, ... }
+
+        function applyPagination(tabName) {
+            const tbody = document.getElementById(`${tabName}-table-body`);
+            if (!tbody) return;
+            const page = paginationState[tabName] || 1;
+            const limit = page * PAGE_SIZE;
+            const rows = Array.from(tbody.querySelectorAll('tr[data-contact-id]'));
+            rows.forEach((row, i) => {
+                row.classList.toggle('row-page-hidden', i >= limit);
+            });
+            const wrap = document.getElementById(`${tabName}-load-more-wrap`);
+            if (wrap) {
+                const remaining = rows.length - limit;
+                if (remaining > 0) {
+                    wrap.style.display = 'block';
+                    const btn = wrap.querySelector('.load-more-btn');
+                    if (btn) btn.textContent = `Load ${Math.min(remaining, PAGE_SIZE)} more (${remaining} remaining)`;
+                } else {
+                    wrap.style.display = 'none';
+                }
+            }
+        }
+
+        function loadMoreRows(tabName) {
+            paginationState[tabName] = (paginationState[tabName] || 1) + 1;
+            applyPagination(tabName);
+        }
+
+        function applyPaginationToAll() {
+            ['active', 'archived', 'later', 'skip'].forEach(applyPagination);
+        }
+
         function renderContacts() {
             const { metadata, contacts } = contactsData;
 
@@ -128,6 +165,37 @@
             updateAllEmptyStates();
             initDragAndDrop();
             addGroupHeadersToAllTabs();
+            // Reset pagination state and apply
+            ['active', 'archived', 'later', 'skip'].forEach(t => { paginationState[t] = 1; });
+            applyPaginationToAll();
+        }
+
+        // =========================================
+        // ALL TAB
+        // =========================================
+        function renderAllTab() {
+            if (!contactsData) return;
+            const tbody = document.getElementById('all-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            const { contacts } = contactsData;
+            contacts.forEach(contact => {
+                const row = createContactRow(contact);
+                // Mark with correct tab-specific class based on status
+                if (contact.status === 'contacted') row.classList.add('archived-row');
+                else if (contact.status === 'later') row.classList.add('later-row');
+                else if (contact.status === 'skip') row.classList.add('skip-row');
+                tbody.appendChild(row);
+                // Restore notes
+                const noteField = document.getElementById(`note-${contact.id}`);
+                if (noteField && contact.notes) noteField.value = contact.notes;
+            });
+
+            addGroupHeaders(tbody);
+            paginationState['all'] = 1;
+            applyPagination('all');
+            updateAllEmptyStates();
         }
 
         function getStatusClass(status) {
@@ -330,9 +398,19 @@
                 body: JSON.stringify({ priority })
             });
 
-            // Re-render group headers after priority change
+            // Re-render group headers after priority change (row moves to new group)
             const tbody = row.closest('tbody');
-            if (tbody) addGroupHeaders(tbody);
+            if (tbody) {
+                addGroupHeaders(tbody);
+                applyPagination(tbody.id.replace('-table-body', ''));
+            }
+
+            // Flash the row so user can see where it went
+            row.classList.remove('priority-flash');
+            void row.offsetWidth; // force reflow to restart animation
+            row.classList.add('priority-flash');
+            setTimeout(() => row.classList.remove('priority-flash'), 1500);
+            row.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
 
         // =========================================
@@ -386,7 +464,7 @@
         }
 
         function addGroupHeadersToAllTabs() {
-            ['active-table-body', 'archived-table-body', 'later-table-body', 'skip-table-body'].forEach(id => {
+            ['active-table-body', 'archived-table-body', 'later-table-body', 'skip-table-body', 'all-table-body'].forEach(id => {
                 const tbody = document.getElementById(id);
                 if (tbody) addGroupHeaders(tbody);
             });
@@ -424,7 +502,7 @@
             const q = contactSearchQuery.toLowerCase();
 
             // For each table body, show/hide rows based on query
-            ['active-table-body', 'archived-table-body', 'later-table-body', 'skip-table-body'].forEach(tbodyId => {
+            ['active-table-body', 'archived-table-body', 'later-table-body', 'skip-table-body', 'all-table-body'].forEach(tbodyId => {
                 const tbody = document.getElementById(tbodyId);
                 if (!tbody) return;
 
