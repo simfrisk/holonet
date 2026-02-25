@@ -228,20 +228,29 @@
                 document.getElementById('tracked-modal-subtitle').textContent = [c.organization, c.tenantName, c.email].filter(Boolean).join(' · ');
                 bodyEl.innerHTML = buildTrackedModalBody(c);
             } else {
-                // New tracked customer (manual add)
-                document.getElementById('tracked-modal-title').textContent = 'Add Tracked Customer';
+                document.getElementById('tracked-modal-title').textContent = 'New Customer';
                 document.getElementById('tracked-modal-subtitle').textContent = '';
                 bodyEl.innerHTML = buildTrackedModalBody(null);
             }
 
             modal.style.display = 'block';
-            // Focus first input
-            setTimeout(() => { const f = bodyEl.querySelector('input, textarea'); if (f) f.focus(); }, 50);
+            setTimeout(() => { const f = bodyEl.querySelector('.notion-notes'); if (f) f.focus(); }, 50);
         }
 
         function closeTrackedModal() {
             document.getElementById('trackedModal').style.display = 'none';
             trackedModalId = null;
+        }
+
+        function renderCustomFieldRow(field) {
+            return `
+                <div class="notion-prop-row notion-custom-field" data-field-id="${field.id}">
+                    <span class="notion-prop-label notion-custom-label" onclick="renameCustomField('${field.id}')" title="Click to rename">${escapeHtml(field.label)}</span>
+                    <div class="notion-custom-value-wrap">
+                        <input class="notion-prop-input" placeholder="Empty" value="${escapeHtml(field.value || '')}">
+                        <button class="notion-field-remove" title="Remove field" onclick="removeCustomField('${field.id}')">×</button>
+                    </div>
+                </div>`;
         }
 
         function buildTrackedModalBody(c) {
@@ -250,7 +259,10 @@
             const notes = c ? (c.notes || '') : '';
             const nextFollowUp = c ? (c.nextFollowUp || '') : '';
             const touchpoints = c ? (c.touchpoints || []) : [];
+            const customFields = c ? (c.customFields || []) : [];
             const today = new Date().toISOString().split('T')[0];
+
+            const customFieldsHtml = customFields.map(f => renderCustomFieldRow(f)).join('');
 
             const tpListHtml = touchpoints.length > 0
                 ? touchpoints.map(tp => `
@@ -267,58 +279,63 @@
                     </div>`).join('')
                 : '<p style="font-size:13px;color:var(--color-text-subtle);margin:0">No touchpoints yet — log your first interaction below.</p>';
 
-            // Always show name/org/email/tenant (editable for both new and existing)
-            const nameRow = `
-                <div class="tracked-form-row">
-                    <div>
-                        <label class="tracked-label">Name *</label>
-                        <input class="tracked-input" id="tm-name" placeholder="Full name" value="${escapeHtml(c ? (c.name || '') : '')}">
-                    </div>
-                    <div>
-                        <label class="tracked-label">Organization</label>
-                        <input class="tracked-input" id="tm-org" placeholder="Company name" value="${escapeHtml(c ? (c.organization || '') : '')}">
-                    </div>
-                </div>
-                <div class="tracked-form-row">
-                    <div>
-                        <label class="tracked-label">Tenant Name</label>
-                        <input class="tracked-input" id="tm-tenant" placeholder="e.g. acme-corp" value="${escapeHtml(c ? (c.tenantName || '') : '')}">
-                    </div>
-                    <div>
-                        <label class="tracked-label">Email</label>
-                        <input class="tracked-input" id="tm-email" type="email" placeholder="email@example.com" value="${escapeHtml(c ? (c.email || '') : '')}">
-                    </div>
-                </div>`;
+            const tenantVal = c ? (c.tenantName || '') : '';
+            const tenantLinkHtml = tenantVal
+                ? `<a href="https://app.osaas.io/admin/tenant/${tenantVal}" target="_blank" class="notion-tenant-link" title="Open in admin">↗</a>`
+                : '';
 
             return `
-                ${nameRow}
-                <div class="tracked-form-row">
-                    <div>
-                        <label class="tracked-label">Health</label>
-                        <select class="tracked-select health-${health}" id="tm-health" onchange="this.className='tracked-select health-'+this.value">
-                            <option value="good" ${health==='good'?'selected':''}>Good</option>
-                            <option value="needs-attention" ${health==='needs-attention'?'selected':''}>Needs Attention</option>
-                            <option value="at-risk" ${health==='at-risk'?'selected':''}>At Risk</option>
-                            <option value="unknown" ${health==='unknown'?'selected':''}>Unknown</option>
-                        </select>
+                <div class="notion-card-layout">
+                    <div class="notion-main-pane">
+                        <div class="notion-section">
+                            <label class="notion-section-label">Notes</label>
+                            <textarea class="notion-notes" id="tm-notes" placeholder="Add notes, paste data, write anything here...">${escapeHtml(notes)}</textarea>
+                        </div>
                     </div>
-                    <div>
-                        <label class="tracked-label">Stage</label>
-                        <input class="tracked-input" id="tm-stage" placeholder="e.g. Onboarding, Active, Churned…" value="${stage}">
+                    <div class="notion-props-pane">
+                        <div class="notion-prop-row">
+                            <span class="notion-prop-label">Health</span>
+                            <select class="notion-prop-select health-${health}" id="tm-health" onchange="this.className='notion-prop-select health-'+this.value">
+                                <option value="good" ${health==='good'?'selected':''}>● Good</option>
+                                <option value="needs-attention" ${health==='needs-attention'?'selected':''}>● Needs Attention</option>
+                                <option value="at-risk" ${health==='at-risk'?'selected':''}>● At Risk</option>
+                                <option value="unknown" ${health==='unknown'?'selected':''}>● Unknown</option>
+                            </select>
+                        </div>
+                        <div class="notion-prop-row">
+                            <span class="notion-prop-label">Stage</span>
+                            <input class="notion-prop-input" id="tm-stage" placeholder="e.g. Active, Onboarding…" value="${escapeHtml(stage)}">
+                        </div>
+                        <div class="notion-prop-row">
+                            <span class="notion-prop-label">Follow-up</span>
+                            <input type="date" class="notion-prop-input" id="tm-followup" value="${nextFollowUp}">
+                        </div>
+                        <div class="notion-props-divider"></div>
+                        <div class="notion-prop-row">
+                            <span class="notion-prop-label">Name *</span>
+                            <input class="notion-prop-input" id="tm-name" placeholder="Full name" value="${escapeHtml(c ? (c.name || '') : '')}">
+                        </div>
+                        <div class="notion-prop-row">
+                            <span class="notion-prop-label">Organization</span>
+                            <input class="notion-prop-input" id="tm-org" placeholder="Company name" value="${escapeHtml(c ? (c.organization || '') : '')}">
+                        </div>
+                        <div class="notion-prop-row">
+                            <span class="notion-prop-label">Email</span>
+                            <input type="email" class="notion-prop-input" id="tm-email" placeholder="email@example.com" value="${escapeHtml(c ? (c.email || '') : '')}">
+                        </div>
+                        <div class="notion-prop-row">
+                            <span class="notion-prop-label">Tenant</span>
+                            <div style="display:flex;align-items:center;gap:4px;flex:1;min-width:0">
+                                <input class="notion-prop-input" id="tm-tenant" placeholder="tenant-slug" value="${escapeHtml(tenantVal)}" style="flex:1;min-width:0">
+                                <span id="tm-tenant-link">${tenantLinkHtml}</span>
+                            </div>
+                        </div>
+                        <div class="notion-props-divider"></div>
+                        <div id="notion-custom-fields">${customFieldsHtml}</div>
+                        <button class="notion-add-field-btn" onclick="addCustomFieldRow()">+ Add field</button>
                     </div>
                 </div>
-                <div class="tracked-form-row">
-                    <div>
-                        <label class="tracked-label">Next Follow-up</label>
-                        <input class="tracked-input" type="date" id="tm-followup" value="${nextFollowUp}">
-                    </div>
-                </div>
-                <div>
-                    <label class="tracked-label">Notes</label>
-                    <textarea class="tracked-textarea" id="tm-notes" placeholder="Customer context, open issues, goals…">${notes}</textarea>
-                </div>
-
-                <div class="touchpoints-section">
+                <div class="notion-touchpoints">
                     <p class="touchpoints-title">Touchpoints</p>
                     <div class="touchpoint-list" id="tp-list">${tpListHtml}</div>
                     <div class="add-touchpoint-form">
@@ -334,11 +351,86 @@
                         <button class="add-tp-btn" onclick="addTouchpoint()">Add</button>
                     </div>
                 </div>
-
-                <div style="display:flex;justify-content:flex-end;gap:10px;padding-top:4px;border-top:1px solid var(--color-border)">
-                    <button class="cancel-button" onclick="closeTrackedModal()">Cancel</button>
-                    <button class="save-button" onclick="saveTrackedModal()">Save</button>
+                <div class="notion-modal-footer">
+                    <span class="notion-save-status" id="notion-save-status"></span>
+                    <button class="cancel-button" onclick="closeTrackedModal()">Close</button>
+                    <button class="save-button" onclick="saveTrackedModal()">${c ? 'Save Changes' : 'Create Customer'}</button>
                 </div>`;
+        }
+
+        // ---- Custom fields ----
+
+        function addCustomFieldRow() {
+            const existing = document.getElementById('notion-add-field-form');
+            if (existing) { existing.querySelector('input').focus(); return; }
+
+            const addBtn = document.querySelector('.notion-add-field-btn');
+            const form = document.createElement('div');
+            form.id = 'notion-add-field-form';
+            form.className = 'notion-add-field-form';
+            form.innerHTML = `
+                <input type="text" placeholder="Field label (e.g. LinkedIn, MRR, Contract)">
+                <button class="notion-add-field-confirm" onclick="confirmAddCustomField()">Add</button>
+                <button class="notion-add-field-cancel" onclick="cancelAddCustomField()">Cancel</button>
+            `;
+            addBtn.before(form);
+            const inp = form.querySelector('input');
+            inp.focus();
+            inp.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { e.preventDefault(); confirmAddCustomField(); }
+                if (e.key === 'Escape') cancelAddCustomField();
+            });
+        }
+
+        function confirmAddCustomField() {
+            const form = document.getElementById('notion-add-field-form');
+            if (!form) return;
+            const label = form.querySelector('input').value.trim();
+            if (!label) { form.querySelector('input').focus(); return; }
+            const fieldId = 'cf-' + Date.now();
+            const container = document.getElementById('notion-custom-fields');
+            container.insertAdjacentHTML('beforeend', renderCustomFieldRow({ id: fieldId, label, value: '' }));
+            form.remove();
+            const newInput = container.querySelector(`[data-field-id="${fieldId}"] .notion-prop-input`);
+            if (newInput) newInput.focus();
+        }
+
+        function cancelAddCustomField() {
+            document.getElementById('notion-add-field-form')?.remove();
+        }
+
+        function removeCustomField(fieldId) {
+            document.querySelector(`.notion-custom-field[data-field-id="${fieldId}"]`)?.remove();
+        }
+
+        function renameCustomField(fieldId) {
+            const row = document.querySelector(`.notion-custom-field[data-field-id="${fieldId}"]`);
+            if (!row) return;
+            const labelEl = row.querySelector('.notion-custom-label');
+            const currentLabel = labelEl.textContent.trim();
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.value = currentLabel;
+            input.className = 'notion-prop-input notion-label-edit';
+            labelEl.replaceWith(input);
+            input.focus();
+            input.select();
+
+            const save = () => {
+                const newLabel = input.value.trim() || currentLabel;
+                const span = document.createElement('span');
+                span.className = 'notion-prop-label notion-custom-label';
+                span.title = 'Click to rename';
+                span.textContent = newLabel;
+                span.onclick = () => renameCustomField(fieldId);
+                input.replaceWith(span);
+            };
+            input.addEventListener('blur', save);
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Enter') input.blur();
+                if (e.key === 'Escape') { input.value = currentLabel; input.blur(); }
+            });
         }
 
         // Enter key on touchpoint note field
@@ -349,11 +441,24 @@
             }
         });
 
+        function collectCustomFields() {
+            const rows = document.querySelectorAll('.notion-custom-field[data-field-id]');
+            return Array.from(rows).map(row => ({
+                id: row.dataset.fieldId,
+                label: row.querySelector('.notion-custom-label')?.textContent?.trim() || '',
+                value: row.querySelector('.notion-prop-input')?.value?.trim() || ''
+            })).filter(f => f.label);
+        }
+
         async function saveTrackedModal() {
             const health = document.getElementById('tm-health')?.value;
             const stage = document.getElementById('tm-stage')?.value || '';
             const notes = document.getElementById('tm-notes')?.value || '';
             const nextFollowUp = document.getElementById('tm-followup')?.value || null;
+            const customFields = collectCustomFields();
+
+            const statusEl = document.getElementById('notion-save-status');
+            if (statusEl) statusEl.textContent = 'Saving…';
 
             if (!trackedModalId) {
                 // New manual customer
@@ -366,7 +471,7 @@
                     const response = await fetch('/api/tracked', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, organization: org, tenantName: tenant, email, health, stage, notes, nextFollowUp })
+                        body: JSON.stringify({ name, organization: org, tenantName: tenant, email, health, stage, notes, nextFollowUp, customFields })
                     });
                     if (!response.ok) throw new Error('Failed');
                     const data = await response.json();
@@ -374,7 +479,7 @@
                     trackedLoaded = true;
                     renderTrackedGrid();
                     closeTrackedModal();
-                } catch (err) { alert('Failed to save.'); }
+                } catch (err) { if (statusEl) statusEl.textContent = 'Save failed'; else alert('Failed to save.'); }
             } else {
                 const name = document.getElementById('tm-name')?.value?.trim();
                 if (!name) { alert('Name is required.'); return; }
@@ -385,20 +490,19 @@
                     const response = await fetch(`/api/tracked/${trackedModalId}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, organization: org, tenantName: tenant, email, health, stage, notes, nextFollowUp: nextFollowUp || null })
+                        body: JSON.stringify({ name, organization: org, tenantName: tenant, email, health, stage, notes, nextFollowUp: nextFollowUp || null, customFields })
                     });
                     if (!response.ok) throw new Error('Failed');
                     const idx = trackedCustomers.findIndex(c => c.id === trackedModalId);
                     if (idx !== -1) {
-                        trackedCustomers[idx] = { ...trackedCustomers[idx], name, organization: org, tenantName: tenant, email, health, stage, notes, nextFollowUp: nextFollowUp || null };
+                        trackedCustomers[idx] = { ...trackedCustomers[idx], name, organization: org, tenantName: tenant, email, health, stage, notes, nextFollowUp: nextFollowUp || null, customFields };
                     }
-                    // Update modal header
                     document.getElementById('tracked-modal-title').textContent = name;
                     document.getElementById('tracked-modal-subtitle').textContent = [org, tenant, email].filter(Boolean).join(' · ');
                     document.getElementById('tracked-count').textContent = trackedCustomers.length;
                     renderTrackedGrid();
-                    closeTrackedModal();
-                } catch (err) { alert('Failed to save.'); }
+                    if (statusEl) { statusEl.textContent = 'Saved'; setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2000); }
+                } catch (err) { if (statusEl) statusEl.textContent = 'Save failed'; else alert('Failed to save.'); }
             }
         }
 

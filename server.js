@@ -1649,7 +1649,7 @@ app.post('/api/tracked', async (req, res) => {
 app.patch('/api/tracked/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, organization, tenantName, email, health, stage, notes, nextFollowUp } = req.body;
+        const { name, organization, tenantName, email, health, stage, notes, nextFollowUp, customFields } = req.body;
 
         const docUrl = `${dbUrl}/${id}`;
         const getResponse = await couchFetch(docUrl);
@@ -1668,6 +1668,7 @@ app.patch('/api/tracked/:id', async (req, res) => {
         if (stage !== undefined) doc.stage = stage;
         if (notes !== undefined) doc.notes = notes;
         if (nextFollowUp !== undefined) doc.nextFollowUp = nextFollowUp;
+        if (customFields !== undefined) doc.customFields = customFields;
         doc.updatedAt = new Date().toISOString();
 
         const updateResponse = await couchFetch(docUrl, {

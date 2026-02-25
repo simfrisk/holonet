@@ -2665,3 +2665,341 @@
             h1 { font-size: 17px; }
             .primary-nav-btn { padding: 6px 9px; font-size: 11px; }
         }
+
+        /* =========================================
+           NOTION-STYLE TRACKED CUSTOMER CARD MODAL
+           ========================================= */
+
+        /* Widen the tracked modal */
+        #trackedModal .modal-content {
+            max-width: 960px !important;
+            width: 95% !important;
+        }
+
+        /* Zero out old padding since panes handle it */
+        .tracked-modal-body {
+            padding: 0 !important;
+            gap: 0 !important;
+        }
+
+        /* Two-pane split */
+        .notion-card-layout {
+            display: grid;
+            grid-template-columns: 1fr 240px;
+            min-height: 0;
+        }
+
+        @media (max-width: 520px) {
+            .notion-card-layout { grid-template-columns: 1fr; }
+            #trackedModal .modal-content { max-width: 98vw !important; width: 98% !important; }
+        }
+
+        /* Left pane: notes */
+        .notion-main-pane {
+            padding: 24px 26px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            border-right: 1px solid var(--color-border);
+            min-width: 0;
+        }
+
+        .notion-section {}
+
+        .notion-section-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--color-text-muted);
+            margin-bottom: 8px;
+        }
+
+        .notion-notes {
+            width: 100%;
+            min-height: 240px;
+            max-height: 420px;
+            padding: 12px 14px;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 14px;
+            line-height: 1.65;
+            background: var(--color-surface);
+            color: var(--color-text);
+            resize: vertical;
+            box-sizing: border-box;
+            transition: border-color 0.15s;
+        }
+
+        .notion-notes:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px rgba(85, 120, 245, 0.12);
+        }
+
+        /* Right pane: properties */
+        .notion-props-pane {
+            padding: 16px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            overflow-y: auto;
+            max-height: 520px;
+        }
+
+        .notion-prop-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 5px 6px;
+            border-radius: 5px;
+            min-height: 34px;
+            transition: background 0.12s;
+        }
+
+        .notion-prop-row:hover {
+            background: var(--color-hover, rgba(0,0,0,0.04));
+        }
+
+        .notion-prop-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            min-width: 82px;
+            max-width: 82px;
+            flex-shrink: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .notion-prop-input {
+            flex: 1;
+            min-width: 0;
+            padding: 4px 7px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 13px;
+            background: transparent;
+            color: var(--color-text);
+            transition: border-color 0.12s, background 0.12s;
+        }
+
+        .notion-prop-input:hover {
+            border-color: var(--color-border);
+            background: var(--color-surface);
+        }
+
+        .notion-prop-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            background: var(--color-surface);
+            box-shadow: 0 0 0 2px rgba(85, 120, 245, 0.12);
+        }
+
+        .notion-label-edit {
+            min-width: 0;
+            max-width: 82px;
+            flex: none;
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--color-text-muted);
+        }
+
+        .notion-prop-select {
+            flex: 1;
+            min-width: 0;
+            padding: 4px 7px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            font-family: inherit;
+            font-size: 13px;
+            background: transparent;
+            color: var(--color-text);
+            cursor: pointer;
+            transition: border-color 0.12s, background 0.12s;
+        }
+
+        .notion-prop-select:hover,
+        .notion-prop-select:focus {
+            outline: none;
+            border-color: var(--color-border);
+            background: var(--color-surface);
+        }
+
+        .notion-prop-select.health-good { color: var(--color-success); font-weight: 600; }
+        .notion-prop-select.health-at-risk { color: var(--color-danger); font-weight: 600; }
+        .notion-prop-select.health-needs-attention { color: var(--color-warning); font-weight: 600; }
+        .notion-prop-select.health-unknown { color: var(--color-text-muted); }
+
+        .notion-tenant-link {
+            font-size: 12px;
+            color: var(--color-primary);
+            text-decoration: none;
+            flex-shrink: 0;
+            padding: 2px 5px;
+            border-radius: 3px;
+            transition: background 0.12s;
+        }
+
+        .notion-tenant-link:hover {
+            background: color-mix(in srgb, var(--color-primary) 14%, transparent);
+        }
+
+        .notion-props-divider {
+            height: 1px;
+            background: var(--color-border);
+            margin: 6px 4px;
+        }
+
+        /* Custom fields */
+        .notion-custom-label {
+            cursor: pointer;
+            text-decoration-line: underline;
+            text-decoration-style: dotted;
+            text-decoration-color: var(--color-border);
+        }
+
+        .notion-custom-label:hover {
+            color: var(--color-text);
+        }
+
+        .notion-custom-value-wrap {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            min-width: 0;
+        }
+
+        .notion-field-remove {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            padding: 0;
+            border: none;
+            background: transparent;
+            color: var(--color-text-subtle);
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.12s, background 0.12s, color 0.12s;
+        }
+
+        .notion-prop-row:hover .notion-field-remove {
+            opacity: 1;
+        }
+
+        .notion-field-remove:hover {
+            background: color-mix(in srgb, var(--color-danger) 14%, transparent);
+            color: var(--color-danger);
+        }
+
+        /* Add field button */
+        .notion-add-field-btn {
+            margin-top: 4px;
+            padding: 5px 8px;
+            font-size: 12px;
+            color: var(--color-text-muted);
+            background: transparent;
+            border: 1px dashed var(--color-border);
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            text-align: left;
+            align-self: flex-start;
+            transition: border-color 0.12s, color 0.12s;
+        }
+
+        .notion-add-field-btn:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+
+        /* Inline add-field form */
+        .notion-add-field-form {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin-top: 4px;
+            padding: 6px 8px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+        }
+
+        .notion-add-field-form input {
+            flex: 1;
+            min-width: 0;
+            padding: 4px 7px;
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: inherit;
+            background: var(--color-input-bg, var(--color-surface));
+            color: var(--color-text);
+        }
+
+        .notion-add-field-form input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+        }
+
+        .notion-add-field-confirm {
+            padding: 4px 10px;
+            background: var(--color-primary);
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+
+        .notion-add-field-confirm:hover {
+            background: var(--color-primary-hover, var(--color-primary));
+            filter: brightness(1.1);
+        }
+
+        .notion-add-field-cancel {
+            padding: 4px 8px;
+            background: transparent;
+            color: var(--color-text-muted);
+            border: 1px solid var(--color-border);
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        /* Touchpoints section (full-width below the 2 panes) */
+        .notion-touchpoints {
+            padding: 18px 26px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        /* Footer with save/close */
+        .notion-modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .notion-save-status {
+            font-size: 12px;
+            color: var(--color-text-subtle);
+            margin-right: auto;
+        }
