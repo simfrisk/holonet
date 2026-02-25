@@ -20,37 +20,6 @@
                     <button class="add-contact-btn" onclick="openAddContactModal()">+ Add Contact</button>
                 </div>
             </div>
-            <div class="stats">
-                <div class="stat-card">
-                    <strong id="stat-total">0</strong>
-                    <span>Total Contacts</span>
-                </div>
-                <div class="stat-card stat-focus">
-                    <strong id="stat-focus">0</strong>
-                    <span>In Focus</span>
-                </div>
-                <div class="stat-card">
-                    <strong id="stat-pending">0</strong>
-                    <span>Active</span>
-                </div>
-
-                <div class="stat-card stat-contacted">
-                    <strong id="stat-contacted">0</strong>
-                    <span>Contacted</span>
-                </div>
-                <div class="stat-card stat-later">
-                    <strong id="stat-later">0</strong>
-                    <span>Later</span>
-                </div>
-                <div class="stat-card stat-skip">
-                    <strong id="stat-skip">0</strong>
-                    <span>Skipped</span>
-                </div>
-                <div class="stat-card">
-                    <strong id="stat-last-check">Loading...</strong>
-                    <span>Last Check (Local)</span>
-                </div>
-            </div>
         </header>
 
         <!-- Primary Navigation -->
@@ -66,6 +35,9 @@
             </button>
             <button class="primary-nav-btn" data-section="todos" onclick="switchSection('todos')">
                 <span class="pnav-icon"><i class="ti ti-circle-check"></i></span> To-do <span class="pnav-count" id="todos-count">0</span>
+            </button>
+            <button class="primary-nav-btn" data-section="stats" onclick="switchSection('stats')">
+                <span class="pnav-icon"><i class="ti ti-chart-bar"></i></span> Stats
             </button>
         </div>
 
@@ -256,6 +228,68 @@
                 </svg>
                 <h3>No contacts yet</h3>
                 <p>Add contacts manually or wait for the next Slack sync.</p>
+            </div>
+        </div>
+
+        <!-- Stats Tab -->
+        <div id="stats-tab" class="tab-content">
+            <div class="stats-page">
+
+                <!-- This Week section -->
+                <section class="stats-section">
+                    <h2 class="stats-section-title"><i class="ti ti-calendar-week"></i> This Week</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card stat-contacted stats-page-card">
+                            <span class="stats-page-label">Customers Contacted</span>
+                            <div class="weekly-counter">
+                                <button class="weekly-counter-btn" onclick="adjustWeeklyContacted(-1)" title="Decrease">
+                                    <i class="ti ti-minus"></i>
+                                </button>
+                                <strong id="weekly-contacted-count">0</strong>
+                                <button class="weekly-counter-btn weekly-counter-btn-add" onclick="adjustWeeklyContacted(1)" title="Increase">
+                                    <i class="ti ti-plus"></i>
+                                </button>
+                            </div>
+                            <span class="stats-page-sublabel" id="weekly-counter-week-label"></span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Contact Pipeline section -->
+                <section class="stats-section">
+                    <h2 class="stats-section-title"><i class="ti ti-users"></i> Contact Pipeline</h2>
+                    <div class="stats-grid">
+                        <div class="stat-card stats-page-card">
+                            <span class="stats-page-label">Total Contacts</span>
+                            <strong id="stat-total">0</strong>
+                        </div>
+                        <div class="stat-card stat-focus stats-page-card">
+                            <span class="stats-page-label">In Focus</span>
+                            <strong id="stat-focus">0</strong>
+                        </div>
+                        <div class="stat-card stats-page-card">
+                            <span class="stats-page-label">Active</span>
+                            <strong id="stat-pending">0</strong>
+                        </div>
+                        <div class="stat-card stat-contacted stats-page-card">
+                            <span class="stats-page-label">Contacted</span>
+                            <strong id="stat-contacted">0</strong>
+                        </div>
+                        <div class="stat-card stat-later stats-page-card">
+                            <span class="stats-page-label">Later</span>
+                            <strong id="stat-later">0</strong>
+                        </div>
+                        <div class="stat-card stat-skip stats-page-card">
+                            <span class="stats-page-label">Skipped</span>
+                            <strong id="stat-skip">0</strong>
+                        </div>
+                        <div class="stat-card stats-page-card">
+                            <span class="stats-page-label">Last Check (Local)</span>
+                            <strong id="stat-last-check" style="font-size:16px;">Loading...</strong>
+                        </div>
+                    </div>
+                </section>
+
             </div>
         </div>
 
@@ -538,6 +572,7 @@
     <script src="js/todos.js"></script>
     <script src="js/email-drafts.js"></script>
     <script src="js/tracked-customers.js"></script>
+    <script src="js/stats.js"></script>
     <script src="js/init.js"></script>
 </body>
 </html>

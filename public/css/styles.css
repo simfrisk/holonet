@@ -2510,6 +2510,117 @@
             .tracked-form-row { grid-template-columns: 1fr; }
         }
 
+        /* =========================================
+           STATS PAGE
+           ========================================= */
+        .stats-page {
+            padding: 8px 0 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 28px;
+        }
+
+        .stats-section {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .stats-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+        }
+
+        .stats-page-card {
+            padding: 18px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .stats-page-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            order: -1;
+        }
+
+        .stats-page-sublabel {
+            font-size: 11px;
+            color: var(--color-text-subtle);
+            margin-top: 2px;
+        }
+
+        .stats-page-card strong {
+            font-size: 36px;
+            margin-bottom: 0;
+        }
+
+        /* Weekly counter +/- widget */
+        .weekly-counter {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 4px 0 2px;
+        }
+
+        .weekly-counter strong {
+            font-size: 48px !important;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .weekly-counter-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 2px solid currentColor;
+            background: transparent;
+            color: var(--color-success);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: background 0.15s, color 0.15s;
+            flex-shrink: 0;
+        }
+
+        .weekly-counter-btn:hover {
+            background: var(--color-success);
+            color: #fff;
+        }
+
+        .weekly-counter-btn:active {
+            transform: scale(0.93);
+        }
+
+        /* Minus button: use a muted color until hovered */
+        .weekly-counter-btn:not(.weekly-counter-btn-add) {
+            color: var(--color-text-muted);
+            border-color: var(--color-border);
+        }
+
+        .weekly-counter-btn:not(.weekly-counter-btn-add):hover {
+            background: var(--color-text-muted);
+            color: #fff;
+        }
+
         @media (max-width: 400px) {
             body { padding: 6px; }
             .container { padding: 10px; border-radius: 8px; }

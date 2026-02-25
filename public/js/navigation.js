@@ -3,6 +3,7 @@
         let activeContactTab = 'active';
         let trackedLoaded = false;
         let trackedCustomers = []; // in-memory cache
+        let statsLoaded = false;
 
         function switchSection(sectionName, skipHash) {
             activeSection = sectionName;
@@ -37,6 +38,11 @@
                 if (sectionName === 'tracked' && !trackedLoaded) {
                     loadTrackedTab();
                 }
+                if (sectionName === 'stats') {
+                    initStatsWeeklyCounter();
+                    updateStats(); // refresh pipeline counts
+                    statsLoaded = true;
+                }
             }
         }
 
@@ -56,7 +62,7 @@
         function restoreNavFromHash() {
             const hash = window.location.hash.slice(1);
             const CONTACT_SUB_TABS = ['active', 'archived', 'later', 'skip', 'all'];
-            const TOP_SECTIONS = ['drafts', 'todos', 'tracked'];
+            const TOP_SECTIONS = ['drafts', 'todos', 'tracked', 'stats'];
 
             if (TOP_SECTIONS.includes(hash)) {
                 switchSection(hash, true);
