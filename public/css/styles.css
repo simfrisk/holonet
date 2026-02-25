@@ -2685,7 +2685,7 @@
         /* Two-pane split */
         .notion-card-layout {
             display: grid;
-            grid-template-columns: 1fr 240px;
+            grid-template-columns: 1fr 270px;
             min-height: 0;
         }
 
@@ -3066,7 +3066,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            opacity: 0;
+            opacity: 0.3;
             transition: opacity 0.12s, background 0.12s, color 0.12s;
         }
 
@@ -3179,8 +3179,8 @@
 
         .tp-desc-toggle-btn {
             flex-shrink: 0;
-            padding: 5px 8px;
-            font-size: 11px;
+            padding: 9px 10px;
+            font-size: 12px;
             font-weight: 600;
             color: var(--color-text-muted);
             background: transparent;
@@ -3193,6 +3193,48 @@
         }
 
         .tp-desc-toggle-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+
+        /* Touchpoint edit button */
+        .tp-edit-btn {
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: var(--color-text-subtle);
+            border-radius: 4px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            align-self: flex-start;
+            margin-top: 2px;
+            opacity: 0;
+            transition: opacity 0.12s, background 0.12s, color 0.12s;
+        }
+        .touchpoint-item:hover .tp-edit-btn { opacity: 1; }
+        .tp-edit-btn:hover { background: var(--color-border); color: var(--color-text); }
+
+        /* Touchpoint inline edit form */
+        .tp-edit-form {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+        }
+        .tp-edit-top-row {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .tp-edit-actions {
+            display: flex;
+            gap: 6px;
+            justify-content: flex-end;
+        }
 
         .tp-description-input {
             width: 100%;

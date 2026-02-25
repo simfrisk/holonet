@@ -1871,6 +1871,44 @@ app.post('/api/tracked/:id/touchpoints', async (req, res) => {
     }
 });
 
+// Update a touchpoint
+app.patch('/api/tracked/:id/touchpoints/:tpId', async (req, res) => {
+    try {
+        const { id, tpId } = req.params;
+        const { type, date, note, description } = req.body;
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+        if (!getResponse.ok) return res.status(404).json({ error: 'Tracked customer not found' });
+
+        const doc = await getResponse.json();
+        const tpIdx = (doc.touchpoints || []).findIndex(tp => tp.id === tpId);
+        if (tpIdx === -1) return res.status(404).json({ error: 'Touchpoint not found' });
+
+        const existing = doc.touchpoints[tpIdx];
+        doc.touchpoints[tpIdx] = {
+            ...existing,
+            ...(type !== undefined && { type }),
+            ...(date !== undefined && { date }),
+            ...(note !== undefined && { note }),
+            ...(description !== undefined && { description }),
+        };
+        doc.updatedAt = new Date().toISOString();
+
+        const updateResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+        if (!updateResponse.ok) throw new Error('Failed to update touchpoint');
+
+        res.json({ touchpoint: doc.touchpoints[tpIdx] });
+    } catch (error) {
+        console.error('Error updating touchpoint:', error);
+        res.status(500).json({ error: 'Failed to update touchpoint' });
+    }
+});
+
 // Delete a touchpoint
 app.delete('/api/tracked/:id/touchpoints/:tpId', async (req, res) => {
     try {

@@ -356,13 +356,17 @@
         }
 
         function collectTodos() {
-            return Array.from(document.querySelectorAll('.todo-item[data-todo-id]')).map(item => ({
-                id: item.dataset.todoId,
-                globalTodoId: item.dataset.globalTodoId || null,
-                text: item.querySelector('.todo-text')?.textContent || '',
-                done: item.querySelector('.todo-check')?.checked || false,
-                dueDate: item.querySelector('.todo-date')?.value || null
-            }));
+            const list = document.getElementById('tm-todo-list');
+            if (!list) return [];
+            return Array.from(list.querySelectorAll('.todo-item[data-todo-id]'))
+                .map(item => ({
+                    id: item.dataset.todoId,
+                    globalTodoId: item.dataset.globalTodoId || null,
+                    text: item.querySelector('.todo-text')?.textContent?.trim() || '',
+                    done: item.querySelector('.todo-check')?.checked || false,
+                    dueDate: item.querySelector('.todo-date')?.value || null
+                }))
+                .filter(t => t.text !== '');
         }
 
         function buildTrackedModalBody(c) {
@@ -647,6 +651,7 @@
                     </div>
                 </div>
                 ${hasDesc ? `<button class="tp-expand-btn" onclick="toggleTpDesc('${tp.id}')" title="Show description">▸</button>` : ''}
+                <button class="tp-edit-btn" onclick="startEditTouchpoint('${tp.id}')" title="Edit">✎</button>
                 <button class="touchpoint-delete" title="Delete" onclick="deleteTouchpoint('${tp.id}')">×</button>`;
         }
 
@@ -729,6 +734,71 @@
                     listEl.innerHTML = '<p style="font-size:13px;color:var(--color-text-subtle);margin:0">No touchpoints yet — log your first interaction below.</p>';
                 }
             } catch (err) { alert('Failed to delete touchpoint.'); }
+        }
+
+        function startEditTouchpoint(tpId) {
+            const item = document.getElementById(`tp-${tpId}`);
+            if (!item) return;
+            const c = trackedCustomers.find(c => c.id === trackedModalId);
+            if (!c) return;
+            const tp = (c.touchpoints || []).find(t => t.id === tpId);
+            if (!tp) return;
+
+            const typeOptions = ['email','call','slack','meeting','other']
+                .map(v => `<option value="${v}" ${tp.type===v?'selected':''}>${v.charAt(0).toUpperCase()+v.slice(1)}</option>`)
+                .join('');
+
+            item.innerHTML = `
+                <div class="tp-edit-form">
+                    <div class="tp-edit-top-row">
+                        <select class="tracked-select tp-edit-type" style="width:110px;flex-shrink:0">${typeOptions}</select>
+                        <input class="tracked-input tp-edit-date" type="date" value="${escapeHtml(tp.date || '')}" style="width:145px;flex-shrink:0">
+                        <input class="tracked-input tp-edit-note" placeholder="Title" value="${escapeHtml(tp.note || '')}" style="flex:1;min-width:0">
+                    </div>
+                    <textarea class="tp-description-input tp-edit-desc" placeholder="Description (optional)">${escapeHtml(tp.description || '')}</textarea>
+                    <div class="tp-edit-actions">
+                        <button class="cancel-button" style="padding:5px 12px;font-size:12px" onclick="cancelEditTouchpoint('${tpId}')">Cancel</button>
+                        <button class="save-button" style="padding:5px 12px;font-size:12px" onclick="saveEditTouchpoint('${tpId}')">Save</button>
+                    </div>
+                </div>`;
+        }
+
+        function cancelEditTouchpoint(tpId) {
+            const c = trackedCustomers.find(c => c.id === trackedModalId);
+            if (!c) return;
+            const tp = (c.touchpoints || []).find(t => t.id === tpId);
+            if (!tp) return;
+            const item = document.getElementById(`tp-${tpId}`);
+            if (!item) return;
+            item.innerHTML = renderTouchpointItem(tp);
+        }
+
+        async function saveEditTouchpoint(tpId) {
+            const item = document.getElementById(`tp-${tpId}`);
+            if (!item) return;
+            const type = item.querySelector('.tp-edit-type')?.value;
+            const date = item.querySelector('.tp-edit-date')?.value;
+            const note = item.querySelector('.tp-edit-note')?.value?.trim();
+            const description = item.querySelector('.tp-edit-desc')?.value?.trim() || null;
+            if (!note) return;
+
+            try {
+                const response = await fetch(`/api/tracked/${trackedModalId}/touchpoints/${tpId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type, date, note, description })
+                });
+                if (!response.ok) throw new Error('Failed');
+                const data = await response.json();
+                const tp = data.touchpoint;
+
+                const idx = trackedCustomers.findIndex(c => c.id === trackedModalId);
+                if (idx !== -1) {
+                    const tpIdx = (trackedCustomers[idx].touchpoints || []).findIndex(t => t.id === tpId);
+                    if (tpIdx !== -1) trackedCustomers[idx].touchpoints[tpIdx] = tp;
+                }
+                item.innerHTML = renderTouchpointItem(tp);
+            } catch (err) { alert('Failed to save touchpoint.'); }
         }
 
         // =========================================

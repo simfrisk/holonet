@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "contact-list-server",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server.js"],
+      "port": 3000
+    },
+    {
+      "name": "links-static",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["serve", "public", "-p", "3001", "--no-clipboard"],
+      "port": 3001
+    }
+  ]
+}
