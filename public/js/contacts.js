@@ -390,3 +390,82 @@
             });
         }
 
+        // =========================================
+        // CONTACT SEARCH (Feature 1)
+        // =========================================
+
+        let contactSearchQuery = '';
+        let contactSearchTimer = null;
+
+        function onContactSearch(value) {
+            clearTimeout(contactSearchTimer);
+            contactSearchTimer = setTimeout(() => {
+                contactSearchQuery = value.trim();
+                const clearBtn = document.getElementById('contact-search-clear');
+                if (clearBtn) clearBtn.style.display = contactSearchQuery ? 'flex' : 'none';
+                applyContactSearch();
+            }, 200);
+        }
+
+        function clearContactSearch() {
+            contactSearchQuery = '';
+            const input = document.getElementById('contact-search');
+            if (input) input.value = '';
+            const clearBtn = document.getElementById('contact-search-clear');
+            if (clearBtn) clearBtn.style.display = 'none';
+            applyContactSearch();
+        }
+
+        function applyContactSearch() {
+            if (!contactsData) return;
+
+            const q = contactSearchQuery.toLowerCase();
+
+            // For each table body, show/hide rows based on query
+            ['active-table-body', 'archived-table-body', 'later-table-body', 'skip-table-body'].forEach(tbodyId => {
+                const tbody = document.getElementById(tbodyId);
+                if (!tbody) return;
+
+                let visibleCount = 0;
+                tbody.querySelectorAll('tr[data-contact-id]').forEach(row => {
+                    if (!q) {
+                        row.classList.remove('search-hidden');
+                        visibleCount++;
+                        return;
+                    }
+                    const id = row.dataset.contactId;
+                    const contact = contactsData.contacts.find(c => c.id === id);
+                    if (!contact) { row.classList.add('search-hidden'); return; }
+
+                    const matches =
+                        (contact.name || '').toLowerCase().includes(q) ||
+                        (contact.email || '').toLowerCase().includes(q) ||
+                        (contact.tenantName || '').toLowerCase().includes(q) ||
+                        (contact.organization || '').toLowerCase().includes(q);
+
+                    row.classList.toggle('search-hidden', !matches);
+                    if (matches) visibleCount++;
+                });
+
+                // Show "no results" message if needed
+                let noResultsRow = tbody.querySelector('tr.search-no-results');
+                if (!q || visibleCount > 0) {
+                    if (noResultsRow) noResultsRow.remove();
+                } else {
+                    if (!noResultsRow) {
+                        noResultsRow = document.createElement('tr');
+                        noResultsRow.className = 'search-no-results';
+                        noResultsRow.innerHTML = `<td colspan="9" class="search-no-results-cell">No contacts match "<strong>${escapeHtml(contactSearchQuery)}</strong>"</td>`;
+                        tbody.appendChild(noResultsRow);
+                    }
+                }
+
+                // Re-render group headers to skip hidden rows
+                if (!q) {
+                    addGroupHeaders(tbody);
+                } else {
+                    tbody.querySelectorAll('tr.group-header').forEach(r => r.remove());
+                }
+            });
+        }
+

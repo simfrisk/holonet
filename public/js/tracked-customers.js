@@ -32,6 +32,8 @@
             grid.innerHTML = trackedCustomers.map(c => renderTrackedCard(c)).join('');
             // sync track buttons in contact list
             syncTrackButtons();
+            // Wire up drag-and-drop handlers
+            initTrackedDragDrop();
         }
 
         function healthLabel(health) {
@@ -61,8 +63,9 @@
             const notesPreview = c.notes ? `<div class="tracked-card-notes-preview">${c.notes}</div>` : '';
 
             return `
-                <div class="tracked-card" onclick="openTrackedModal('${c.id}')">
+                <div class="tracked-card" draggable="true" data-tracked-id="${c.id}" onclick="openTrackedModal('${c.id}')">
                     <div class="tracked-card-top">
+                        <span class="tracked-drag-handle" title="Drag to reorder" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()">⠿</span>
                         <div class="tracked-card-badges">
                             <span class="health-badge health-${c.health || 'unknown'}">
                                 <span class="health-dot"></span>${healthLabel(c.health || 'unknown')}
@@ -393,4 +396,86 @@
                     listEl.innerHTML = '<p style="font-size:13px;color:var(--color-text-subtle);margin:0">No touchpoints yet — log your first interaction below.</p>';
                 }
             } catch (err) { alert('Failed to delete touchpoint.'); }
+        }
+
+        // =========================================
+        // TRACKED CARD DRAG-AND-DROP (Feature 2)
+        // =========================================
+
+        let trackedDragSrcId = null;
+
+        function initTrackedDragDrop() {
+            const grid = document.getElementById('tracked-grid');
+            if (!grid) return;
+
+            grid.querySelectorAll('.tracked-card[draggable]').forEach(card => {
+                card.addEventListener('dragstart', onTrackedDragStart);
+                card.addEventListener('dragend',   onTrackedDragEnd);
+                card.addEventListener('dragover',  onTrackedDragOver);
+                card.addEventListener('dragleave', onTrackedDragLeave);
+                card.addEventListener('drop',      onTrackedDrop);
+            });
+        }
+
+        function onTrackedDragStart(e) {
+            trackedDragSrcId = this.dataset.trackedId;
+            this.classList.add('tracked-card-dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', trackedDragSrcId);
+        }
+
+        function onTrackedDragEnd() {
+            trackedDragSrcId = null;
+            document.querySelectorAll('.tracked-card').forEach(c => {
+                c.classList.remove('tracked-card-dragging', 'tracked-card-drag-over');
+            });
+        }
+
+        function onTrackedDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            if (this.dataset.trackedId !== trackedDragSrcId) {
+                this.classList.add('tracked-card-drag-over');
+            }
+        }
+
+        function onTrackedDragLeave() {
+            this.classList.remove('tracked-card-drag-over');
+        }
+
+        async function onTrackedDrop(e) {
+            e.preventDefault();
+            this.classList.remove('tracked-card-drag-over');
+
+            const targetId = this.dataset.trackedId;
+            if (!trackedDragSrcId || trackedDragSrcId === targetId) return;
+
+            // Reorder in-memory array
+            const srcIdx = trackedCustomers.findIndex(c => c.id === trackedDragSrcId);
+            const tgtIdx = trackedCustomers.findIndex(c => c.id === targetId);
+            if (srcIdx === -1 || tgtIdx === -1) return;
+
+            const moved = trackedCustomers.splice(srcIdx, 1)[0];
+            trackedCustomers.splice(tgtIdx, 0, moved);
+
+            // Re-render immediately
+            renderTrackedGrid();
+
+            // Persist order: assign cardOrder based on current array positions
+            const order = trackedCustomers.map((c, i) => ({ id: c.id, cardOrder: i }));
+            // Also update in-memory cardOrder so next sort is stable
+            order.forEach(({ id, cardOrder }) => {
+                const c = trackedCustomers.find(x => x.id === id);
+                if (c) c.cardOrder = cardOrder;
+            });
+
+            try {
+                await fetch('/api/tracked/reorder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ order })
+                });
+            } catch (err) {
+                console.error('Failed to persist tracked card order:', err);
+            }
         }

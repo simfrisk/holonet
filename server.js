@@ -81,6 +81,12 @@ async function initializeCouchDB() {
         // Migrate contacts from old boolean 'contacted' field to new 'status' enum
         await migrateContactStatuses();
 
+        // Migrate todos to ensure they have a listId field (default "default")
+        await migrateTodoListIds();
+
+        // Ensure the default todo list document exists
+        await ensureDefaultTodoList();
+
     } catch (error) {
         console.error('❌ CouchDB initialization error:', error.message);
         console.log('⚠️  Server will not function without CouchDB');
@@ -100,7 +106,7 @@ async function createDesignDocuments() {
         if (checkResponse.ok) {
             existingDoc = await checkResponse.json();
             // All required views present — nothing to do
-            const required = ['all_contacts', 'by_email', 'by_tenant', 'all_drafts', 'all_todos', 'all_tracked'];
+            const required = ['all_contacts', 'by_email', 'by_tenant', 'all_drafts', 'all_todos', 'all_tracked', 'all_todolists'];
             if (existingDoc.views && required.every(v => existingDoc.views[v])) {
                 return;
             }
@@ -150,6 +156,13 @@ async function createDesignDocuments() {
                     map: function(doc) {
                         if (doc.type === 'tracked_customer') {
                             emit(doc.addedAt, doc);
+                        }
+                    }.toString()
+                },
+                all_todolists: {
+                    map: function(doc) {
+                        if (doc.type === 'todo_list') {
+                            emit(doc.sortOrder != null ? doc.sortOrder : doc.createdAt, doc);
                         }
                     }.toString()
                 }
@@ -214,6 +227,83 @@ async function migrateContactStatuses() {
         }
     } catch (error) {
         console.warn('⚠️  Could not run status migration:', error.message);
+    }
+}
+
+// Migrate existing todos to have a listId field defaulting to "default"
+async function migrateTodoListIds() {
+    try {
+        const viewUrl = `${dbUrl}/_design/contacts/_view/all_todos`;
+        const viewResponse = await couchFetch(viewUrl);
+        if (!viewResponse.ok) return;
+
+        const viewData = await viewResponse.json();
+        const todosToMigrate = viewData.rows
+            .map(row => row.value)
+            .filter(doc => doc.listId === undefined);
+
+        if (todosToMigrate.length === 0) {
+            console.log('✅ No todos need listId migration');
+            return;
+        }
+
+        console.log(`🔄 Migrating ${todosToMigrate.length} todos to add listId field...`);
+
+        const migratedDocs = todosToMigrate.map(doc => ({
+            ...doc,
+            listId: 'default',
+            updatedAt: new Date().toISOString()
+        }));
+
+        const bulkUrl = `${dbUrl}/_bulk_docs`;
+        const bulkResponse = await couchFetch(bulkUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ docs: migratedDocs })
+        });
+
+        if (bulkResponse.ok) {
+            console.log(`✅ Migrated ${todosToMigrate.length} todos to have listId`);
+        } else {
+            console.warn('⚠️  Todo listId migration bulk update failed');
+        }
+    } catch (error) {
+        console.warn('⚠️  Could not run todo listId migration:', error.message);
+    }
+}
+
+// Ensure the default todo list document exists
+async function ensureDefaultTodoList() {
+    try {
+        const docUrl = `${dbUrl}/todolist-default`;
+        const getResponse = await couchFetch(docUrl);
+        if (getResponse.ok) {
+            console.log('✅ Default todo list already exists');
+            return;
+        }
+
+        const doc = {
+            _id: 'todolist-default',
+            type: 'todo_list',
+            name: 'Default',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            sortOrder: 0
+        };
+
+        const saveResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (saveResponse.ok) {
+            console.log('✅ Created default todo list');
+        } else {
+            console.warn('⚠️  Could not create default todo list');
+        }
+    } catch (error) {
+        console.warn('⚠️  Could not ensure default todo list:', error.message);
     }
 }
 
@@ -975,7 +1065,7 @@ app.get('/api/todos', async (req, res) => {
 // Create todo
 app.post('/api/todos', async (req, res) => {
     try {
-        const { text, priority, dueDate } = req.body;
+        const { text, priority, dueDate, listId } = req.body;
 
         if (!text || !text.trim()) {
             return res.status(400).json({ error: 'text is required' });
@@ -989,6 +1079,7 @@ app.post('/api/todos', async (req, res) => {
             done: false,
             priority: priority || null,
             dueDate: dueDate || null,
+            listId: listId || 'todolist-default',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             sortOrder: null
@@ -1010,11 +1101,11 @@ app.post('/api/todos', async (req, res) => {
     }
 });
 
-// Update todo (text, done, priority, dueDate)
+// Update todo (text, done, priority, dueDate, listId, sortOrder)
 app.patch('/api/todos/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { text, done, priority, dueDate } = req.body;
+        const { text, done, priority, dueDate, listId, sortOrder } = req.body;
 
         const docUrl = `${dbUrl}/${id}`;
         const getResponse = await couchFetch(docUrl);
@@ -1029,6 +1120,8 @@ app.patch('/api/todos/:id', async (req, res) => {
         if (done !== undefined) doc.done = Boolean(done);
         if (priority !== undefined) doc.priority = priority;
         if (dueDate !== undefined) doc.dueDate = dueDate;
+        if (listId !== undefined) doc.listId = listId;
+        if (sortOrder !== undefined) doc.sortOrder = sortOrder;
         if (done === true && !doc.doneAt) doc.doneAt = new Date().toISOString();
         if (done === false) doc.doneAt = null;
         doc.updatedAt = new Date().toISOString();
@@ -1110,6 +1203,189 @@ app.post('/api/todos/reorder', async (req, res) => {
 });
 
 // ================================
+// TODO LISTS API
+// ================================
+
+// Get all todo lists
+app.get('/api/todolists', async (req, res) => {
+    try {
+        const viewUrl = `${dbUrl}/_design/contacts/_view/all_todolists`;
+        const viewResponse = await couchFetch(viewUrl);
+
+        if (!viewResponse.ok) {
+            return res.json({ lists: [] });
+        }
+
+        const viewData = await viewResponse.json();
+        const lists = viewData.rows.map(row => {
+            const { _id, _rev, type, ...list } = row.value;
+            return { id: _id, ...list };
+        });
+
+        lists.sort((a, b) => {
+            if (a.sortOrder != null && b.sortOrder != null) return a.sortOrder - b.sortOrder;
+            if (a.sortOrder != null) return -1;
+            if (b.sortOrder != null) return 1;
+            return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+        });
+
+        res.json({ lists });
+    } catch (error) {
+        console.error('Error fetching todo lists:', error);
+        res.status(500).json({ error: 'Failed to fetch todo lists' });
+    }
+});
+
+// Create todo list
+app.post('/api/todolists', async (req, res) => {
+    try {
+        const { name } = req.body;
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: 'name is required' });
+        }
+
+        const id = `todolist-${Date.now()}`;
+        const doc = {
+            _id: id,
+            type: 'todo_list',
+            name: name.trim(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            sortOrder: null
+        };
+
+        const docUrl = `${dbUrl}/${id}`;
+        const response = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!response.ok) throw new Error('Failed to create todo list');
+
+        res.json({ success: true, id, list: { id, ...doc } });
+    } catch (error) {
+        console.error('Error creating todo list:', error);
+        res.status(500).json({ error: 'Failed to create todo list' });
+    }
+});
+
+// Update todo list (rename)
+app.patch('/api/todolists/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, sortOrder } = req.body;
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Todo list not found' });
+        }
+
+        const doc = await getResponse.json();
+        if (name !== undefined) doc.name = name.trim();
+        if (sortOrder !== undefined) doc.sortOrder = sortOrder;
+        doc.updatedAt = new Date().toISOString();
+
+        const updateResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!updateResponse.ok) throw new Error('Failed to update todo list');
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error updating todo list:', error);
+        res.status(500).json({ error: 'Failed to update todo list' });
+    }
+});
+
+// Delete todo list (moves its todos to "default")
+app.delete('/api/todolists/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (id === 'todolist-default') {
+            return res.status(400).json({ error: 'Cannot delete the default list' });
+        }
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Todo list not found' });
+        }
+
+        const doc = await getResponse.json();
+
+        // Move todos in this list to "default"
+        const viewUrl = `${dbUrl}/_design/contacts/_view/all_todos`;
+        const viewResponse = await couchFetch(viewUrl);
+        if (viewResponse.ok) {
+            const viewData = await viewResponse.json();
+            const todosInList = viewData.rows
+                .map(row => row.value)
+                .filter(t => t.listId === id);
+
+            if (todosInList.length > 0) {
+                const updatedTodos = todosInList.map(t => ({ ...t, listId: 'todolist-default', updatedAt: new Date().toISOString() }));
+                await couchFetch(`${dbUrl}/_bulk_docs`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ docs: updatedTodos })
+                });
+            }
+        }
+
+        const deleteResponse = await couchFetch(`${docUrl}?rev=${doc._rev}`, { method: 'DELETE' });
+        if (!deleteResponse.ok) throw new Error('Failed to delete todo list');
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting todo list:', error);
+        res.status(500).json({ error: 'Failed to delete todo list' });
+    }
+});
+
+// Reorder todo lists
+app.post('/api/todolists/reorder', async (req, res) => {
+    try {
+        const { order } = req.body; // [{ id, sortOrder }, ...]
+        if (!Array.isArray(order)) {
+            return res.status(400).json({ error: 'order must be an array' });
+        }
+
+        const docs = await Promise.all(order.map(async ({ id, sortOrder }) => {
+            const docUrl = `${dbUrl}/${id}`;
+            const getResponse = await couchFetch(docUrl);
+            if (!getResponse.ok) return null;
+            const doc = await getResponse.json();
+            doc.sortOrder = sortOrder;
+            doc.updatedAt = new Date().toISOString();
+            return doc;
+        }));
+
+        const validDocs = docs.filter(Boolean);
+        const bulkUrl = `${dbUrl}/_bulk_docs`;
+        const bulkResponse = await couchFetch(bulkUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ docs: validDocs })
+        });
+
+        if (!bulkResponse.ok) throw new Error('Bulk reorder failed');
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error reordering todo lists:', error);
+        res.status(500).json({ error: 'Failed to reorder todo lists' });
+    }
+});
+
+// ================================
 // TRACKED CUSTOMERS API
 // ================================
 
@@ -1129,8 +1405,13 @@ app.get('/api/tracked', async (req, res) => {
             return { id: _id, ...item };
         });
 
-        // Newest first
-        tracked.sort((a, b) => new Date(b.addedAt || 0) - new Date(a.addedAt || 0));
+        // Sort by cardOrder (if set), fall back to addedAt ascending
+        tracked.sort((a, b) => {
+            if (a.cardOrder != null && b.cardOrder != null) return a.cardOrder - b.cardOrder;
+            if (a.cardOrder != null) return -1;
+            if (b.cardOrder != null) return 1;
+            return new Date(a.addedAt || 0) - new Date(b.addedAt || 0);
+        });
 
         res.json({ tracked });
     } catch (error) {
@@ -1219,6 +1500,41 @@ app.patch('/api/tracked/:id', async (req, res) => {
     } catch (error) {
         console.error('Error updating tracked customer:', error);
         res.status(500).json({ error: 'Failed to update tracked customer' });
+    }
+});
+
+// Bulk reorder tracked customers
+app.post('/api/tracked/reorder', async (req, res) => {
+    try {
+        const { order } = req.body; // [{ id, cardOrder }, ...]
+        if (!Array.isArray(order)) {
+            return res.status(400).json({ error: 'order must be an array' });
+        }
+
+        const docs = await Promise.all(order.map(async ({ id, cardOrder }) => {
+            const docUrl = `${dbUrl}/${id}`;
+            const getResponse = await couchFetch(docUrl);
+            if (!getResponse.ok) return null;
+            const doc = await getResponse.json();
+            doc.cardOrder = cardOrder;
+            doc.updatedAt = new Date().toISOString();
+            return doc;
+        }));
+
+        const validDocs = docs.filter(Boolean);
+        const bulkUrl = `${dbUrl}/_bulk_docs`;
+        const bulkResponse = await couchFetch(bulkUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ docs: validDocs })
+        });
+
+        if (!bulkResponse.ok) throw new Error('Bulk reorder failed');
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error reordering tracked customers:', error);
+        res.status(500).json({ error: 'Failed to reorder tracked customers' });
     }
 });
 

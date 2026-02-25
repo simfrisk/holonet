@@ -1911,3 +1911,200 @@
         }
 
         @media (max-width: 700px) { .tracked-grid { grid-template-columns: 1fr; } }
+
+        /* =========================================
+           TODO IMPROVEMENTS (Feature 3)
+           ========================================= */
+
+        /* Todo list tabs */
+        .todo-lists-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .todo-lists-tabs {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+        .todo-list-tab {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 5px 12px;
+            border: 1px solid var(--color-border);
+            border-radius: 20px;
+            background: none;
+            font-size: 13px;
+            cursor: pointer;
+            color: var(--color-text-muted);
+            font-family: inherit;
+            transition: all 0.15s;
+            user-select: none;
+        }
+        .todo-list-tab:hover { border-color: var(--color-success); color: var(--color-success); }
+        .todo-list-tab.active { background: var(--color-success); color: white; border-color: var(--color-success); font-weight: 600; }
+        .todo-list-tab.todo-list-tab-dragging { opacity: 0.35; }
+        .todo-list-tab.todo-list-tab-drag-over { border-style: dashed; border-color: var(--color-primary); }
+
+        .todo-list-tab-name { pointer-events: none; }
+        .todo-list-tab-rename {
+            border: none;
+            background: transparent;
+            font: inherit;
+            font-size: 13px;
+            color: inherit;
+            padding: 0;
+            width: 80px;
+            outline: none;
+        }
+        .todo-list-tab-del {
+            background: none;
+            border: none;
+            color: inherit;
+            cursor: pointer;
+            font-size: 14px;
+            line-height: 1;
+            padding: 0;
+            opacity: 0.6;
+            transition: opacity 0.15s;
+        }
+        .todo-list-tab-del:hover { opacity: 1; }
+
+        .todo-list-add-wrap {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .todo-list-name-input {
+            padding: 5px 10px;
+            border: 1px solid var(--color-border);
+            border-radius: 20px;
+            font-size: 13px;
+            background: var(--color-input-bg);
+            color: var(--color-text);
+            font-family: inherit;
+            width: 120px;
+            transition: border-color 0.15s;
+        }
+        .todo-list-name-input:focus { outline: none; border-color: var(--color-success); }
+        .todo-list-name-input::placeholder { color: var(--color-text-subtle); }
+        .todo-list-add-btn {
+            width: 26px;
+            height: 26px;
+            border: 1px solid var(--color-border);
+            border-radius: 50%;
+            background: none;
+            color: var(--color-text-muted);
+            font-size: 18px;
+            line-height: 1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+        .todo-list-add-btn:hover { border-color: var(--color-success); color: var(--color-success); }
+
+        /* Todo drag-and-drop */
+        .todo-drag-handle {
+            cursor: grab;
+            color: var(--color-text-subtle);
+            font-size: 14px;
+            line-height: 1;
+            user-select: none;
+            flex-shrink: 0;
+            opacity: 0;
+            transition: opacity 0.15s;
+            padding: 0 2px;
+        }
+        .todo-item:hover .todo-drag-handle { opacity: 1; }
+        .todo-drag-handle:active { cursor: grabbing; }
+        .todo-item-dragging { opacity: 0.35; }
+        .todo-item-drag-over {
+            border-top: 2px solid var(--color-primary) !important;
+        }
+
+        /* =========================================
+           TRACKED CARD DRAG-AND-DROP (Feature 2)
+           ========================================= */
+        .tracked-drag-handle {
+            cursor: grab;
+            color: var(--color-text-subtle);
+            font-size: 15px;
+            line-height: 1;
+            user-select: none;
+            opacity: 0;
+            transition: opacity 0.15s;
+            flex-shrink: 0;
+        }
+        .tracked-card:hover .tracked-drag-handle { opacity: 1; }
+        .tracked-drag-handle:active { cursor: grabbing; }
+        .tracked-card-dragging {
+            opacity: 0.35;
+        }
+        .tracked-card-drag-over {
+            border-color: var(--color-primary) !important;
+            border-style: dashed !important;
+            box-shadow: 0 0 0 2px rgba(0, 115, 234, 0.25) !important;
+        }
+
+        /* =========================================
+           CONTACT SEARCH (Feature 1)
+           ========================================= */
+        .contact-search-wrap {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            position: relative;
+            padding-bottom: 2px;
+        }
+        .contact-search-input {
+            padding: 5px 28px 5px 10px;
+            border: 1px solid var(--color-border);
+            border-radius: 20px;
+            font-size: 13px;
+            background: var(--color-input-bg);
+            color: var(--color-text);
+            font-family: inherit;
+            width: 200px;
+            transition: border-color 0.15s, width 0.2s;
+        }
+        .contact-search-input:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            width: 260px;
+        }
+        .contact-search-input::placeholder { color: var(--color-text-subtle); }
+        .contact-search-clear {
+            position: absolute;
+            right: 8px;
+            background: none;
+            border: none;
+            color: var(--color-text-subtle);
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            padding: 0;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: color 0.15s, background 0.15s;
+        }
+        .contact-search-clear:hover {
+            color: var(--color-text);
+            background: var(--color-border);
+        }
+        tr.search-hidden { display: none; }
+        .search-no-results-cell {
+            text-align: center;
+            padding: 30px !important;
+            color: var(--color-text-muted);
+            font-size: 14px;
+        }

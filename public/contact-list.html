@@ -78,6 +78,13 @@
             <button class="tab-button tab-skip" data-tab="skip" onclick="switchTab('skip')">
                 Skip (<span id="skip-count">0</span>)
             </button>
+            <div class="contact-search-wrap">
+                <input type="text" id="contact-search" class="contact-search-input"
+                       placeholder="Search contacts…" autocomplete="off"
+                       oninput="onContactSearch(this.value)">
+                <button class="contact-search-clear" id="contact-search-clear"
+                        onclick="clearContactSearch()" title="Clear search" style="display:none">×</button>
+            </div>
         </div>
 
         <!-- Loading state -->
@@ -242,6 +249,19 @@
         <!-- To-do Tab -->
         <div id="todos-tab" class="tab-content">
             <div class="todo-tab-inner">
+
+                <!-- Todo list tabs -->
+                <div class="todo-lists-bar">
+                    <div class="todo-lists-tabs" id="todo-lists-tabs">
+                        <!-- rendered by JS -->
+                    </div>
+                    <div class="todo-list-add-wrap">
+                        <input type="text" id="todo-list-name-input" class="todo-list-name-input"
+                               placeholder="New list…" autocomplete="off"
+                               onkeydown="if(event.key==='Enter'){event.preventDefault();addTodoList();}">
+                        <button class="todo-list-add-btn" onclick="addTodoList()" title="Add list">+</button>
+                    </div>
+                </div>
 
                 <!-- Quick-add form -->
                 <form class="todo-add-form" onsubmit="addTodo(event)">
