@@ -3,6 +3,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -13,6 +14,8 @@ if (!COUCHDB_URL) {
 }
 const DB_NAME = 'osc_contacts';
 const API_KEY = process.env.API_KEY || ''; // Optional API key for sync endpoint
+const LOGIN_PASSWORD = process.env.LOGIN_PASSWORD || ''; // If set, enables login protection
+const SESSION_SECRET = process.env.SESSION_SECRET || 'change-me-in-production';
 
 // Valid contact statuses
 const VALID_STATUSES = [null, 'contacted', 'later', 'skip'];
@@ -48,10 +51,74 @@ async function couchFetch(url, options = {}) {
     return fetch(url, { ...options, headers });
 }
 
+// =========================================
+// AUTH (cookie-based, no extra dependencies)
+// =========================================
+
+function parseCookies(req) {
+    const raw = req.headers.cookie || '';
+    return Object.fromEntries(
+        raw.split(';')
+            .map(c => c.trim())
+            .filter(Boolean)
+            .map(c => {
+                const idx = c.indexOf('=');
+                return [c.slice(0, idx).trim(), decodeURIComponent(c.slice(idx + 1).trim())];
+            })
+    );
+}
+
+function generateAuthToken() {
+    return crypto.createHmac('sha256', SESSION_SECRET).update(LOGIN_PASSWORD).digest('hex');
+}
+
+function isAuthenticated(req) {
+    if (!LOGIN_PASSWORD) return true; // no password configured = open access
+    const cookies = parseCookies(req);
+    return cookies['auth_token'] === generateAuthToken();
+}
+
+function requireAuth(req, res, next) {
+    if (isAuthenticated(req)) return next();
+    if (req.path.startsWith('/api/')) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    return res.redirect('/login.html');
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+
+// Auth gate: runs before static files so HTML pages are also protected
+app.use((req, res, next) => {
+    const exempt = ['/login.html', '/api/login', '/api/health'];
+    if (exempt.includes(req.path)) return next();
+    return requireAuth(req, res, next);
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Login endpoint
+app.post('/api/login', (req, res) => {
+    if (!LOGIN_PASSWORD) {
+        return res.json({ success: true }); // no password = always succeed
+    }
+    const { password } = req.body || {};
+    if (password === LOGIN_PASSWORD) {
+        const token = generateAuthToken();
+        const maxAge = 60 * 60 * 24 * 30; // 30 days
+        res.setHeader('Set-Cookie', `auth_token=${token}; HttpOnly; Path=/; SameSite=Strict; Max-Age=${maxAge}`);
+        return res.json({ success: true });
+    }
+    return res.status(401).json({ error: 'Wrong password' });
+});
+
+// Logout endpoint
+app.get('/api/logout', (req, res) => {
+    res.setHeader('Set-Cookie', 'auth_token=; HttpOnly; Path=/; Max-Age=0');
+    res.redirect('/login.html');
+});
 
 let dbUrl = '';
 
