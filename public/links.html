@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Links</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css" rel="stylesheet">
+    <style>
+        /* =========================================
+           COLOR TOKENS (mirrors main app)
+           ========================================= */
+        :root {
+            --color-bg: #f5f5f5;
+            --color-surface: #ffffff;
+            --color-surface-elevated: #f8f9fa;
+            --color-border: #ddd;
+            --color-text: #333;
+            --color-text-muted: #666;
+            --color-text-subtle: #999;
+            --color-primary: #0066cc;
+            --color-primary-hover: #0052a3;
+            --color-success: #28a745;
+            --color-success-hover: #218838;
+            --color-warning: #f0b429;
+            --color-danger: #dc3545;
+            --color-neutral: #6c757d;
+            --color-neutral-hover: #5a6268;
+            --color-input-bg: #ffffff;
+            --color-modal-footer-bg: #f8f9fa;
+            --color-shadow: rgba(0, 0, 0, 0.1);
+            --color-shadow-modal: rgba(0, 0, 0, 0.3);
+        }
+
+        html[data-theme="dark"] {
+            --color-bg: #0d0f1a;
+            --color-surface: #13152a;
+            --color-surface-elevated: #1b1e35;
+            --color-border: #26284060;
+            --color-text: #e8eaf5;
+            --color-text-muted: #7c84a8;
+            --color-text-subtle: #4d5375;
+            --color-primary: #5578f5;
+            --color-primary-hover: #3d5ee0;
+            --color-success: #2ecc87;
+            --color-success-hover: #25a86e;
+            --color-warning: #f0b429;
+            --color-danger: #e85555;
+            --color-neutral: #3d4266;
+            --color-neutral-hover: #4d5280;
+            --color-input-bg: #0d0f1a;
+            --color-modal-footer-bg: #1b1e35;
+            --color-shadow: rgba(0, 0, 15, 0.5);
+            --color-shadow-modal: rgba(0, 0, 15, 0.72);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        html[data-theme="dark"] body {
+            background-image: radial-gradient(ellipse at 20% 0%, rgba(85, 120, 245, 0.06) 0%, transparent 60%),
+                              radial-gradient(ellipse at 80% 0%, rgba(30, 20, 40, 0.3) 0%, transparent 60%);
+        }
+
+        .container {
+            background-color: var(--color-surface);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 12px var(--color-shadow);
+        }
+
+        /* Header */
+        header {
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: 20px;
+            margin-bottom: 24px;
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--color-text-muted);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            padding: 5px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--color-border);
+            transition: background-color 0.15s, color 0.15s;
+        }
+
+        .back-btn:hover {
+            background-color: var(--color-surface-elevated);
+            color: var(--color-text);
+        }
+
+        h1 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: var(--color-text);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: background-color 0.15s, transform 0.1s, opacity 0.15s;
+            text-decoration: none;
+            line-height: 1;
+        }
+
+        .btn:active { transform: scale(0.97); }
+
+        .btn-primary {
+            background-color: var(--color-primary);
+            color: #fff;
+        }
+        .btn-primary:hover { background-color: var(--color-primary-hover); }
+
+        .btn-success {
+            background-color: var(--color-success);
+            color: #fff;
+        }
+        .btn-success:hover { background-color: var(--color-success-hover); }
+
+        .btn-danger {
+            background-color: var(--color-danger);
+            color: #fff;
+        }
+        .btn-danger:hover { opacity: 0.88; }
+
+        .btn-neutral {
+            background-color: var(--color-surface-elevated);
+            color: var(--color-text-muted);
+            border: 1px solid var(--color-border);
+        }
+        .btn-neutral:hover {
+            background-color: var(--color-border);
+            color: var(--color-text);
+        }
+
+        .dark-mode-btn {
+            background: none;
+            border: 1px solid var(--color-border);
+            border-radius: 7px;
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--color-text-muted);
+            font-size: 16px;
+            transition: background-color 0.15s, color 0.15s;
+        }
+        .dark-mode-btn:hover {
+            background-color: var(--color-surface-elevated);
+            color: var(--color-text);
+        }
+
+        /* Grid */
+        .links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+
+        /* Link card -- mirrors draft-tile */
+        .link-tile {
+            position: relative;
+            background-color: var(--color-surface-elevated);
+            border: 1px solid var(--color-border);
+            border-radius: 10px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: box-shadow 0.15s, border-color 0.15s;
+        }
+
+        .link-tile:hover {
+            box-shadow: 0 4px 16px var(--color-shadow);
+            border-color: var(--color-primary);
+        }
+
+        .tile-delete-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background-color: transparent;
+            color: var(--color-text-subtle);
+            border: 1px solid transparent;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+            padding: 0;
+        }
+
+        .tile-delete-btn:hover {
+            background-color: var(--color-danger);
+            color: #fff;
+            border-color: var(--color-danger);
+        }
+
+        .tile-name {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--color-text);
+            padding-right: 28px;
+            line-height: 1.3;
+        }
+
+        .tile-fields {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            min-height: 28px;
+        }
+
+        .field-label {
+            font-size: 11px;
+            color: var(--color-text-subtle);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            min-width: 68px;
+        }
+
+        .field-val {
+            font-size: 12px;
+            color: var(--color-text-muted);
+            background-color: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 5px;
+            padding: 3px 8px;
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+        }
+
+        .field-val.url-val {
+            font-family: 'Inter', sans-serif;
+            color: var(--color-primary);
+        }
+
+        .pw-wrapper {
+            display: flex;
+            align-items: center;
+            flex: 1;
+            gap: 4px;
+        }
+
+        .pw-wrapper .field-val {
+            flex: 1;
+        }
+
+        .icon-btn {
+            background: none;
+            border: 1px solid var(--color-border);
+            border-radius: 5px;
+            padding: 3px 7px;
+            cursor: pointer;
+            font-size: 11px;
+            font-family: inherit;
+            font-weight: 500;
+            color: var(--color-text-muted);
+            white-space: nowrap;
+            transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+        }
+
+        .icon-btn:hover {
+            background-color: var(--color-surface-elevated);
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+
+        .icon-btn.copied {
+            background-color: #d4edda;
+            border-color: var(--color-success);
+            color: var(--color-success);
+        }
+
+        html[data-theme="dark"] .icon-btn.copied {
+            background-color: #0d2e1c;
+        }
+
+        /* Tile actions */
+        .tile-actions {
+            display: flex;
+            gap: 7px;
+            margin-top: 2px;
+        }
+
+        .tile-actions .btn {
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+
+        /* Empty state */
+        .empty-state {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--color-text-muted);
+        }
+
+        .empty-state i {
+            font-size: 3em;
+            margin-bottom: 12px;
+            display: block;
+            color: var(--color-text-subtle);
+        }
+
+        .empty-state h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--color-text);
+            margin-bottom: 6px;
+        }
+
+        .empty-state p {
+            font-size: 13px;
+        }
+
+        /* Modals */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background-color: var(--color-shadow-modal);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--color-surface);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 460px;
+            box-shadow: 0 10px 40px var(--color-shadow-modal);
+            overflow: hidden;
+            border: 1px solid var(--color-border);
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 22px 16px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .modal-header h2 {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--color-text);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: var(--color-text-muted);
+            line-height: 1;
+            padding: 2px;
+            transition: color 0.15s;
+        }
+
+        .modal-close:hover { color: var(--color-text); }
+
+        .modal-body {
+            padding: 20px 22px;
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            padding: 14px 22px;
+            background-color: var(--color-modal-footer-bg);
+            border-top: 1px solid var(--color-border);
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 9px 12px;
+            border: 1.5px solid var(--color-border);
+            border-radius: 7px;
+            font-size: 13px;
+            font-family: inherit;
+            background-color: var(--color-input-bg);
+            color: var(--color-text);
+            transition: border-color 0.15s;
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: var(--color-primary);
+        }
+
+        .form-group input.invalid {
+            border-color: var(--color-danger);
+        }
+
+        .form-hint {
+            font-size: 11px;
+            color: var(--color-text-subtle);
+            margin-top: 4px;
+        }
+
+        .confirm-message {
+            font-size: 14px;
+            color: var(--color-text-muted);
+            line-height: 1.5;
+        }
+
+        .confirm-name {
+            font-weight: 600;
+            color: var(--color-text);
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <header>
+        <div class="header-row">
+            <div class="header-left">
+                <a href="/contact-list.html" class="back-btn">
+                    <i class="ti ti-arrow-left"></i> Contact List
+                </a>
+                <h1>Quick Links</h1>
+            </div>
+            <div class="header-actions">
+                <button class="dark-mode-btn" id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle dark mode">
+                    <i class="ti ti-moon"></i>
+                </button>
+                <button class="btn btn-primary" onclick="openAddModal()">
+                    <i class="ti ti-plus"></i> Add Link
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="links-grid" id="linksGrid">
+        <!-- Rendered by JS -->
+    </div>
+</div>
+
+<!-- Add / Edit Modal -->
+<div class="modal-overlay" id="editModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2 id="editModalTitle">Add Link</h2>
+            <button class="modal-close" onclick="closeEditModal()">&#x2715;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editCardId">
+
+            <div class="form-group">
+                <label for="fieldName">Name <span style="color:var(--color-danger)">*</span></label>
+                <input type="text" id="fieldName" placeholder="e.g. FreeScout Admin">
+            </div>
+            <div class="form-group">
+                <label for="fieldUrl">URL</label>
+                <input type="url" id="fieldUrl" placeholder="https://example.com">
+            </div>
+            <div class="form-group">
+                <label for="fieldUsername">Username</label>
+                <input type="text" id="fieldUsername" placeholder="admin@example.com">
+            </div>
+            <div class="form-group">
+                <label for="fieldPassword">Password</label>
+                <input type="text" id="fieldPassword" placeholder="your-password">
+                <div class="form-hint">Stored locally in your browser only.</div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-neutral" onclick="closeEditModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveCard()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-overlay" id="confirmModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Delete Link?</h2>
+            <button class="modal-close" onclick="closeConfirmModal()">&#x2715;</button>
+        </div>
+        <div class="modal-body">
+            <p class="confirm-message">
+                Are you sure you want to delete <span class="confirm-name" id="confirmCardName"></span>? This cannot be undone.
+            </p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-neutral" onclick="closeConfirmModal()">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmDelete()">
+                <i class="ti ti-trash"></i> Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const STORAGE_KEY = 'osc_quick_links';
+    const THEME_KEY = 'osc_theme';
+    let pendingDeleteId = null;
+    let links = [];
+
+    // =========================================
+    // DARK MODE
+    // =========================================
+    function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        const btn = document.getElementById('darkModeBtn');
+        if (btn) btn.innerHTML = theme === 'dark'
+            ? '<i class="ti ti-sun"></i>'
+            : '<i class="ti ti-moon"></i>';
+    }
+
+    function toggleDarkMode() {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const next = isDark ? 'light' : 'dark';
+        localStorage.setItem(THEME_KEY, next);
+        applyTheme(next);
+    }
+
+    // =========================================
+    // DATA
+    // =========================================
+    function loadLinks() {
+        try {
+            links = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        } catch (e) {
+            links = [];
+        }
+    }
+
+    function saveLinks() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(links));
+    }
+
+    // =========================================
+    // RENDER
+    // =========================================
+    function renderCards() {
+        const grid = document.getElementById('linksGrid');
+        if (links.length === 0) {
+            grid.innerHTML = `
+                <div class="empty-state">
+                    <i class="ti ti-link"></i>
+                    <h3>No links yet</h3>
+                    <p>Click <strong>+ Add Link</strong> to save your first one.</p>
+                </div>`;
+            return;
+        }
+        grid.innerHTML = links.map(buildTile).join('');
+    }
+
+    function buildTile(link) {
+        const hasUrl  = link.url && link.url.trim();
+        const hasPw   = link.password && link.password.trim();
+        const hasUser = link.username && link.username.trim();
+        const pwId    = 'pw_' + link.id;
+
+        return `
+        <div class="link-tile" id="tile_${link.id}" style="border-top: 3px solid var(--color-primary);">
+            <button class="tile-delete-btn" onclick="promptDelete('${link.id}')" title="Delete">
+                <i class="ti ti-x"></i>
+            </button>
+            <div class="tile-name">${esc(link.name)}</div>
+
+            <div class="tile-fields">
+                ${hasUrl ? `
+                <div class="field-row">
+                    <span class="field-label">URL</span>
+                    <span class="field-val url-val" title="${esc(link.url)}">${esc(link.url)}</span>
+                </div>` : ''}
+
+                ${hasUser ? `
+                <div class="field-row">
+                    <span class="field-label">Username</span>
+                    <span class="field-val" title="${esc(link.username)}">${esc(link.username)}</span>
+                    <button class="icon-btn" onclick="copyText('${escAttr(link.username)}', this)">Copy</button>
+                </div>` : ''}
+
+                ${hasPw ? `
+                <div class="field-row">
+                    <span class="field-label">Password</span>
+                    <div class="pw-wrapper">
+                        <span class="field-val" id="${pwId}">••••••••</span>
+                        <button class="icon-btn" onclick="togglePw('${pwId}', '${escAttr(link.password)}', this)">Show</button>
+                        <button class="icon-btn" onclick="copyText('${escAttr(link.password)}', this)">Copy</button>
+                    </div>
+                </div>` : ''}
+            </div>
+
+            <div class="tile-actions">
+                ${hasUrl ? `<a class="btn btn-success" href="${esc(link.url)}" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> Open</a>` : ''}
+                <button class="btn btn-neutral" onclick="openEditModal('${link.id}')"><i class="ti ti-pencil"></i> Edit</button>
+            </div>
+        </div>`;
+    }
+
+    function esc(str) {
+        return String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function escAttr(str) {
+        return String(str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    }
+
+    function togglePw(elId, pw, btn) {
+        const el = document.getElementById(elId);
+        if (btn.textContent === 'Show') {
+            el.textContent = pw;
+            btn.textContent = 'Hide';
+        } else {
+            el.textContent = '••••••••';
+            btn.textContent = 'Show';
+        }
+    }
+
+    function copyText(text, btn) {
+        navigator.clipboard.writeText(text).then(() => {
+            const orig = btn.textContent;
+            btn.textContent = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = orig;
+                btn.classList.remove('copied');
+            }, 1500);
+        });
+    }
+
+    // =========================================
+    // ADD / EDIT MODAL
+    // =========================================
+    function openAddModal() {
+        document.getElementById('editModalTitle').textContent = 'Add Link';
+        document.getElementById('editCardId').value = '';
+        document.getElementById('fieldName').value = '';
+        document.getElementById('fieldUrl').value = '';
+        document.getElementById('fieldUsername').value = '';
+        document.getElementById('fieldPassword').value = '';
+        document.getElementById('editModal').classList.add('active');
+        setTimeout(() => document.getElementById('fieldName').focus(), 50);
+    }
+
+    function openEditModal(id) {
+        const link = links.find(l => l.id === id);
+        if (!link) return;
+        document.getElementById('editModalTitle').textContent = 'Edit Link';
+        document.getElementById('editCardId').value = id;
+        document.getElementById('fieldName').value = link.name || '';
+        document.getElementById('fieldUrl').value = link.url || '';
+        document.getElementById('fieldUsername').value = link.username || '';
+        document.getElementById('fieldPassword').value = link.password || '';
+        document.getElementById('editModal').classList.add('active');
+        setTimeout(() => document.getElementById('fieldName').focus(), 50);
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').classList.remove('active');
+    }
+
+    function saveCard() {
+        const nameInput = document.getElementById('fieldName');
+        const name = nameInput.value.trim();
+        if (!name) {
+            nameInput.classList.add('invalid');
+            nameInput.focus();
+            setTimeout(() => nameInput.classList.remove('invalid'), 1500);
+            return;
+        }
+
+        const id = document.getElementById('editCardId').value;
+        const data = {
+            id: id || Date.now().toString(36) + Math.random().toString(36).slice(2),
+            name,
+            url: document.getElementById('fieldUrl').value.trim(),
+            username: document.getElementById('fieldUsername').value.trim(),
+            password: document.getElementById('fieldPassword').value.trim(),
+        };
+
+        if (id) {
+            const idx = links.findIndex(l => l.id === id);
+            if (idx !== -1) links[idx] = data;
+        } else {
+            links.push(data);
+        }
+
+        saveLinks();
+        renderCards();
+        closeEditModal();
+    }
+
+    // =========================================
+    // DELETE
+    // =========================================
+    function promptDelete(id) {
+        const link = links.find(l => l.id === id);
+        if (!link) return;
+        pendingDeleteId = id;
+        document.getElementById('confirmCardName').textContent = link.name;
+        document.getElementById('confirmModal').classList.add('active');
+    }
+
+    function closeConfirmModal() {
+        pendingDeleteId = null;
+        document.getElementById('confirmModal').classList.remove('active');
+    }
+
+    function confirmDelete() {
+        if (!pendingDeleteId) return;
+        links = links.filter(l => l.id !== pendingDeleteId);
+        saveLinks();
+        renderCards();
+        closeConfirmModal();
+    }
+
+    // =========================================
+    // EVENTS
+    // =========================================
+    document.getElementById('editModal').addEventListener('click', e => {
+        if (e.target === document.getElementById('editModal')) closeEditModal();
+    });
+    document.getElementById('confirmModal').addEventListener('click', e => {
+        if (e.target === document.getElementById('confirmModal')) closeConfirmModal();
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { closeEditModal(); closeConfirmModal(); }
+        if (e.key === 'Enter' && document.getElementById('editModal').classList.contains('active')) saveCard();
+    });
+
+    // =========================================
+    // INIT
+    // =========================================
+    const savedTheme = localStorage.getItem(THEME_KEY) || 'light';
+    applyTheme(savedTheme);
+    loadLinks();
+    renderCards();
+</script>
+</body>
+</html>
