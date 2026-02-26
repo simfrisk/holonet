@@ -360,7 +360,6 @@
                 <div class="todo-columns-grid" id="todo-columns-grid"></div>
             </div>
         </div>
-    </div>
 
     <!-- Track Customers Tab -->
     <div id="tracked-tab" class="tab-content">
@@ -415,6 +414,24 @@
             </div>
         </div>
     </div>
+
+    <!-- Quick Links Tab -->
+    <div id="links-tab" class="tab-content">
+        <div class="drafts-grid-wrapper">
+            <div class="drafts-header">
+                <h3>Quick Links</h3>
+                <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+                    <input type="search" id="links-search" class="links-search-input" placeholder="Search links…" oninput="renderLinksGrid()">
+                    <button class="new-draft-btn" onclick="openLinkModal()"><i class="ti ti-plus"></i> Add Link</button>
+                </div>
+            </div>
+            <div class="drafts-grid" id="links-grid">
+                <!-- Rendered by links.js -->
+            </div>
+        </div>
+    </div>
+
+    </div><!-- end .container -->
 
     <!-- Tracked Customer Detail Modal -->
     <div id="trackedModal" class="modal" onclick="if(event.target===this)autoSaveTrackedModal()">
@@ -512,21 +529,6 @@
     </div>
 
     <!-- Email Draft Create / Edit Modal -->
-    <!-- Quick Links Tab -->
-    <div id="links-tab" class="tab-content">
-        <div class="drafts-grid-wrapper">
-            <div class="drafts-header">
-                <h3>Quick Links</h3>
-                <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
-                    <input type="search" id="links-search" class="links-search-input" placeholder="Search links…" oninput="renderLinksGrid()">
-                    <button class="new-draft-btn" onclick="openLinkModal()"><i class="ti ti-plus"></i> Add Link</button>
-                </div>
-            </div>
-            <div class="drafts-grid" id="links-grid">
-                <!-- Rendered by links.js -->
-            </div>
-        </div>
-    </div>
 
     <!-- Link Add/Edit Modal -->
     <div id="linkModal" class="modal" onclick="if(event.target===this)closeLinkModal()">
