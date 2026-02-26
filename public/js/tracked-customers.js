@@ -340,7 +340,7 @@
                 </div>`;
         }
 
-        function addTodo() {
+        function addTrackedTodo() {
             const input = document.getElementById('todo-input');
             const text = input.value.trim();
             if (!text) return;
@@ -403,7 +403,7 @@
                             <div class="todo-list" id="tm-todo-list">${todosHtml}</div>
                             <div class="todo-add-row">
                                 <input class="todo-add-input" id="todo-input" placeholder="Add a to-do…">
-                                <button class="todo-add-btn" onclick="addTodo()">Add</button>
+                                <button class="todo-add-btn" onclick="addTrackedTodo()">Add</button>
                             </div>
                         </div>
                     </div>
@@ -558,7 +558,7 @@
             }
             if (e.key === 'Enter' && e.target.id === 'todo-input') {
                 e.preventDefault();
-                addTodo();
+                addTrackedTodo();
             }
         });
 
