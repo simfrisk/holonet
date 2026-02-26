@@ -3,15 +3,15 @@
         // =========================================
 
         let todosData = [];
-        let todoFilter = 'active';
+        // Per-list filter state: { [listId]: 'active' | 'done' }
+        let todoFilters = {};
         let todosLoaded = false;
 
         // =========================================
-        // TODO LISTS (Feature 3c)
+        // TODO LISTS
         // =========================================
 
         let todoLists = [];
-        let activeListId = 'todolist-default';
         let todoListsLoaded = false;
 
         async function loadTodosTab() {
@@ -40,8 +40,7 @@
                 }
 
                 todosLoaded = true;
-                renderTodoLists();
-                renderTodoList();
+                renderAllTodoColumns();
                 updateTodosCount();
             } catch (err) {
                 console.error('Failed to load todos:', err);
@@ -53,45 +52,114 @@
             if (el) el.textContent = todosData.filter(t => !t.done).length;
         }
 
-        function filterTodos(filter) {
-            todoFilter = filter;
-            document.querySelectorAll('.todo-filter-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.filter === filter);
-            });
-            renderTodoList();
-        }
+        // =========================================
+        // RENDER ALL LISTS AS COLUMNS
+        // =========================================
 
-        // ---- Render the list tabs ----
-        function renderTodoLists() {
-            const container = document.getElementById('todo-lists-tabs');
-            if (!container) return;
+        function renderAllTodoColumns() {
+            const grid = document.getElementById('todo-columns-grid');
+            if (!grid) return;
 
-            container.innerHTML = todoLists.map((list, i) => `
-                <div class="todo-list-tab ${list.id === activeListId ? 'active' : ''}"
-                     data-list-id="${list.id}"
-                     draggable="true"
-                     onclick="switchTodoList('${list.id}')">
-                    <span class="todo-list-tab-name"
-                          ondblclick="startRenameList('${list.id}', event)">${escapeHtml(list.name)}</span>
-                    ${list.id !== 'todolist-default' ? `<button class="todo-list-tab-del" title="Delete list" onclick="event.stopPropagation();deleteTodoList('${list.id}')">×</button>` : ''}
-                </div>`
-            ).join('');
+            // Render a column for each list
+            grid.innerHTML = todoLists.map(list => buildColumnHtml(list)).join('');
 
-            // Wire DnD for list tabs
-            container.querySelectorAll('.todo-list-tab').forEach(tab => {
-                tab.addEventListener('dragstart', onListTabDragStart);
-                tab.addEventListener('dragend',   onListTabDragEnd);
-                tab.addEventListener('dragover',  onListTabDragOver);
-                tab.addEventListener('dragleave', onListTabDragLeave);
-                tab.addEventListener('drop',      onListTabDrop);
+            // Wire up drag-and-drop for each list's items
+            todoLists.forEach(list => {
+                initTodoDragDropForList(list.id);
             });
         }
 
-        function switchTodoList(listId) {
-            activeListId = listId;
-            renderTodoLists();
-            renderTodoList();
+        function buildColumnHtml(list) {
+            const listId = list.id;
+            const filter = todoFilters[listId] || 'active';
+            const isDefault = listId === 'todolist-default';
+
+            const deleteBtn = isDefault ? '' :
+                `<button class="todo-column-del-btn" title="Delete list"
+                         onclick="deleteTodoList('${escapeAttr(listId)}')">&#x2715;</button>`;
+
+            const itemsHtml = buildTodoItemsHtml(listId, filter);
+
+            return `<div class="todo-column" id="todo-column-${escapeHtml(listId)}">
+                <div class="todo-column-header">
+                    <h3 class="todo-column-title">${escapeHtml(list.name)}</h3>
+                    ${deleteBtn}
+                </div>
+
+                <form class="todo-add-form" onsubmit="addTodo(event, '${escapeAttr(listId)}')">
+                    <input type="text" class="todo-add-text" id="todo-add-text-${escapeHtml(listId)}"
+                           placeholder="Add a to-do…" autocomplete="off">
+                    <select class="todo-add-priority" id="todo-add-priority-${escapeHtml(listId)}" title="Priority">
+                        <option value="">— priority</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                    <input type="date" class="todo-add-date" id="todo-add-date-${escapeHtml(listId)}" title="Due date">
+                    <button type="submit" class="todo-add-btn">Add</button>
+                </form>
+
+                <div class="todo-filters">
+                    <button class="todo-filter-btn ${filter === 'active' ? 'active' : ''}"
+                            data-filter="active"
+                            onclick="filterTodos('active', '${escapeAttr(listId)}')">Active</button>
+                    <button class="todo-filter-btn ${filter === 'done' ? 'active' : ''}"
+                            data-filter="done"
+                            onclick="filterTodos('done', '${escapeAttr(listId)}')">Archived</button>
+                    <button class="todo-clear-done" onclick="clearDoneTodos('${escapeAttr(listId)}')">Clear done</button>
+                </div>
+
+                <div class="todo-list" id="todo-list-${escapeHtml(listId)}">${itemsHtml}</div>
+            </div>`;
         }
+
+        function buildTodoItemsHtml(listId, filter) {
+            let filtered = todosData.filter(t => (t.listId || 'todolist-default') === listId);
+            if (filter === 'active') filtered = filtered.filter(t => !t.done);
+            else if (filter === 'done') filtered = filtered.filter(t => t.done);
+
+            if (filtered.length === 0) {
+                const msgs = {
+                    active: ['All done!', 'No active tasks.'],
+                    done:   ['Nothing completed yet', 'Finish a task and it will show up here.']
+                };
+                const [title, sub] = msgs[filter] || ['Nothing here yet', 'Type a task above and press Enter.'];
+                return `<div class="todo-empty">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <h3>${title}</h3><p>${sub}</p>
+                </div>`;
+            }
+
+            return filtered.map(todo => buildTodoItemHtml(todo)).join('');
+        }
+
+        // Re-render just the list div for a specific list (without rebuilding the whole column)
+        function rerenderTodoListDiv(listId) {
+            const listEl = document.getElementById(`todo-list-${listId}`);
+            if (!listEl) return;
+            const filter = todoFilters[listId] || 'active';
+            listEl.innerHTML = buildTodoItemsHtml(listId, filter);
+            initTodoDragDropForList(listId);
+        }
+
+        function filterTodos(filter, listId) {
+            todoFilters[listId] = filter;
+            // Update filter button states within this column
+            const col = document.getElementById(`todo-column-${listId}`);
+            if (col) {
+                col.querySelectorAll('.todo-filter-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.filter === filter);
+                });
+            }
+            rerenderTodoListDiv(listId);
+        }
+
+        // =========================================
+        // ADD / MANAGE LISTS
+        // =========================================
 
         async function addTodoList() {
             const input = document.getElementById('todo-list-name-input');
@@ -109,9 +177,7 @@
                 const data = await res.json();
                 todoLists.push(data.list);
                 input.value = '';
-                activeListId = data.id;
-                renderTodoLists();
-                renderTodoList();
+                renderAllTodoColumns();
             } catch (err) {
                 console.error('Failed to create list:', err);
             }
@@ -125,132 +191,16 @@
                 todoLists = todoLists.filter(l => l.id !== listId);
                 // Move todos in memory to default
                 todosData.forEach(t => { if (t.listId === listId) t.listId = 'todolist-default'; });
-                if (activeListId === listId) activeListId = 'todolist-default';
-                renderTodoLists();
-                renderTodoList();
+                delete todoFilters[listId];
+                renderAllTodoColumns();
             } catch (err) {
                 console.error('Failed to delete list:', err);
             }
         }
 
-        function startRenameList(listId, e) {
-            e.stopPropagation();
-            const tab = document.querySelector(`.todo-list-tab[data-list-id="${listId}"]`);
-            if (!tab) return;
-            const nameEl = tab.querySelector('.todo-list-tab-name');
-            if (!nameEl) return;
-            const currentName = nameEl.textContent;
-            const inp = document.createElement('input');
-            inp.className = 'todo-list-tab-rename';
-            inp.value = currentName;
-            nameEl.replaceWith(inp);
-            inp.focus();
-            inp.select();
-            const commit = async () => {
-                const newName = inp.value.trim();
-                if (newName && newName !== currentName) {
-                    try {
-                        await fetch(`/api/todolists/${listId}`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ name: newName })
-                        });
-                        const list = todoLists.find(l => l.id === listId);
-                        if (list) list.name = newName;
-                    } catch (err) { console.error('Rename list failed', err); }
-                }
-                renderTodoLists();
-            };
-            inp.addEventListener('blur', commit);
-            inp.addEventListener('keydown', ev => {
-                if (ev.key === 'Enter') { ev.preventDefault(); inp.blur(); }
-                if (ev.key === 'Escape') { inp.value = currentName; inp.blur(); }
-            });
-        }
-
-        // ---- Todo list tab drag-and-drop ----
-        let listTabDragSrcId = null;
-
-        function onListTabDragStart(e) {
-            listTabDragSrcId = this.dataset.listId;
-            e.dataTransfer.effectAllowed = 'move';
-            this.classList.add('todo-list-tab-dragging');
-        }
-        function onListTabDragEnd() {
-            listTabDragSrcId = null;
-            document.querySelectorAll('.todo-list-tab').forEach(t => {
-                t.classList.remove('todo-list-tab-dragging', 'todo-list-tab-drag-over');
-            });
-        }
-        function onListTabDragOver(e) {
-            e.preventDefault();
-            if (this.dataset.listId !== listTabDragSrcId) this.classList.add('todo-list-tab-drag-over');
-        }
-        function onListTabDragLeave() { this.classList.remove('todo-list-tab-drag-over'); }
-        async function onListTabDrop(e) {
-            e.preventDefault();
-            this.classList.remove('todo-list-tab-drag-over');
-            const targetId = this.dataset.listId;
-            if (!listTabDragSrcId || listTabDragSrcId === targetId) return;
-
-            const srcIdx = todoLists.findIndex(l => l.id === listTabDragSrcId);
-            const tgtIdx = todoLists.findIndex(l => l.id === targetId);
-            if (srcIdx === -1 || tgtIdx === -1) return;
-
-            const moved = todoLists.splice(srcIdx, 1)[0];
-            todoLists.splice(tgtIdx, 0, moved);
-
-            renderTodoLists();
-
-            const order = todoLists.map((l, i) => ({ id: l.id, sortOrder: i }));
-            order.forEach(({ id, sortOrder }) => {
-                const l = todoLists.find(x => x.id === id);
-                if (l) l.sortOrder = sortOrder;
-            });
-
-            try {
-                await fetch('/api/todolists/reorder', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ order })
-                });
-            } catch (err) { console.error('Failed to persist list order:', err); }
-        }
-
         // =========================================
-        // RENDER TODOS (filtered by active list)
+        // RENDER TODO ITEMS
         // =========================================
-
-        function renderTodoList() {
-            const list = document.getElementById('todo-list');
-            if (!list) return;
-
-            // Filter by active list, then by done/active filter
-            let filtered = todosData.filter(t => (t.listId || 'todolist-default') === activeListId);
-
-            if (todoFilter === 'active') filtered = filtered.filter(t => !t.done);
-            else if (todoFilter === 'done') filtered = filtered.filter(t => t.done);
-
-            if (filtered.length === 0) {
-                const msgs = {
-                    all:    ['Nothing here yet', 'Type a task above and press Enter to add your first to-do.'],
-                    active: ['All done!', 'No active tasks — enjoy the clear list.'],
-                    done:   ['Nothing completed yet', 'Finish a task and it will show up here.']
-                };
-                const [title, sub] = msgs[todoFilter] || msgs.all;
-                list.innerHTML = `<div class="todo-empty">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <h3>${title}</h3><p>${sub}</p>
-                </div>`;
-                return;
-            }
-
-            list.innerHTML = filtered.map(todo => buildTodoItemHtml(todo)).join('');
-            initTodoDragDrop();
-        }
 
         function buildTodoItemHtml(todo) {
             const priorityClass = todo.priority ? `priority-${todo.priority}` : '';
@@ -269,7 +219,7 @@
             }
 
             return `<div class="todo-item ${priorityClass} ${doneClass}" data-todo-id="${escapeHtml(todo.id)}" draggable="true">
-                <span class="todo-drag-handle" title="Drag to reorder">⠿</span>
+                <span class="todo-drag-handle" title="Drag to reorder">&#x2807;</span>
                 <input type="checkbox" class="todo-checkbox" ${todo.done ? 'checked' : ''}
                        onchange="toggleTodoDone('${escapeAttr(todo.id)}', this.checked)">
                 <div class="todo-text-wrap">
@@ -292,11 +242,16 @@
             return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         }
 
-        async function addTodo(event) {
+        // =========================================
+        // ADD / EDIT / DELETE TODOS
+        // =========================================
+
+        async function addTodo(event, listId) {
             event.preventDefault();
-            const textEl     = document.getElementById('todo-add-text');
-            const priorityEl = document.getElementById('todo-add-priority');
-            const dateEl     = document.getElementById('todo-add-date');
+            const textEl     = document.getElementById(`todo-add-text-${listId}`);
+            const priorityEl = document.getElementById(`todo-add-priority-${listId}`);
+            const dateEl     = document.getElementById(`todo-add-date-${listId}`);
+            if (!textEl) return;
             const text = (textEl.value || '').trim();
             if (!text) { textEl.focus(); return; }
 
@@ -306,20 +261,20 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         text,
-                        priority: priorityEl.value || null,
-                        dueDate:  dateEl.value     || null,
-                        listId:   activeListId
+                        priority: priorityEl ? (priorityEl.value || null) : null,
+                        dueDate:  dateEl     ? (dateEl.value     || null) : null,
+                        listId:   listId
                     })
                 });
                 if (!res.ok) throw new Error('Failed');
                 const data = await res.json();
                 todosData.unshift(data.todo);
                 textEl.value = '';
-                priorityEl.value = '';
-                dateEl.value = '';
+                if (priorityEl) priorityEl.value = '';
+                if (dateEl) dateEl.value = '';
                 textEl.focus();
                 updateTodosCount();
-                renderTodoList();
+                rerenderTodoListDiv(listId);
             } catch (err) {
                 console.error('Failed to add todo:', err);
             }
@@ -336,7 +291,8 @@
                 const todo = todosData.find(t => t.id === id);
                 if (todo) { todo.done = done; todo.doneAt = done ? new Date().toISOString() : null; }
                 updateTodosCount();
-                renderTodoList();
+                const listId = todo ? (todo.listId || 'todolist-default') : null;
+                if (listId) rerenderTodoListDiv(listId);
             } catch (err) {
                 console.error('Failed to toggle todo:', err);
             }
@@ -360,42 +316,44 @@
         }
 
         async function deleteTodoItem(id) {
+            const todo = todosData.find(t => t.id === id);
+            const listId = todo ? (todo.listId || 'todolist-default') : null;
             try {
                 const res = await fetch(`/api/todos/${id}`, { method: 'DELETE' });
                 if (!res.ok) throw new Error('Failed');
                 todosData = todosData.filter(t => t.id !== id);
                 updateTodosCount();
-                renderTodoList();
+                if (listId) rerenderTodoListDiv(listId);
             } catch (err) {
                 console.error('Failed to delete todo:', err);
             }
         }
 
-        async function clearDoneTodos() {
-            const done = todosData.filter(t => t.done && (t.listId || 'todolist-default') === activeListId);
+        async function clearDoneTodos(listId) {
+            const done = todosData.filter(t => t.done && (t.listId || 'todolist-default') === listId);
             if (done.length === 0) return;
             if (!confirm(`Delete ${done.length} completed task${done.length > 1 ? 's' : ''}?`)) return;
             try {
                 await Promise.all(done.map(t => fetch(`/api/todos/${t.id}`, { method: 'DELETE' })));
-                todosData = todosData.filter(t => !(t.done && (t.listId || 'todolist-default') === activeListId));
+                todosData = todosData.filter(t => !(t.done && (t.listId || 'todolist-default') === listId));
                 updateTodosCount();
-                renderTodoList();
+                rerenderTodoListDiv(listId);
             } catch (err) {
                 console.error('Failed to clear done todos:', err);
             }
         }
 
         // =========================================
-        // TODO DRAG-AND-DROP REORDER (Feature 3a)
+        // TODO DRAG-AND-DROP REORDER
         // =========================================
 
         let todoDragSrcId = null;
 
-        function initTodoDragDrop() {
-            const list = document.getElementById('todo-list');
-            if (!list) return;
+        function initTodoDragDropForList(listId) {
+            const listEl = document.getElementById(`todo-list-${listId}`);
+            if (!listEl) return;
 
-            list.querySelectorAll('.todo-item[draggable]').forEach(item => {
+            listEl.querySelectorAll('.todo-item[draggable]').forEach(item => {
                 item.addEventListener('dragstart', onTodoDragStart);
                 item.addEventListener('dragend',   onTodoDragEnd);
                 item.addEventListener('dragover',  onTodoDragOver);
@@ -403,6 +361,13 @@
                 item.addEventListener('drop',      onTodoDrop);
             });
         }
+
+        // Legacy aliases so other files calling the old function names still work
+        function initTodoDragDrop() {
+            todoLists.forEach(l => initTodoDragDropForList(l.id));
+        }
+        function renderTodoLists() { renderAllTodoColumns(); }
+        function renderTodoList()  { renderAllTodoColumns(); }
 
         function onTodoDragStart(e) {
             todoDragSrcId = this.dataset.todoId;
@@ -436,11 +401,17 @@
             const targetId = this.dataset.todoId;
             if (!todoDragSrcId || todoDragSrcId === targetId) return;
 
-            // Work only on todos in the current view (active list + current filter)
-            const listTodos = todosData.filter(t => (t.listId || 'todolist-default') === activeListId);
+            // Determine which list this drop is in
+            const srcTodo = todosData.find(t => t.id === todoDragSrcId);
+            if (!srcTodo) return;
+            const listId = srcTodo.listId || 'todolist-default';
+            const filter = todoFilters[listId] || 'active';
+
+            // Work only on todos in the current list + filter
+            const listTodos = todosData.filter(t => (t.listId || 'todolist-default') === listId);
             let filtered;
-            if (todoFilter === 'active') filtered = listTodos.filter(t => !t.done);
-            else if (todoFilter === 'done') filtered = listTodos.filter(t => t.done);
+            if (filter === 'active') filtered = listTodos.filter(t => !t.done);
+            else if (filter === 'done') filtered = listTodos.filter(t => t.done);
             else filtered = [...listTodos];
 
             const srcIdx = filtered.findIndex(t => t.id === todoDragSrcId);
@@ -450,19 +421,15 @@
             const moved = filtered.splice(srcIdx, 1)[0];
             filtered.splice(tgtIdx, 0, moved);
 
-            // Assign new sortOrder values to the reordered visible items
+            // Assign new sortOrder values
             const order = filtered.map((t, i) => ({ id: t.id, sortOrder: i * 10 }));
-
-            // Update in-memory sortOrder
             order.forEach(({ id, sortOrder }) => {
                 const t = todosData.find(x => x.id === id);
                 if (t) t.sortOrder = sortOrder;
             });
 
-            // Re-render immediately
-            renderTodoList();
+            rerenderTodoListDiv(listId);
 
-            // Persist
             try {
                 await fetch('/api/todos/reorder', {
                     method: 'POST',

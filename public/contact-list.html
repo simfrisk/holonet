@@ -346,11 +346,8 @@
         <div id="todos-tab" class="tab-content">
             <div class="todo-tab-inner">
 
-                <!-- Todo list tabs -->
+                <!-- Add new list bar -->
                 <div class="todo-lists-bar">
-                    <div class="todo-lists-tabs" id="todo-lists-tabs">
-                        <!-- rendered by JS -->
-                    </div>
                     <div class="todo-list-add-wrap">
                         <input type="text" id="todo-list-name-input" class="todo-list-name-input"
                                placeholder="New list…" autocomplete="off"
@@ -359,29 +356,8 @@
                     </div>
                 </div>
 
-                <!-- Quick-add form -->
-                <form class="todo-add-form" onsubmit="addTodo(event)">
-                    <input type="text" class="todo-add-text" id="todo-add-text"
-                           placeholder="Add a to-do… press Enter to save" autocomplete="off">
-                    <select class="todo-add-priority" id="todo-add-priority" title="Priority">
-                        <option value="">— priority</option>
-                        <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
-                    </select>
-                    <input type="date" class="todo-add-date" id="todo-add-date" title="Due date">
-                    <button type="submit" class="todo-add-btn">Add</button>
-                </form>
-
-                <!-- Filter bar -->
-                <div class="todo-filters">
-                    <button class="todo-filter-btn active" data-filter="active" onclick="filterTodos('active')">Active</button>
-                    <button class="todo-filter-btn"        data-filter="done"   onclick="filterTodos('done')">Archived</button>
-                    <button class="todo-clear-done" onclick="clearDoneTodos()">Clear done</button>
-                </div>
-
-                <!-- List -->
-                <div class="todo-list" id="todo-list"></div>
+                <!-- Two-column grid: each list renders its own column here -->
+                <div class="todo-columns-grid" id="todo-columns-grid"></div>
             </div>
         </div>
     </div>
