@@ -1946,6 +1946,656 @@ app.delete('/api/tracked/:id/touchpoints/:tpId', async (req, res) => {
     }
 });
 
+// === OSC MONITOR ROUTES ===
+// Proxy routes for Grafana/Loki/Prometheus data.
+// All routes are protected by the global requireAuth middleware already applied above.
+
+const MONITOR_GRAFANA_URL = process.env.GRAFANA_URL || 'https://ops-ui.osaas.io';
+const MONITOR_GRAFANA_TOKEN = process.env.GRAFANA_TOKEN || '';
+const MONITOR_LOKI_UID = process.env.LOKI_UID || 'ce673d8c-9728-44c7-8c78-8c10df447caa';
+const MONITOR_PROM_UID = process.env.PROM_UID || 'dbc6c44d-10b7-4ba1-b18a-af74de200791';
+
+const MONITOR_LOKI_BASE = `${MONITOR_GRAFANA_URL}/api/datasources/proxy/uid/${MONITOR_LOKI_UID}/loki/api/v1`;
+const MONITOR_PROM_BASE = `${MONITOR_GRAFANA_URL}/api/datasources/proxy/uid/${MONITOR_PROM_UID}/api/v1`;
+
+function monitorAuthHeaders() {
+    return {
+        Authorization: `Bearer ${MONITOR_GRAFANA_TOKEN}`,
+        'Content-Type': 'application/json',
+    };
+}
+
+// Query Loki query_range endpoint. Returns array of stream objects.
+async function grafanaLoki(query, from, to, limit = 200, direction = 'backward') {
+    const params = new URLSearchParams({
+        query,
+        start: String(from),
+        end: String(to),
+        limit: String(limit),
+        direction,
+    });
+    const url = `${MONITOR_LOKI_BASE}/query_range?${params}`;
+    try {
+        const res = await fetch(url, { headers: monitorAuthHeaders() });
+        if (!res.ok) {
+            console.error(`Loki query failed: ${res.status} ${res.statusText}`);
+            return [];
+        }
+        const data = await res.json();
+        if (data.status !== 'success') return [];
+        return data.data.result;
+    } catch (err) {
+        console.error('Loki query error:', err.message);
+        return [];
+    }
+}
+
+// Query Prometheus query_range endpoint. Returns array of result objects.
+async function grafanaPrometheus(expr, start, end, step) {
+    const params = new URLSearchParams({
+        query: expr,
+        start: String(start),
+        end: String(end),
+        step: String(step),
+    });
+    const url = `${MONITOR_PROM_BASE}/query_range?${params}`;
+    try {
+        const res = await fetch(url, { headers: monitorAuthHeaders() });
+        if (!res.ok) {
+            console.error(`Prometheus range query failed: ${res.status} ${res.statusText}`);
+            return [];
+        }
+        const data = await res.json();
+        if (data.status !== 'success') return [];
+        return data.data.result;
+    } catch (err) {
+        console.error('Prometheus range query error:', err.message);
+        return [];
+    }
+}
+
+// Query Prometheus instant query endpoint. Returns array of result objects.
+async function grafanaPrometheusInstant(expr) {
+    const params = new URLSearchParams({ query: expr });
+    const url = `${MONITOR_PROM_BASE}/query?${params}`;
+    try {
+        const res = await fetch(url, { headers: monitorAuthHeaders() });
+        if (!res.ok) {
+            console.error(`Prometheus query failed: ${res.status} ${res.statusText}`);
+            return [];
+        }
+        const data = await res.json();
+        if (data.status !== 'success') return [];
+        return data.data.result;
+    } catch (err) {
+        console.error('Prometheus query error:', err.message);
+        return [];
+    }
+}
+
+function monitorNowSeconds() {
+    return Math.floor(Date.now() / 1000);
+}
+
+function monitorRangeSeconds(rangeLabel) {
+    const map = {
+        '1h': 3600,
+        '6h': 21600,
+        '12h': 43200,
+        '24h': 86400,
+        '48h': 172800,
+        '7d': 604800,
+    };
+    return map[rangeLabel] || 21600;
+}
+
+function monitorStepForRange(rangeSecs) {
+    if (rangeSecs <= 3600) return 60;
+    if (rangeSecs <= 21600) return 300;
+    if (rangeSecs <= 86400) return 600;
+    if (rangeSecs <= 172800) return 1200;
+    return 3600;
+}
+
+// ---- Event parsing helpers ----
+
+function monitorMakeId(ts, tenant, type) {
+    return `${ts}-${tenant}-${type}`;
+}
+
+function parseGUIAuditLine(ts, line) {
+    const customerMatch = line.match(/customer=(\S+)/);
+    const actionMatch = line.match(/action (\S+) on resource (\S+)/);
+
+    if (!customerMatch || !actionMatch) return null;
+
+    const tenant = customerMatch[1];
+    const action = actionMatch[1];
+    const resource = actionMatch[2].replace(/"+$/, '');
+    const timestamp = Math.floor(parseInt(ts, 10) / 1_000_000); // nanoseconds to ms
+
+    switch (action) {
+        case 'create:instance': {
+            const parts = resource.split('/');
+            const service = parts[0];
+            const instanceName = parts[1] || resource;
+            return {
+                id: monitorMakeId(ts, tenant, 'create_instance'),
+                type: 'instance_created',
+                emoji: '🚀',
+                tenant,
+                description: `${tenant} created instance ${instanceName} (${service})`,
+                timestamp,
+            };
+        }
+        case 'delete:instance': {
+            const parts = resource.split('/');
+            const service = parts[0];
+            const instanceName = parts[1] || resource;
+            return {
+                id: monitorMakeId(ts, tenant, 'delete_instance'),
+                type: 'instance_removed',
+                emoji: '🗑️',
+                tenant,
+                description: `${tenant} removed instance ${instanceName} (${service})`,
+                timestamp,
+            };
+        }
+        case 'restart:instance': {
+            const parts = resource.split('/');
+            const instanceName = parts[1] || resource;
+            return {
+                id: monitorMakeId(ts, tenant, 'restart_instance'),
+                type: 'instance_restarted',
+                emoji: '🔄',
+                tenant,
+                description: `${tenant} restarted instance ${instanceName}`,
+                timestamp,
+            };
+        }
+        case 'create:tenant':
+            return {
+                id: monitorMakeId(ts, tenant, 'create_tenant'),
+                type: 'tenant_signup',
+                emoji: '👤',
+                tenant,
+                description: `New tenant signed up: ${tenant}`,
+                timestamp,
+            };
+        case 'deploy:solution':
+            return {
+                id: monitorMakeId(ts, tenant, 'deploy_solution'),
+                type: 'solution_deployed',
+                emoji: '🔧',
+                tenant,
+                description: `${tenant} deployed solution ${resource}`,
+                timestamp,
+            };
+        case 'delete:solution':
+            return {
+                id: monitorMakeId(ts, tenant, 'delete_solution'),
+                type: 'solution_destroyed',
+                emoji: '💣',
+                tenant,
+                description: `${tenant} destroyed solution ${resource}`,
+                timestamp,
+            };
+        default:
+            return null;
+    }
+}
+
+const MCP_WRITE_ACTIONS = new Set([
+    'create-database',
+    'create-service-instance',
+    'delete-service-instance',
+    'restart-service-instance',
+    'create-my-app',
+    'delete-my-app',
+    'restart-my-app',
+    'deploy-solution',
+    'remove-deployed-solution',
+]);
+
+function parseMCPAuditLine(ts, line) {
+    const msgIdx = line.indexOf('msg="');
+    if (msgIdx === -1) return null;
+
+    try {
+        const raw = line.slice(msgIdx + 5, -1); // strip 'msg="' and trailing '"'
+        const jsonStr = raw.replace(/\\"/g, '"');
+        const data = JSON.parse(jsonStr);
+
+        if (!data.action || !MCP_WRITE_ACTIONS.has(data.action) || !data.success) return null;
+
+        const tenant = data.tenantId || 'unknown';
+        const resource = data.resource || '';
+        const timestamp = Math.floor(parseInt(ts, 10) / 1_000_000);
+
+        switch (data.action) {
+            case 'create-database':
+                return {
+                    id: monitorMakeId(ts, tenant, 'mcp_create_db'),
+                    type: 'instance_created',
+                    emoji: '🚀',
+                    tenant,
+                    description: `${tenant} created database ${resource}${data.type ? ` (${data.type})` : ''} 🤖`,
+                    timestamp,
+                };
+            case 'create-service-instance':
+                return {
+                    id: monitorMakeId(ts, tenant, 'mcp_create_instance'),
+                    type: 'instance_created',
+                    emoji: '🚀',
+                    tenant,
+                    description: `${tenant} created instance ${resource} 🤖`,
+                    timestamp,
+                };
+            case 'delete-service-instance':
+                return {
+                    id: monitorMakeId(ts, tenant, 'mcp_delete_instance'),
+                    type: 'instance_removed',
+                    emoji: '🗑️',
+                    tenant,
+                    description: `${tenant} removed instance ${resource} 🤖`,
+                    timestamp,
+                };
+            case 'restart-service-instance':
+                return {
+                    id: monitorMakeId(ts, tenant, 'mcp_restart_instance'),
+                    type: 'instance_restarted',
+                    emoji: '🔄',
+                    tenant,
+                    description: `${tenant} restarted instance ${resource} 🤖`,
+                    timestamp,
+                };
+            case 'create-my-app':
+                return {
+                    id: monitorMakeId(ts, tenant, 'mcp_create_app'),
+                    type: 'instance_created',
+                    emoji: '🚀',
+                    tenant,
+                    description: `${tenant} created app ${resource} 🤖`,
+                    timestamp,
+                };
+            case 'delete-my-app':
+                return {
+                    id: monitorMakeId(ts, tenant, 'mcp_delete_app'),
+                    type: 'instance_removed',
+                    emoji: '🗑️',
+                    tenant,
+                    description: `${tenant} deleted app ${resource} 🤖`,
+                    timestamp,
+                };
+            case 'restart-my-app':
+                return {
+                    id: monitorMakeId(ts, tenant, 'mcp_restart_app'),
+                    type: 'instance_restarted',
+                    emoji: '🔄',
+                    tenant,
+                    description: `${tenant} restarted app ${resource} 🤖`,
+                    timestamp,
+                };
+            case 'deploy-solution':
+                return {
+                    id: monitorMakeId(ts, tenant, 'mcp_deploy_solution'),
+                    type: 'solution_deployed',
+                    emoji: '🔧',
+                    tenant,
+                    description: `${tenant} deployed solution ${resource} 🤖`,
+                    timestamp,
+                };
+            case 'remove-deployed-solution':
+                return {
+                    id: monitorMakeId(ts, tenant, 'mcp_remove_solution'),
+                    type: 'solution_destroyed',
+                    emoji: '💣',
+                    tenant,
+                    description: `${tenant} destroyed solution ${resource} 🤖`,
+                    timestamp,
+                };
+            default:
+                return null;
+        }
+    } catch {
+        return null;
+    }
+}
+
+async function fetchGUIEvents(sinceMs, nowMs) {
+    const streams = await grafanaLoki(
+        '{job="gui/ui"} |= "audit"',
+        Math.floor(sinceMs / 1000),
+        Math.floor(nowMs / 1000),
+        200
+    );
+    const events = [];
+    for (const stream of streams) {
+        for (const [ts, line] of stream.values) {
+            const event = parseGUIAuditLine(ts, line);
+            if (event) events.push(event);
+        }
+    }
+    return events;
+}
+
+async function fetchSignupEvents(sinceMs, nowMs) {
+    const streams = await grafanaLoki(
+        '{namespace="osaas"} |~ "create-team" |~ "magic-link"',
+        Math.floor(sinceMs / 1000),
+        Math.floor(nowMs / 1000),
+        50
+    );
+    const seen = new Set();
+    const events = [];
+    for (const stream of streams) {
+        for (const [ts, line] of stream.values) {
+            const emailMatch = line.match(/email=([^&\s"]+)/);
+            const email = emailMatch ? decodeURIComponent(emailMatch[1]) : undefined;
+            if (email && !seen.has(email)) {
+                seen.add(email);
+                const timestamp = Math.floor(parseInt(ts, 10) / 1_000_000);
+                events.push({
+                    id: monitorMakeId(ts, email, 'signup'),
+                    type: 'tenant_signup',
+                    emoji: '👤',
+                    tenant: email,
+                    description: `New signup: ${email}`,
+                    timestamp,
+                });
+            }
+        }
+    }
+    return events;
+}
+
+async function fetchMCPEvents(sinceMs, nowMs) {
+    const streams = await grafanaLoki(
+        '{job="osaas/ai-manager"} |= "level=info" |~ "create|delete|restart|deploy|remove"',
+        Math.floor(sinceMs / 1000),
+        Math.floor(nowMs / 1000),
+        200
+    );
+    const events = [];
+    for (const stream of streams) {
+        for (const [ts, line] of stream.values) {
+            const event = parseMCPAuditLine(ts, line);
+            if (event) events.push(event);
+        }
+    }
+    return events;
+}
+
+async function fetchPlanChangeEvents(sinceMs, nowMs) {
+    const streams = await grafanaLoki(
+        '{job="osaas/money-manager"} |= "POST" |= "/tenantplan"',
+        Math.floor(sinceMs / 1000),
+        Math.floor(nowMs / 1000),
+        50
+    );
+    const events = [];
+    for (const stream of streams) {
+        for (const [ts, line] of stream.values) {
+            const timestamp = Math.floor(parseInt(ts, 10) / 1_000_000);
+            const idMatch = line.match(/id=(\S+)/);
+            const requestId = idMatch ? idMatch[1] : ts;
+            events.push({
+                id: monitorMakeId(ts, requestId, 'plan_change'),
+                type: 'plan_upgrade',
+                emoji: '⬆️',
+                tenant: 'unknown',
+                description: 'Tenant updated plan',
+                timestamp,
+            });
+        }
+    }
+    return events;
+}
+
+function mergeAndDedupEvents(guiEvents, signupEvents, planEvents, mcpEvents) {
+    const guiSignups = new Set(
+        guiEvents.filter(e => e.type === 'tenant_signup').map(e => e.tenant)
+    );
+    const filteredSignups = signupEvents.filter(e => !guiSignups.has(e.tenant));
+
+    const all = [...guiEvents, ...filteredSignups, ...planEvents, ...mcpEvents];
+    all.sort((a, b) => b.timestamp - a.timestamp);
+
+    const seen = new Set();
+    return all.filter(e => {
+        if (seen.has(e.id)) return false;
+        seen.add(e.id);
+        return true;
+    });
+}
+
+// GET /api/monitor/events
+// Params: since (ISO timestamp), before (ISO timestamp), page (int, default 0)
+app.get('/api/monitor/events', async (req, res) => {
+    if (!MONITOR_GRAFANA_TOKEN) {
+        return res.status(503).json({ error: 'Monitoring not configured' });
+    }
+
+    const { since: sinceParam, before: beforeParam } = req.query;
+    const now = Date.now();
+
+    // Live-poll mode: fetch events newer than `since`
+    if (sinceParam) {
+        const since = new Date(sinceParam).getTime();
+        try {
+            const [guiEvents, signupEvents, planEvents, mcpEvents] = await Promise.all([
+                fetchGUIEvents(since, now),
+                fetchSignupEvents(since, now),
+                fetchPlanChangeEvents(since, now),
+                fetchMCPEvents(since, now),
+            ]);
+            const allEvents = mergeAndDedupEvents(guiEvents, signupEvents, planEvents, mcpEvents);
+            const latestTimestamp = allEvents.length > 0
+                ? new Date(allEvents[0].timestamp).toISOString()
+                : sinceParam;
+            return res.json({ events: allEvents, count: allEvents.length, latestTimestamp, hasMore: false });
+        } catch (err) {
+            console.error('Events fetch error:', err);
+            return res.status(500).json({ events: [], count: 0, error: String(err) });
+        }
+    }
+
+    // Paginated mode: fetch one 3-day chunk
+    const CHUNK_MS = 3 * 86400 * 1000;
+    const MAX_HISTORY_MS = 30 * 86400 * 1000;
+    const before = beforeParam ? new Date(beforeParam).getTime() : now;
+    const since = before - CHUNK_MS;
+    const oldest = now - MAX_HISTORY_MS;
+    const hasMore = since > oldest;
+
+    try {
+        const [guiEvents, signupEvents, planEvents, mcpEvents] = await Promise.all([
+            fetchGUIEvents(since, before),
+            fetchSignupEvents(since, before),
+            fetchPlanChangeEvents(since, before),
+            fetchMCPEvents(since, before),
+        ]);
+
+        const allEvents = mergeAndDedupEvents(guiEvents, signupEvents, planEvents, mcpEvents);
+
+        const latestTimestamp = allEvents.length > 0
+            ? new Date(allEvents[0].timestamp).toISOString()
+            : new Date(before).toISOString();
+
+        const oldestTimestamp = allEvents.length > 0
+            ? new Date(allEvents[allEvents.length - 1].timestamp).toISOString()
+            : new Date(since).toISOString();
+
+        return res.json({
+            events: allEvents,
+            count: allEvents.length,
+            latestTimestamp,
+            oldestTimestamp,
+            hasMore,
+        });
+    } catch (err) {
+        console.error('Events fetch error:', err);
+        return res.status(500).json({ events: [], count: 0, error: String(err) });
+    }
+});
+
+// GET /api/monitor/instances/current
+// Returns top 30 tenants by pod count with their service lists.
+app.get('/api/monitor/instances/current', async (req, res) => {
+    if (!MONITOR_GRAFANA_TOKEN) {
+        return res.status(503).json({ error: 'Monitoring not configured' });
+    }
+
+    try {
+        const results = await grafanaPrometheusInstant(
+            'sum by (namespace) (kube_pod_info{created_by_kind="ReplicaSet"})'
+        );
+
+        const tenants = results
+            .filter(r => r.metric && r.metric.namespace)
+            .map(r => ({
+                namespace: r.metric.namespace,
+                count: parseInt((r.value && r.value[1]) || '0', 10),
+                services: [],
+            }))
+            .filter(t => t.count > 0)
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 30);
+
+        // Enrich each tenant with its service list from Loki series
+        const now = monitorNowSeconds();
+        const start = now - 3600;
+
+        await Promise.all(tenants.map(async (tenant) => {
+            const params = new URLSearchParams({
+                'match[]': `{eyevinnlabel_customer="${tenant.namespace}"}`,
+                start: String(start),
+                end: String(now),
+            });
+            const url = `${MONITOR_LOKI_BASE}/series?${params}`;
+            try {
+                const r = await fetch(url, { headers: monitorAuthHeaders() });
+                if (!r.ok) return;
+                const data = await r.json();
+                if (data.status !== 'success') return;
+                const services = new Set();
+                for (const labelSet of data.data) {
+                    if (labelSet.eyevinnlabel_service) {
+                        services.add(labelSet.eyevinnlabel_service);
+                    }
+                }
+                tenant.services = Array.from(services);
+            } catch {
+                // leave services as empty array
+            }
+        }));
+
+        return res.json({ tenants });
+    } catch (err) {
+        console.error('Monitor instances/current error:', err);
+        return res.status(500).json({ error: String(err) });
+    }
+});
+
+// GET /api/monitor/instances/graph
+// Params: range (1h|6h|12h|24h|48h|7d, default 6h)
+// Returns time series grouped by tenant (derived from pod name prefix).
+app.get('/api/monitor/instances/graph', async (req, res) => {
+    if (!MONITOR_GRAFANA_TOKEN) {
+        return res.status(503).json({ error: 'Monitoring not configured' });
+    }
+
+    try {
+        const range = req.query.range || '6h';
+        const now = monitorNowSeconds();
+        const rangeSecs = monitorRangeSeconds(range);
+        const start = now - rangeSecs;
+        const step = monitorStepForRange(rangeSecs);
+
+        const results = await grafanaPrometheus(
+            'count by (pod)(kube_pod_info{created_by_kind="ReplicaSet"})',
+            start,
+            now,
+            step
+        );
+
+        // Aggregate by tenant (first dash-separated segment of pod name)
+        const tenantMap = new Map();
+
+        for (const r of results) {
+            const podName = (r.metric && r.metric.pod) || '';
+            const tenant = podName.split('-')[0];
+            if (!tenant) continue;
+
+            if (!tenantMap.has(tenant)) tenantMap.set(tenant, new Map());
+            const tsMap = tenantMap.get(tenant);
+
+            for (const [ts, val] of (r.values || [])) {
+                const msTs = ts * 1000;
+                tsMap.set(msTs, (tsMap.get(msTs) || 0) + parseInt(val, 10));
+            }
+        }
+
+        const series = Array.from(tenantMap.entries())
+            .map(([tenant, tsMap]) => ({
+                namespace: tenant,
+                data: Array.from(tsMap.entries())
+                    .sort(([a], [b]) => a - b)
+                    .map(([time, value]) => ({ time, value })),
+            }))
+            .filter(s => s.data.some(d => d.value > 0));
+
+        return res.json({ series, range, step });
+    } catch (err) {
+        console.error('Monitor instances/graph error:', err);
+        return res.status(500).json({ error: String(err) });
+    }
+});
+
+// GET /api/monitor/instances/drilldown
+// Params: namespace (required), range (default 6h)
+// Returns per-service pod time series for a single tenant namespace.
+app.get('/api/monitor/instances/drilldown', async (req, res) => {
+    if (!MONITOR_GRAFANA_TOKEN) {
+        return res.status(503).json({ error: 'Monitoring not configured' });
+    }
+
+    const namespace = req.query.namespace;
+    if (!namespace) {
+        return res.status(400).json({ error: 'namespace is required' });
+    }
+
+    try {
+        const range = req.query.range || '6h';
+        const now = monitorNowSeconds();
+        const rangeSecs = monitorRangeSeconds(range);
+        const start = now - rangeSecs;
+        const step = monitorStepForRange(rangeSecs);
+
+        const results = await grafanaPrometheus(
+            `sum by (namespace)(kube_pod_info{pod=~"^${namespace}-.*",created_by_kind="ReplicaSet"})`,
+            start,
+            now,
+            step
+        );
+
+        const series = results
+            .map(r => ({
+                service: (r.metric && r.metric.namespace) || 'unknown',
+                data: (r.values || []).map(([ts, val]) => ({
+                    time: parseInt(String(ts), 10) * 1000,
+                    value: parseInt(val, 10),
+                })),
+            }))
+            .filter(s => s.data.some(d => d.value > 0));
+
+        return res.json({ series, namespace, range });
+    } catch (err) {
+        console.error('Monitor instances/drilldown error:', err);
+        return res.status(500).json({ error: String(err) });
+    }
+});
+
 // Serve HTML files from public directory
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'contact-list.html'));

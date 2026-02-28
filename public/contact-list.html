@@ -42,6 +42,9 @@
             <button class="primary-nav-btn" data-section="links" onclick="switchSection('links')">
                 <span class="pnav-icon"><i class="ti ti-link"></i></span> Quick Links
             </button>
+            <button class="primary-nav-btn" data-section="monitor" onclick="switchSection('monitor')">
+                <span class="pnav-icon"><i class="ti ti-activity"></i></span> Monitor
+            </button>
         </div>
 
         <!-- Sub Navigation (contact list sub-tabs) -->
@@ -431,6 +434,56 @@
         </div>
     </div>
 
+    <!-- Monitor Tab -->
+    <div id="monitor-tab" class="tab-content">
+        <div class="monitor-container">
+
+            <!-- Left: Event feed -->
+            <div class="monitor-events-panel">
+                <div class="monitor-header">
+                    <h3>Platform Events</h3>
+                    <div class="monitor-controls">
+                        <label class="monitor-checkbox-label">
+                            <input type="checkbox" id="monitor-hide-internal" checked>
+                            Hide internal
+                        </label>
+                        <button id="monitor-refresh-btn" class="monitor-btn">Refresh</button>
+                    </div>
+                </div>
+                <div id="monitor-events-list">
+                    <div class="monitor-loading">Loading events...</div>
+                </div>
+                <div style="text-align:center;padding:10px;">
+                    <button id="monitor-load-more-btn" style="display:none" class="load-more-btn">Load more</button>
+                </div>
+            </div>
+
+            <!-- Right: Instance graph -->
+            <div class="monitor-graph-panel">
+                <div class="monitor-header">
+                    <h3>Instance Activity</h3>
+                    <div class="monitor-range-selector">
+                        <button class="range-btn active" data-range="6h">6h</button>
+                        <button class="range-btn" data-range="1h">1h</button>
+                        <button class="range-btn" data-range="12h">12h</button>
+                        <button class="range-btn" data-range="24h">24h</button>
+                        <button class="range-btn" data-range="7d">7d</button>
+                    </div>
+                </div>
+                <div class="monitor-graph-layout">
+                    <div class="monitor-chart-wrapper">
+                        <canvas id="monitor-instance-chart"></canvas>
+                        <div id="monitor-chart-loading" class="monitor-loading">Loading chart...</div>
+                    </div>
+                    <div id="monitor-tenant-sidebar" class="monitor-tenant-sidebar">
+                        <!-- Tenant list rendered by monitor.js -->
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
     </div><!-- end .container -->
 
     <!-- Tracked Customer Detail Modal -->
@@ -629,6 +682,7 @@
     <script src="js/tracked-customers.js"></script>
     <script src="js/stats.js"></script>
     <script src="js/links.js"></script>
+    <script src="js/monitor.js"></script>
     <script src="js/init.js"></script>
 </body>
 </html>

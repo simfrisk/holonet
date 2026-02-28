@@ -46,7 +46,23 @@
                 if (sectionName === 'links') {
                     renderLinksGrid();
                 }
+                if (sectionName === 'monitor') {
+                    loadChartJs(function() { initMonitor(); });
+                }
             }
+
+            // Pause monitor polling when leaving the monitor tab
+            if (sectionName !== 'monitor') {
+                pauseMonitor();
+            }
+        }
+
+        function loadChartJs(callback) {
+            if (window.Chart) { callback(); return; }
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js';
+            s.onload = callback;
+            document.head.appendChild(s);
         }
 
         function switchTab(tabName, skipHash) {
@@ -65,7 +81,7 @@
         function restoreNavFromHash() {
             const hash = window.location.hash.slice(1);
             const CONTACT_SUB_TABS = ['active', 'archived', 'later', 'skip', 'all'];
-            const TOP_SECTIONS = ['drafts', 'todos', 'tracked', 'stats', 'links'];
+            const TOP_SECTIONS = ['drafts', 'todos', 'tracked', 'stats', 'links', 'monitor'];
 
             if (TOP_SECTIONS.includes(hash)) {
                 switchSection(hash, true);
