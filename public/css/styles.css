@@ -3308,6 +3308,17 @@
         /* =========================================
            MONITOR TAB
            ========================================= */
+        .tab-content--iframe {
+            margin: 0 -30px -30px -30px;
+        }
+        .monitor-iframe {
+            display: block;
+            width: 100%;
+            height: calc(100vh - 130px);
+            min-height: 500px;
+            border: none;
+        }
+
         .monitor-container {
             display: flex;
             flex-direction: row;
