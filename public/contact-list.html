@@ -441,32 +441,46 @@
             <!-- Left: Event feed -->
             <div class="monitor-events-panel">
                 <div class="monitor-header">
-                    <h3>Platform Events</h3>
+                    <div class="monitor-header-left">
+                        <span class="monitor-live-dot"></span>
+                        <h3>Platform Events <span id="monitor-events-count" class="monitor-count"></span></h3>
+                    </div>
                     <div class="monitor-controls">
                         <label class="monitor-checkbox-label">
                             <input type="checkbox" id="monitor-hide-internal" checked>
                             Hide internal
                         </label>
-                        <button id="monitor-refresh-btn" class="monitor-btn">Refresh</button>
+                        <button id="monitor-sound-btn" class="monitor-icon-btn" title="Sound off - click to enable ping">🔇</button>
+                        <button id="monitor-notif-btn" class="monitor-icon-btn" title="Enable notifications" style="display:none">🔔 Enable alerts</button>
+                        <span id="monitor-notif-on-btn" class="monitor-icon-btn" title="Notifications on - click to test" style="display:none; cursor:pointer;">🔔</span>
+                        <span id="monitor-notif-denied" class="monitor-icon-btn monitor-icon-btn--dim" title="Notifications blocked in browser settings" style="display:none">🔕</span>
+                        <span id="monitor-last-poll" class="monitor-poll-time"></span>
                     </div>
                 </div>
+                <!-- Muted tenants bar -->
+                <div id="monitor-muted-bar" class="monitor-muted-bar" style="display:none"></div>
                 <div id="monitor-events-list">
                     <div class="monitor-loading">Loading events...</div>
                 </div>
-                <div style="text-align:center;padding:10px;">
-                    <button id="monitor-load-more-btn" style="display:none" class="load-more-btn">Load more</button>
+                <!-- Infinite scroll sentinel -->
+                <div id="monitor-scroll-sentinel" style="padding:8px;text-align:center;">
+                    <span id="monitor-load-more-indicator" class="monitor-loading" style="padding:6px;display:none;font-size:11px;"></span>
                 </div>
             </div>
 
             <!-- Right: Instance graph -->
             <div class="monitor-graph-panel">
                 <div class="monitor-header">
-                    <h3>Instance Activity</h3>
+                    <div class="monitor-header-left">
+                        <button id="monitor-graph-back-btn" class="monitor-back-btn" style="display:none" title="Back to all tenants">&#8592;</button>
+                        <h3 id="monitor-graph-title">Instance Graph</h3>
+                    </div>
                     <div class="monitor-range-selector">
                         <button class="range-btn active" data-range="6h">6h</button>
                         <button class="range-btn" data-range="1h">1h</button>
                         <button class="range-btn" data-range="12h">12h</button>
                         <button class="range-btn" data-range="24h">24h</button>
+                        <button class="range-btn" data-range="48h">48h</button>
                         <button class="range-btn" data-range="7d">7d</button>
                     </div>
                 </div>
@@ -475,8 +489,13 @@
                         <canvas id="monitor-instance-chart"></canvas>
                         <div id="monitor-chart-loading" class="monitor-loading">Loading chart...</div>
                     </div>
-                    <div id="monitor-tenant-sidebar" class="monitor-tenant-sidebar">
-                        <!-- Tenant list rendered by monitor.js -->
+                    <div class="monitor-tenant-sidebar-wrapper">
+                        <div class="monitor-sidebar-search-bar">
+                            <input type="text" id="monitor-sidebar-search" placeholder="Search..." class="monitor-sidebar-search-input">
+                        </div>
+                        <div id="monitor-tenant-sidebar" class="monitor-tenant-sidebar">
+                            <!-- Tenant list rendered by monitor.js -->
+                        </div>
                     </div>
                 </div>
             </div>
