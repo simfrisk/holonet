@@ -176,7 +176,7 @@ async function createDesignDocuments() {
         if (checkResponse.ok) {
             existingDoc = await checkResponse.json();
             // All required views present — nothing to do
-            const required = ['all_contacts', 'by_email', 'by_tenant', 'all_drafts', 'all_todos', 'all_tracked', 'all_todolists'];
+            const required = ['all_contacts', 'by_email', 'by_tenant', 'all_drafts', 'all_todos', 'all_tracked', 'all_todolists', 'all_briefs', 'all_brief_items'];
             if (existingDoc.views && required.every(v => existingDoc.views[v])) {
                 return;
             }
@@ -233,6 +233,20 @@ async function createDesignDocuments() {
                     map: function(doc) {
                         if (doc.type === 'todo_list') {
                             emit(doc.sortOrder != null ? doc.sortOrder : doc.createdAt, doc);
+                        }
+                    }.toString()
+                },
+                all_briefs: {
+                    map: function(doc) {
+                        if (doc.type === 'daily_brief') {
+                            emit(doc.date, doc);
+                        }
+                    }.toString()
+                },
+                all_brief_items: {
+                    map: function(doc) {
+                        if (doc.type === 'brief_item') {
+                            emit([doc.briefId, doc.sortOrder != null ? doc.sortOrder : 9999], doc);
                         }
                     }.toString()
                 }
@@ -2593,6 +2607,375 @@ app.get('/api/monitor/instances/drilldown', async (req, res) => {
     } catch (err) {
         console.error('Monitor instances/drilldown error:', err);
         return res.status(500).json({ error: String(err) });
+    }
+});
+
+// ================================
+// DAILY BRIEFS API
+// ================================
+
+// Helper: fetch all brief_items for a briefId
+async function fetchBriefItems(briefId) {
+    const startKey = encodeURIComponent(JSON.stringify([briefId]));
+    const endKey = encodeURIComponent(JSON.stringify([briefId, {}]));
+    const viewUrl = `${dbUrl}/_design/contacts/_view/all_brief_items?startkey=${startKey}&endkey=${endKey}`;
+    const res = await couchFetch(viewUrl);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.rows.map(row => {
+        const { _id, _rev, type, ...item } = row.value;
+        return { id: _id, ...item };
+    });
+}
+
+// Helper: bulk delete docs by id (fetches current _rev)
+async function bulkDeleteDocs(ids) {
+    if (ids.length === 0) return;
+    const docs = await Promise.all(ids.map(async id => {
+        const r = await couchFetch(`${dbUrl}/${id}`);
+        if (!r.ok) return null;
+        const doc = await r.json();
+        return { _id: doc._id, _rev: doc._rev, _deleted: true };
+    }));
+    const valid = docs.filter(Boolean);
+    if (valid.length === 0) return;
+    await couchFetch(`${dbUrl}/_bulk_docs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docs: valid })
+    });
+}
+
+// GET /api/briefs — list briefs newest-first with item counts
+app.get('/api/briefs', async (req, res) => {
+    try {
+        const viewUrl = `${dbUrl}/_design/contacts/_view/all_briefs`;
+        const viewRes = await couchFetch(viewUrl);
+        if (!viewRes.ok) return res.json({ briefs: [] });
+
+        const viewData = await viewRes.json();
+        const briefs = viewData.rows.map(row => {
+            const { _id, _rev, type, ...brief } = row.value;
+            return { id: _id, ...brief, totalItems: 0, completedItems: 0 };
+        });
+
+        // Fetch all brief_items in one view call and group by briefId
+        const itemsViewUrl = `${dbUrl}/_design/contacts/_view/all_brief_items`;
+        const itemsRes = await couchFetch(itemsViewUrl);
+        if (itemsRes.ok) {
+            const itemsData = await itemsRes.json();
+            const countMap = {};
+            itemsData.rows.forEach(row => {
+                const briefId = row.key[0];
+                if (!countMap[briefId]) countMap[briefId] = { total: 0, completed: 0 };
+                countMap[briefId].total++;
+                if (row.value.completed) countMap[briefId].completed++;
+            });
+            briefs.forEach(brief => {
+                const counts = countMap[brief.id] || { total: 0, completed: 0 };
+                brief.totalItems = counts.total;
+                brief.completedItems = counts.completed;
+            });
+        }
+
+        // Sort newest first
+        briefs.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+        res.json({ briefs });
+    } catch (err) {
+        console.error('Error fetching briefs:', err);
+        res.status(500).json({ error: 'Failed to fetch briefs' });
+    }
+});
+
+// POST /api/briefs — create (or replace) a brief + its items
+// Accepts API key OR cookie auth
+app.post('/api/briefs', async (req, res) => {
+    // Allow API key auth (if no API_KEY configured, treat as open) OR cookie auth
+    const apiKeyValid = !API_KEY || (req.headers['x-api-key'] === API_KEY || req.query.apiKey === API_KEY);
+    const cookieAuth = isAuthenticated(req);
+    if (!apiKeyValid && !cookieAuth) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    try {
+        const { date, generatedAt, metricsSnapshot, items } = req.body;
+        if (!date) return res.status(400).json({ error: 'date is required' });
+
+        const briefId = `brief-${date}`;
+        const now = new Date().toISOString();
+
+        // Upsert brief document
+        const docUrl = `${dbUrl}/${briefId}`;
+        const existing = await couchFetch(docUrl);
+        let briefDoc;
+        if (existing.ok) {
+            briefDoc = await existing.json();
+            // Delete all existing items for this brief
+            const oldItems = await fetchBriefItems(briefId);
+            await bulkDeleteDocs(oldItems.map(i => i.id));
+        } else {
+            briefDoc = { _id: briefId, type: 'daily_brief' };
+        }
+
+        briefDoc.date = date;
+        briefDoc.generatedAt = generatedAt || now;
+        briefDoc.metricsSnapshot = metricsSnapshot || null;
+        briefDoc.archived = briefDoc.archived || false;
+        briefDoc.updatedAt = now;
+        if (!briefDoc.createdAt) briefDoc.createdAt = now;
+
+        const saveRes = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(briefDoc)
+        });
+        if (!saveRes.ok) throw new Error('Failed to save brief');
+
+        // Create brief_item docs in bulk
+        const itemArray = Array.isArray(items) ? items : [];
+        if (itemArray.length > 0) {
+            const itemDocs = itemArray.map((item, i) => ({
+                _id: `brief-item-${Date.now()}-${i}`,
+                type: 'brief_item',
+                briefId,
+                priority: item.priority || 'MEDIUM',
+                title: item.title || '',
+                description: item.description || '',
+                source: item.source || '',
+                completed: false,
+                completedAt: null,
+                archived: false,
+                sortOrder: i * 10,
+                createdAt: now,
+                updatedAt: now
+            }));
+            const bulkRes = await couchFetch(`${dbUrl}/_bulk_docs`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ docs: itemDocs })
+            });
+            if (!bulkRes.ok) throw new Error('Failed to create brief items');
+        }
+
+        res.json({ success: true, briefId, itemCount: itemArray.length });
+    } catch (err) {
+        console.error('Error creating brief:', err);
+        res.status(500).json({ error: 'Failed to create brief' });
+    }
+});
+
+// PATCH /api/briefs/:id — archive/unarchive
+app.patch('/api/briefs/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { archived } = req.body;
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getRes = await couchFetch(docUrl);
+        if (!getRes.ok) return res.status(404).json({ error: 'Brief not found' });
+
+        const doc = await getRes.json();
+        if (archived !== undefined) doc.archived = Boolean(archived);
+        doc.updatedAt = new Date().toISOString();
+
+        const updateRes = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+        if (!updateRes.ok) throw new Error('Failed to update brief');
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error updating brief:', err);
+        res.status(500).json({ error: 'Failed to update brief' });
+    }
+});
+
+// DELETE /api/briefs/:id — delete brief and all its items
+app.delete('/api/briefs/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const docUrl = `${dbUrl}/${id}`;
+        const getRes = await couchFetch(docUrl);
+        if (!getRes.ok) return res.status(404).json({ error: 'Brief not found' });
+
+        const doc = await getRes.json();
+
+        // Delete all items first
+        const items = await fetchBriefItems(id);
+        await bulkDeleteDocs(items.map(i => i.id));
+
+        // Delete the brief doc
+        const delRes = await couchFetch(`${docUrl}?rev=${doc._rev}`, { method: 'DELETE' });
+        if (!delRes.ok) throw new Error('Failed to delete brief');
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error deleting brief:', err);
+        res.status(500).json({ error: 'Failed to delete brief' });
+    }
+});
+
+// GET /api/brief-items?briefId=xxx
+app.get('/api/brief-items', async (req, res) => {
+    try {
+        const { briefId } = req.query;
+        if (!briefId) return res.status(400).json({ error: 'briefId is required' });
+
+        const items = await fetchBriefItems(briefId);
+        items.sort((a, b) => (a.sortOrder ?? 9999) - (b.sortOrder ?? 9999));
+        res.json({ items });
+    } catch (err) {
+        console.error('Error fetching brief items:', err);
+        res.status(500).json({ error: 'Failed to fetch brief items' });
+    }
+});
+
+// POST /api/brief-items/reorder — must be before /:id routes
+app.post('/api/brief-items/reorder', async (req, res) => {
+    try {
+        const { order } = req.body;
+        if (!Array.isArray(order)) return res.status(400).json({ error: 'order must be an array' });
+
+        const docs = await Promise.all(order.map(async ({ id, sortOrder }) => {
+            const r = await couchFetch(`${dbUrl}/${id}`);
+            if (!r.ok) return null;
+            const doc = await r.json();
+            doc.sortOrder = sortOrder;
+            doc.updatedAt = new Date().toISOString();
+            return doc;
+        }));
+
+        const valid = docs.filter(Boolean);
+        const bulkRes = await couchFetch(`${dbUrl}/_bulk_docs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ docs: valid })
+        });
+        if (!bulkRes.ok) throw new Error('Bulk reorder failed');
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error reordering brief items:', err);
+        res.status(500).json({ error: 'Failed to reorder brief items' });
+    }
+});
+
+// POST /api/brief-items — manually create an item
+app.post('/api/brief-items', async (req, res) => {
+    try {
+        const { briefId, priority, title, description, source } = req.body;
+        if (!briefId) return res.status(400).json({ error: 'briefId is required' });
+        if (!title || !title.trim()) return res.status(400).json({ error: 'title is required' });
+
+        // Auto-create brief for today if briefId doesn't exist
+        const briefDocUrl = `${dbUrl}/${briefId}`;
+        const briefCheck = await couchFetch(briefDocUrl);
+        if (!briefCheck.ok) {
+            const date = briefId.replace('brief-', '');
+            const now = new Date().toISOString();
+            const briefDoc = {
+                _id: briefId,
+                type: 'daily_brief',
+                date,
+                generatedAt: now,
+                metricsSnapshot: null,
+                archived: false,
+                createdAt: now,
+                updatedAt: now
+            };
+            await couchFetch(briefDocUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(briefDoc)
+            });
+        }
+
+        const now = new Date().toISOString();
+        const id = `brief-item-${Date.now()}`;
+        const doc = {
+            _id: id,
+            type: 'brief_item',
+            briefId,
+            priority: priority || 'MEDIUM',
+            title: title.trim(),
+            description: description || '',
+            source: source || '',
+            completed: false,
+            completedAt: null,
+            archived: false,
+            sortOrder: null,
+            createdAt: now,
+            updatedAt: now
+        };
+
+        const saveRes = await couchFetch(`${dbUrl}/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+        if (!saveRes.ok) throw new Error('Failed to create brief item');
+
+        res.json({ success: true, item: { id, ...doc } });
+    } catch (err) {
+        console.error('Error creating brief item:', err);
+        res.status(500).json({ error: 'Failed to create brief item' });
+    }
+});
+
+// PATCH /api/brief-items/:id — update item fields
+app.patch('/api/brief-items/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { completed, title, description, source, priority, archived, sortOrder } = req.body;
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getRes = await couchFetch(docUrl);
+        if (!getRes.ok) return res.status(404).json({ error: 'Brief item not found' });
+
+        const doc = await getRes.json();
+        if (completed !== undefined) {
+            doc.completed = Boolean(completed);
+            if (completed && !doc.completedAt) doc.completedAt = new Date().toISOString();
+            if (!completed) doc.completedAt = null;
+        }
+        if (title !== undefined) doc.title = title.trim();
+        if (description !== undefined) doc.description = description;
+        if (source !== undefined) doc.source = source;
+        if (priority !== undefined) doc.priority = priority;
+        if (archived !== undefined) doc.archived = Boolean(archived);
+        if (sortOrder !== undefined) doc.sortOrder = sortOrder;
+        doc.updatedAt = new Date().toISOString();
+
+        const updateRes = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+        if (!updateRes.ok) throw new Error('Failed to update brief item');
+
+        const { _id, _rev, type, ...clean } = doc;
+        res.json({ success: true, item: { id: _id, ...clean } });
+    } catch (err) {
+        console.error('Error updating brief item:', err);
+        res.status(500).json({ error: 'Failed to update brief item' });
+    }
+});
+
+// DELETE /api/brief-items/:id
+app.delete('/api/brief-items/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const docUrl = `${dbUrl}/${id}`;
+        const getRes = await couchFetch(docUrl);
+        if (!getRes.ok) return res.status(404).json({ error: 'Brief item not found' });
+
+        const doc = await getRes.json();
+        const delRes = await couchFetch(`${docUrl}?rev=${doc._rev}`, { method: 'DELETE' });
+        if (!delRes.ok) throw new Error('Failed to delete brief item');
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error deleting brief item:', err);
+        res.status(500).json({ error: 'Failed to delete brief item' });
     }
 });
 

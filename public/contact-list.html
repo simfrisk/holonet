@@ -45,6 +45,10 @@
             <button class="primary-nav-btn" data-section="monitor" onclick="switchSection('monitor')">
                 <span class="pnav-icon"><i class="ti ti-activity"></i></span> Monitor
             </button>
+            <button class="primary-nav-btn" data-section="brief" onclick="switchSection('brief')">
+                <span class="pnav-icon"><i class="ti ti-calendar-check"></i></span> Brief
+                <span class="pnav-count" id="brief-count"></span>
+            </button>
         </div>
 
         <!-- Sub Navigation (contact list sub-tabs) -->
@@ -439,6 +443,21 @@
         <iframe src="https://oscstats.apps.osaas.io" class="monitor-iframe" frameborder="0" allowfullscreen></iframe>
     </div>
 
+    <!-- Daily Brief Tab -->
+    <div id="brief-tab" class="tab-content">
+        <div class="brief-subnav">
+            <button class="tab-button active" data-brief-view="today" onclick="switchBriefView('today')">Today</button>
+            <button class="tab-button" data-brief-view="archive" onclick="switchBriefView('archive')">Archive</button>
+            <div class="brief-subnav-actions" id="brief-subnav-actions"></div>
+        </div>
+        <div id="brief-today-view">
+            <div id="brief-today-content"></div>
+        </div>
+        <div id="brief-archive-view" style="display:none;">
+            <div id="brief-archive-list"></div>
+        </div>
+    </div>
+
     </div><!-- end .container -->
 
     <!-- Tracked Customer Detail Modal -->
@@ -624,6 +643,47 @@
         </div>
     </div>
 
+    <!-- Brief Item Add/Edit Modal -->
+    <div id="briefItemModal" class="modal" onclick="if(event.target===this)closeBriefItemModal()">
+        <div class="modal-content" style="max-width:520px;min-height:unset;">
+            <div class="modal-header">
+                <h2 id="briefItemModalTitle">Add Action Item</h2>
+                <button class="close-button" onclick="closeBriefItemModal()">&#x2715;</button>
+            </div>
+            <div class="modal-body" style="padding:20px 24px;">
+                <input type="hidden" id="briefItemEditId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="briefItemPriority">Priority</label>
+                        <select id="briefItemPriority">
+                            <option value="URGENT">URGENT</option>
+                            <option value="HIGH" selected>HIGH</option>
+                            <option value="MEDIUM">MEDIUM</option>
+                            <option value="LOW">LOW</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="briefItemSource">Source</label>
+                        <input type="text" id="briefItemSource" placeholder="Slack #sales-osaas">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="briefItemTitle">Title <span style="color:var(--color-danger)">*</span></label>
+                    <input type="text" id="briefItemTitle" placeholder="Action to take...">
+                </div>
+                <div class="form-group">
+                    <label for="briefItemDesc">Description</label>
+                    <textarea id="briefItemDesc" rows="4" placeholder="Additional context..."></textarea>
+                </div>
+                <p id="briefItemError" class="load-error" style="display:none;"></p>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-button" onclick="closeBriefItemModal()">Cancel</button>
+                <button class="save-button" id="briefItemSubmitBtn" onclick="submitBriefItem()">Add Item</button>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript: load order matters — state first, then features, then init -->
     <script src="js/state.js"></script>
     <script src="js/contacts.js"></script>
@@ -637,6 +697,7 @@
     <script src="js/tracked-customers.js"></script>
     <script src="js/stats.js"></script>
     <script src="js/links.js"></script>
+    <script src="js/briefs.js"></script>
     <script src="js/init.js"></script>
 </body>
 </html>

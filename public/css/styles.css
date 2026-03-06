@@ -30,6 +30,16 @@
             --color-drag-ghost-shadow: rgba(0, 0, 0, 0.18);
             --color-tenant-link-hover-bg: #e6f2ff;
 
+            /* Brief priority colors */
+            --color-brief-urgent: #c53030;
+            --color-brief-urgent-bg: #fed7d7;
+            --color-brief-high: #c05621;
+            --color-brief-high-bg: #feebc8;
+            --color-brief-medium: #6b46c1;
+            --color-brief-medium-bg: #e9d8fd;
+            --color-brief-low: #276749;
+            --color-brief-low-bg: #c6f6d5;
+
             /* Status colors */
             --color-status-contacted-bg: #d4edda;
             --color-status-contacted-text: #155724;
@@ -70,6 +80,16 @@
             --color-drag-ghost-border: #5578f5;
             --color-drag-ghost-shadow: rgba(0, 0, 15, 0.6);
             --color-tenant-link-hover-bg: #1a2450;
+
+            /* Brief priority colors dark */
+            --color-brief-urgent: #fca5a5;
+            --color-brief-urgent-bg: #3a0d12;
+            --color-brief-high: #fdba74;
+            --color-brief-high-bg: #3a1a00;
+            --color-brief-medium: #c4b5fd;
+            --color-brief-medium-bg: #2e1a5e;
+            --color-brief-low: #6ee7b7;
+            --color-brief-low-bg: #0d3a1a;
 
             /* Status colors dark */
             --color-status-contacted-bg: #0d2e1c;
@@ -3318,4 +3338,207 @@
             min-height: 500px;
             border: none;
         }
+
+        /* =========================================
+           DAILY BRIEF TAB
+           ========================================= */
+
+        .brief-subnav {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            border-bottom: 1px solid var(--color-border);
+            margin-bottom: 24px;
+            padding-top: 4px;
+        }
+        .brief-subnav-actions { margin-left: auto; }
+
+        .brief-archive-brief-btn {
+            padding: 5px 12px;
+            background: none;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--color-text-muted);
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.15s, color 0.15s;
+        }
+        .brief-archive-brief-btn:hover { background: var(--color-surface-elevated); color: var(--color-text); }
+
+        .brief-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        .brief-title { margin: 0 0 4px 0; font-size: 20px; font-weight: 700; color: var(--color-text); }
+        .brief-meta { margin: 0; font-size: 13px; color: var(--color-text-muted); }
+
+        .brief-metrics-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+        .brief-metric-chip {
+            background: var(--color-surface-elevated);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 8px 14px;
+            text-align: center;
+            min-width: 80px;
+        }
+        .brief-metric-value { display: block; font-size: 20px; font-weight: 700; color: var(--color-primary); }
+        .brief-metric-label { display: block; font-size: 11px; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .brief-priority-section { margin-bottom: 20px; }
+        .brief-priority-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .brief-priority-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .brief-label-urgent { background: var(--color-brief-urgent-bg); color: var(--color-brief-urgent); }
+        .brief-label-high   { background: var(--color-brief-high-bg);   color: var(--color-brief-high); }
+        .brief-label-medium { background: var(--color-brief-medium-bg); color: var(--color-brief-medium); }
+        .brief-label-low    { background: var(--color-brief-low-bg);    color: var(--color-brief-low); }
+        .brief-priority-count { font-size: 12px; color: var(--color-text-muted); }
+
+        .brief-items-list { display: flex; flex-direction: column; gap: 6px; }
+
+        .brief-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-left: 4px solid var(--color-border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            transition: box-shadow 0.15s;
+        }
+        .brief-item:hover { box-shadow: 0 2px 8px var(--color-shadow); }
+        .brief-item-completed { opacity: 0.5; }
+        .brief-item-completed .brief-item-title { text-decoration: line-through; color: var(--color-text-muted); }
+
+        .brief-drag-handle {
+            cursor: grab;
+            color: var(--color-text-subtle);
+            opacity: 0;
+            padding: 2px;
+            flex-shrink: 0;
+            margin-top: 2px;
+            font-size: 16px;
+        }
+        .brief-item:hover .brief-drag-handle { opacity: 1; }
+        .brief-drag-handle:active { cursor: grabbing; }
+        .brief-item-dragging { opacity: 0.3; }
+        .brief-item-drag-over { border-top: 2px solid var(--color-primary) !important; }
+
+        .brief-checkbox {
+            width: 17px;
+            height: 17px;
+            margin-top: 2px;
+            flex-shrink: 0;
+            cursor: pointer;
+            accent-color: var(--color-success);
+        }
+
+        .brief-item-body { flex: 1; min-width: 0; }
+        .brief-item-title { font-size: 14px; font-weight: 500; color: var(--color-text); line-height: 1.4; }
+
+        .brief-expand-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--color-text-muted);
+            padding: 2px 0;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            margin-top: 3px;
+            font-family: inherit;
+        }
+        .brief-expand-btn:hover { color: var(--color-text); }
+
+        .brief-item-desc {
+            font-size: 13px;
+            color: var(--color-text-muted);
+            margin-top: 6px;
+            line-height: 1.55;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .brief-source-chip {
+            font-size: 11px;
+            background: var(--color-surface-elevated);
+            border: 1px solid var(--color-border);
+            border-radius: 10px;
+            padding: 2px 8px;
+            color: var(--color-text-muted);
+            white-space: nowrap;
+            flex-shrink: 0;
+            align-self: center;
+        }
+
+        .brief-item-actions { display: flex; gap: 2px; opacity: 0; flex-shrink: 0; align-self: center; }
+        .brief-item:hover .brief-item-actions { opacity: 1; }
+
+        .brief-action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--color-text-muted);
+            padding: 4px 6px;
+            border-radius: 4px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            transition: background 0.12s, color 0.12s;
+        }
+        .brief-action-btn:hover { background: var(--color-surface-elevated); color: var(--color-text); }
+        .brief-action-danger:hover { color: var(--color-danger) !important; }
+
+        .brief-all-done,
+        .brief-empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--color-text-muted);
+        }
+        .brief-all-done h3, .brief-empty-state h3 { font-size: 18px; color: var(--color-text); margin: 12px 0 8px; }
+        .brief-all-done p, .brief-empty-state p { margin: 0; }
+
+        .brief-archive-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            background: var(--color-surface-elevated);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        .brief-archive-info strong { font-size: 15px; color: var(--color-text); }
+        .brief-archive-meta { font-size: 12px; color: var(--color-text-muted); margin-left: 10px; }
+
+        .brief-restore-btn {
+            padding: 5px 12px;
+            background: none;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            color: var(--color-text-muted);
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+        .brief-restore-btn:hover { background: var(--color-primary); color: white; border-color: var(--color-primary); }
+        .brief-restore-btn.brief-action-danger:hover { background: var(--color-danger); border-color: var(--color-danger); color: white !important; }
 
