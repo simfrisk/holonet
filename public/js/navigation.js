@@ -14,7 +14,8 @@
 
             // Update primary nav buttons
             document.querySelectorAll('.primary-nav-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelector(`[data-section="${sectionName}"]`).classList.add('active');
+            const navBtn = document.querySelector(`.primary-nav-btn[data-section="${sectionName}"]`);
+            if (navBtn) navBtn.classList.add('active');
 
             // Show/hide sub-nav
             const subNav = document.getElementById('contact-sub-nav');
