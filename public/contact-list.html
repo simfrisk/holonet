@@ -78,6 +78,13 @@
             </div>
         </div>
 
+        <!-- Selection toolbar (appears when contacts are selected) -->
+        <div id="selection-toolbar" class="selection-toolbar" style="display:none;">
+            <span id="selection-count">0 selected</span>
+            <button class="selection-delete-btn" onclick="bulkDeleteSelected()"><i class="ti ti-trash"></i> Delete selected</button>
+            <button class="selection-cancel-btn" onclick="clearSelection()">Cancel</button>
+        </div>
+
         <!-- Loading state -->
         <div id="loading" class="loading">
             <p>Loading contacts...</p>
@@ -88,7 +95,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th style="width:30px;"></th>
+                        <th style="width:30px;"><input type="checkbox" class="select-all-cb" onchange="toggleSelectAll(this)" title="Select all"></th>
                         <th class="status-cell">Status</th>
                         <th>Priority</th>
                         <th>Name / Organization</th>
@@ -119,7 +126,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th style="width:30px;"></th>
+                        <th style="width:30px;"><input type="checkbox" class="select-all-cb" onchange="toggleSelectAll(this)" title="Select all"></th>
                         <th class="status-cell">Status</th>
                         <th>Priority</th>
                         <th>Name / Organization</th>
@@ -150,7 +157,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th style="width:30px;"></th>
+                        <th style="width:30px;"><input type="checkbox" class="select-all-cb" onchange="toggleSelectAll(this)" title="Select all"></th>
                         <th class="status-cell">Status</th>
                         <th>Priority</th>
                         <th>Name / Organization</th>
@@ -185,7 +192,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th style="width:30px;"></th>
+                        <th style="width:30px;"><input type="checkbox" class="select-all-cb" onchange="toggleSelectAll(this)" title="Select all"></th>
                         <th class="status-cell">Status</th>
                         <th>Priority</th>
                         <th>Name / Organization</th>
@@ -216,7 +223,7 @@
             <table>
                 <thead>
                     <tr>
-                        <th style="width:30px;"></th>
+                        <th style="width:30px;"><input type="checkbox" class="select-all-cb" onchange="toggleSelectAll(this)" title="Select all"></th>
                         <th class="status-cell">Status</th>
                         <th>Priority</th>
                         <th>Name / Organization</th>

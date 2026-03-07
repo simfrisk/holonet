@@ -247,6 +247,7 @@
 
             row.innerHTML = `
                 <td style="width:30px; padding: 0 4px;">
+                    <input type="checkbox" class="row-select-cb" data-contact-id="${contact.id}" onchange="onRowSelectChange()">
                     <span class="drag-handle" title="Drag to reorder"><i class="ti ti-grip-vertical"></i></span>
                 </td>
                 <td class="status-td" data-label="Status" data-status="${contact.status || 'active'}">
@@ -547,5 +548,86 @@
                     tbody.querySelectorAll('tr.group-header').forEach(r => r.remove());
                 }
             });
+        }
+
+        // =========================================
+        // MULTI-SELECT & BULK DELETE
+        // =========================================
+
+        function getSelectedIds() {
+            return Array.from(document.querySelectorAll('.row-select-cb:checked')).map(cb => cb.dataset.contactId);
+        }
+
+        function onRowSelectChange() {
+            const selected = getSelectedIds();
+            const toolbar = document.getElementById('selection-toolbar');
+            const countEl = document.getElementById('selection-count');
+            if (selected.length > 0) {
+                toolbar.style.display = 'flex';
+                countEl.textContent = `${selected.length} selected`;
+            } else {
+                toolbar.style.display = 'none';
+            }
+            // Update select-all checkbox state for the active tab's table
+            document.querySelectorAll('.select-all-cb').forEach(cb => {
+                const table = cb.closest('table');
+                if (!table) return;
+                const visible = table.querySelectorAll('.row-select-cb:not(.row-page-hidden):not(.search-hidden)');
+                const checked = table.querySelectorAll('.row-select-cb:checked');
+                cb.indeterminate = checked.length > 0 && checked.length < visible.length;
+                cb.checked = visible.length > 0 && checked.length === visible.length;
+            });
+        }
+
+        function toggleSelectAll(headerCb) {
+            const table = headerCb.closest('table');
+            if (!table) return;
+            const checkboxes = table.querySelectorAll('.row-select-cb');
+            checkboxes.forEach(cb => {
+                const row = cb.closest('tr');
+                if (row && !row.classList.contains('row-page-hidden') && !row.classList.contains('search-hidden') && !row.classList.contains('group-collapsed-row')) {
+                    cb.checked = headerCb.checked;
+                }
+            });
+            onRowSelectChange();
+        }
+
+        function clearSelection() {
+            document.querySelectorAll('.row-select-cb:checked').forEach(cb => { cb.checked = false; });
+            document.querySelectorAll('.select-all-cb').forEach(cb => { cb.checked = false; cb.indeterminate = false; });
+            document.getElementById('selection-toolbar').style.display = 'none';
+        }
+
+        async function bulkDeleteSelected() {
+            const ids = getSelectedIds();
+            if (ids.length === 0) return;
+            if (!confirm(`Delete ${ids.length} contact${ids.length > 1 ? 's' : ''}? This cannot be undone.`)) return;
+
+            try {
+                const res = await fetch('/api/contacts/bulk-delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids })
+                });
+                if (!res.ok) throw new Error('Bulk delete failed');
+
+                // Remove from local data
+                if (contactsData) {
+                    contactsData.contacts = contactsData.contacts.filter(c => !ids.includes(c.id));
+                }
+                // Remove rows from DOM
+                ids.forEach(id => {
+                    document.querySelectorAll(`tr[data-contact-id="${id}"]`).forEach(row => row.remove());
+                });
+                clearSelection();
+                updateStats();
+                updateTabCounts();
+                updateAllEmptyStates();
+                addGroupHeadersToAllTabs();
+                applyPaginationToAll();
+            } catch (err) {
+                console.error('Bulk delete error:', err);
+                alert('Failed to delete contacts. Please try again.');
+            }
         }
 

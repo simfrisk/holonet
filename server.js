@@ -911,6 +911,21 @@ app.delete('/api/contacts/:id', async (req, res) => {
     }
 });
 
+// Bulk delete contacts
+app.post('/api/contacts/bulk-delete', async (req, res) => {
+    try {
+        const { ids } = req.body;
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ error: 'ids must be a non-empty array' });
+        }
+        await bulkDeleteDocs(ids);
+        res.json({ success: true, deleted: ids.length });
+    } catch (error) {
+        console.error('Error bulk deleting contacts:', error);
+        res.status(500).json({ error: 'Failed to bulk delete contacts' });
+    }
+});
+
 // Bulk reorder contacts
 app.post('/api/contacts/reorder', async (req, res) => {
     try {
