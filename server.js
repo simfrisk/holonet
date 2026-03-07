@@ -782,7 +782,14 @@ app.post('/api/contacts', async (req, res) => {
 });
 
 // Sync endpoint - accepts full contact data from Slack agent
-app.post('/api/sync', verifyApiKey, async (req, res) => {
+// Accepts API key OR cookie auth
+app.post('/api/sync', async (req, res) => {
+    const apiKeyValid = !API_KEY || (req.headers['x-api-key'] === API_KEY || req.query.apiKey === API_KEY);
+    const cookieAuth = isAuthenticated(req);
+    if (!apiKeyValid && !cookieAuth) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     try {
         const { metadata, contacts } = req.body;
 
