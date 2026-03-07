@@ -43,6 +43,8 @@ A Node.js server with CouchDB backend for managing sales contacts extracted from
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `COUCHDB_URL` | Yes | CouchDB connection string (e.g., `https://admin:pass@host.osaas.io`) |
+| `SESSION_SECRET` | Yes | Secret key for signing auth tokens |
+| `LOGIN_PASSWORD` | No | Password for login protection |
 | `API_KEY` | No | API key for sync endpoint protection |
 | `PORT` | No | Server port (default: 8080) |
 
@@ -55,7 +57,7 @@ Health check endpoint
 ```json
 {
   "status": "ok",
-  "mongodb": "connected",
+  "database": "connected",
   "port": 8080,
   "timestamp": "2026-02-17T16:00:00.000Z"
 }
@@ -132,7 +134,8 @@ X-Api-Key: your-api-key
 npm install
 
 # Set environment variables
-export MONGODB_URI="mongodb://localhost:27017"
+export COUCHDB_URL="http://admin:password@localhost:5984"
+export SESSION_SECRET="your-secret-key"
 export API_KEY="your-secret-key"
 
 # Start server

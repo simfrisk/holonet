@@ -15,7 +15,11 @@ if (!COUCHDB_URL) {
 const DB_NAME = 'osc_contacts';
 const API_KEY = process.env.API_KEY || ''; // Optional API key for sync endpoint
 const LOGIN_PASSWORD = process.env.LOGIN_PASSWORD || ''; // If set, enables login protection
-const SESSION_SECRET = process.env.SESSION_SECRET || 'change-me-in-production';
+const SESSION_SECRET = process.env.SESSION_SECRET;
+if (!SESSION_SECRET) {
+    console.error('❌ SESSION_SECRET environment variable is required');
+    process.exit(1);
+}
 
 // Valid contact statuses
 const VALID_STATUSES = [null, 'contacted', 'later', 'skip'];
@@ -108,7 +112,7 @@ app.post('/api/login', (req, res) => {
     if (password === LOGIN_PASSWORD) {
         const token = generateAuthToken();
         const maxAge = 60 * 60 * 24 * 30; // 30 days
-        res.setHeader('Set-Cookie', `auth_token=${token}; HttpOnly; Path=/; SameSite=Strict; Max-Age=${maxAge}`);
+        res.setHeader('Set-Cookie', `auth_token=${token}; HttpOnly; Secure; Path=/; SameSite=Strict; Max-Age=${maxAge}`);
         return res.json({ success: true });
     }
     return res.status(401).json({ error: 'Wrong password' });
@@ -116,7 +120,7 @@ app.post('/api/login', (req, res) => {
 
 // Logout endpoint
 app.get('/api/logout', (req, res) => {
-    res.setHeader('Set-Cookie', 'auth_token=; HttpOnly; Path=/; Max-Age=0');
+    res.setHeader('Set-Cookie', 'auth_token=; HttpOnly; Secure; Path=/; Max-Age=0');
     res.redirect('/login.html');
 });
 
