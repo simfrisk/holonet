@@ -3545,17 +3545,41 @@
         /* =========================================
            MULTI-SELECT & BULK DELETE
            ========================================= */
-        .row-select-cb {
-            cursor: pointer;
-            width: 16px;
-            height: 16px;
-            accent-color: var(--color-primary);
-        }
+        .row-select-cb,
         .select-all-cb {
             cursor: pointer;
             width: 16px;
             height: 16px;
             accent-color: var(--color-primary);
+            display: none;
+        }
+        body.select-mode .row-select-cb,
+        body.select-mode .select-all-cb {
+            display: inline-block;
+        }
+        body.select-mode .drag-handle {
+            display: none;
+        }
+        .select-mode-btn {
+            background: none;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: inherit;
+            color: var(--color-text-muted);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+        }
+        .select-mode-btn:hover { background: var(--color-surface-elevated); }
+        .select-mode-btn.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
         }
         .selection-toolbar {
             display: flex;

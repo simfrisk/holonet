@@ -554,6 +554,13 @@
         // MULTI-SELECT & BULK DELETE
         // =========================================
 
+        function toggleSelectMode() {
+            const active = document.body.classList.toggle('select-mode');
+            const btn = document.getElementById('select-mode-btn');
+            if (btn) btn.classList.toggle('active', active);
+            if (!active) clearSelection();
+        }
+
         function getSelectedIds() {
             return Array.from(document.querySelectorAll('.row-select-cb:checked')).map(cb => cb.dataset.contactId);
         }
@@ -596,6 +603,9 @@
             document.querySelectorAll('.row-select-cb:checked').forEach(cb => { cb.checked = false; });
             document.querySelectorAll('.select-all-cb').forEach(cb => { cb.checked = false; cb.indeterminate = false; });
             document.getElementById('selection-toolbar').style.display = 'none';
+            document.body.classList.remove('select-mode');
+            const btn = document.getElementById('select-mode-btn');
+            if (btn) btn.classList.remove('active');
         }
 
         async function bulkDeleteSelected() {
