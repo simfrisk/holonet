@@ -103,36 +103,37 @@
             const category = c.category || null;
             const categoryClass = category ? ` tracked-card-category-${category}` : '';
             const tenantLink = c.tenantName
-                ? `<a href="https://app.osaas.io/admin/tenant/${c.tenantName}" class="tracked-card-tenant" target="_blank">${c.tenantName} ↗</a>`
+                ? `<a href="https://app.osaas.io/admin/tenant/${escapeHtml(c.tenantName)}" class="tracked-card-tenant" target="_blank">${escapeHtml(c.tenantName)} ↗</a>`
                 : '';
             const lastTp = (c.touchpoints || [])[0];
+            const lastTpNotePreview = lastTp ? lastTp.note.substring(0, 60) + (lastTp.note.length > 60 ? '…' : '') : '';
             const lastTpHtml = lastTp
-                ? `<div class="tracked-meta-row"><span class="tracked-meta-icon">${touchpointIcon(lastTp.type)}</span><span>${lastTp.note.substring(0, 60)}${lastTp.note.length > 60 ? '…' : ''} <span style="color:var(--color-text-subtle)">${lastTp.date}</span></span></div>`
+                ? `<div class="tracked-meta-row"><span class="tracked-meta-icon">${touchpointIcon(lastTp.type)}</span><span>${escapeHtml(lastTpNotePreview)} <span style="color:var(--color-text-subtle)">${escapeHtml(lastTp.date)}</span></span></div>`
                 : '';
             const followUpHtml = c.nextFollowUp
                 ? (() => {
                     const today = new Date().toISOString().split('T')[0];
                     const overdue = c.nextFollowUp < today;
-                    return `<div class="tracked-meta-row ${overdue ? 'tracked-meta-overdue' : ''}"><span class="tracked-meta-icon"><i class="ti ti-calendar"></i></span><span>Follow-up: ${c.nextFollowUp}${overdue ? ' (overdue)' : ''}</span></div>`;
+                    return `<div class="tracked-meta-row ${overdue ? 'tracked-meta-overdue' : ''}"><span class="tracked-meta-icon"><i class="ti ti-calendar"></i></span><span>Follow-up: ${escapeHtml(c.nextFollowUp)}${overdue ? ' (overdue)' : ''}</span></div>`;
                   })()
                 : '';
-            const notesPreview = c.notes ? `<div class="tracked-card-notes-preview">${c.notes}</div>` : '';
+            const notesPreview = c.notes ? `<div class="tracked-card-notes-preview">${escapeHtml(c.notes)}</div>` : '';
 
             return `
                 <div class="tracked-card${categoryClass}" draggable="true" data-tracked-id="${c.id}" data-category="${category || ''}" onclick="openTrackedModal('${c.id}')">
                     <div class="tracked-card-top">
                         <span class="tracked-drag-handle" title="Drag to reorder" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()">⠿</span>
                         <div class="tracked-card-badges">
-                            <span class="health-badge health-${c.health || 'unknown'}">
+                            <span class="health-badge health-${escapeHtml(c.health || 'unknown')}">
                                 <span class="health-dot"></span>${healthLabel(c.health || 'unknown')}
                             </span>
-                            <span class="stage-badge">${c.stage || 'Onboarding'}</span>
+                            <span class="stage-badge">${escapeHtml(c.stage || 'Onboarding')}</span>
                         </div>
                         <button class="tracked-card-remove" title="Remove from tracking" onclick="event.stopPropagation();removeTracked('${c.id}')">×</button>
                     </div>
                     <div>
-                        <p class="tracked-card-name">${c.name}</p>
-                        ${c.organization ? `<p class="tracked-card-org">${c.organization}</p>` : ''}
+                        <p class="tracked-card-name">${escapeHtml(c.name)}</p>
+                        ${c.organization ? `<p class="tracked-card-org">${escapeHtml(c.organization)}</p>` : ''}
                         ${tenantLink}
                     </div>
                     <div class="tracked-card-meta">

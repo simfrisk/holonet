@@ -3629,3 +3629,83 @@
             background: color-mix(in srgb, var(--color-primary) 8%, transparent) !important;
         }
 
+        /* Bulk status buttons inside selection toolbar */
+        .selection-toolbar-label {
+            font-size: 13px;
+            opacity: 0.85;
+            white-space: nowrap;
+        }
+        .selection-status-btn {
+            background: rgba(255,255,255,0.15);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 6px;
+            padding: 5px 11px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.15s;
+        }
+        .selection-status-btn:hover { background: rgba(255,255,255,0.28); }
+        .selection-status-btn .status-swatch {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* Follow-up filter button */
+        .followup-filter-btn {
+            background: transparent;
+            color: var(--color-text-muted);
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.15s, color 0.15s, border-color 0.15s;
+            white-space: nowrap;
+        }
+        .followup-filter-btn:hover {
+            background: var(--color-bg-elevated);
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+        .followup-filter-btn.active {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        /* Follow-up filter hides rows without due follow-ups */
+        tr.followup-hidden { display: none; }
+
+        /* Follow-up date badge shown when filter is active */
+        .followup-due-cell {
+            white-space: nowrap;
+        }
+        .followup-date-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            padding: 2px 8px;
+            border-radius: 12px;
+            background: color-mix(in srgb, var(--color-primary) 12%, transparent);
+            color: var(--color-primary);
+            font-weight: 500;
+        }
+        .followup-date-badge.overdue {
+            background: color-mix(in srgb, #e2445c 12%, transparent);
+            color: #e2445c;
+        }
+

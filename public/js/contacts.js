@@ -291,7 +291,7 @@
                     <span class="tenant-name">Tenant: <a href="${tenantLink}" target="_blank" class="tenant-link">${escapeHtml(contact.tenantName || '—')}</a></span>
                 </td>
                 <td data-label="Email">${escapeHtml(contact.email || '—')}</td>
-                <td data-label="Activity" class="activity-summary">${contact.activitySummary || ''}</td>
+                <td data-label="Activity" class="activity-summary">${escapeHtml(contact.activitySummary || '')}</td>
                 <td data-label="Notes" class="notes-cell">
                     <button class="expand-button" onclick="openNoteModal('${contact.id}', '${escapeAttr(contact.name)}', '${escapeAttr(contact.email || '')}')" title="Expand note editor">Expand</button>
                     <span class="note-save-status" id="note-status-${contact.id}"></span>
@@ -485,7 +485,7 @@
                 const clearBtn = document.getElementById('contact-search-clear');
                 if (clearBtn) clearBtn.style.display = contactSearchQuery ? 'flex' : 'none';
                 applyContactSearch();
-            }, 200);
+            }, 300);
         }
 
         function clearContactSearch() {
@@ -639,5 +639,111 @@
                 console.error('Bulk delete error:', err);
                 alert('Failed to delete contacts. Please try again.');
             }
+        }
+
+        async function bulkSetStatus(status) {
+            const ids = getSelectedIds();
+            if (ids.length === 0) return;
+            const statusLabel = STATUS_INFO[status]?.label || 'Active';
+            if (!confirm(`Set ${ids.length} contact${ids.length > 1 ? 's' : ''} to "${statusLabel}"?`)) return;
+
+            try {
+                const res = await fetch('/api/contacts/bulk-status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ids, status: status || null })
+                });
+                if (!res.ok) throw new Error('Bulk status update failed');
+
+                // Update in-memory data and move rows in DOM
+                ids.forEach(id => {
+                    if (contactsData) {
+                        const contact = contactsData.contacts.find(c => c.id === id);
+                        if (contact) {
+                            contact.status = status || null;
+                            if (status === 'contacted' && !contact.contactedAt) {
+                                contact.contactedAt = new Date().toISOString();
+                            }
+                        }
+                    }
+
+                    // Update the hidden select to trigger the DOM move
+                    const selectEl = document.getElementById(`status-select-${id}`);
+                    if (selectEl) {
+                        selectEl.value = status;
+                        selectEl.dispatchEvent(new Event('change'));
+                    }
+                });
+
+                clearSelection();
+            } catch (err) {
+                console.error('Bulk status error:', err);
+                alert('Failed to update status. Please try again.');
+            }
+        }
+
+        // =========================================
+        // FOLLOW-UP DUE FILTER (Feature 5)
+        // =========================================
+
+        let followUpFilterActive = false;
+
+        function toggleFollowUpFilter() {
+            followUpFilterActive = !followUpFilterActive;
+            const btn = document.getElementById('followup-filter-btn');
+            if (btn) btn.classList.toggle('active', followUpFilterActive);
+            applyFollowUpFilter();
+        }
+
+        function applyFollowUpFilter() {
+            if (!contactsData) return;
+
+            const today = new Date().toISOString().split('T')[0];
+
+            ['active-table-body', 'archived-table-body', 'later-table-body', 'skip-table-body', 'all-table-body'].forEach(tbodyId => {
+                const tbody = document.getElementById(tbodyId);
+                if (!tbody) return;
+
+                tbody.querySelectorAll('tr[data-contact-id]').forEach(row => {
+                    if (!followUpFilterActive) {
+                        row.classList.remove('followup-hidden');
+                        // Remove any injected follow-up date cells
+                        const fuCell = row.querySelector('.followup-due-cell');
+                        if (fuCell) fuCell.remove();
+                        return;
+                    }
+                    const id = row.dataset.contactId;
+                    const contact = contactsData.contacts.find(c => c.id === id);
+                    if (!contact) { row.classList.add('followup-hidden'); return; }
+
+                    const isDue = contact.nextFollowUp && contact.nextFollowUp <= today && contact.status !== 'skip';
+                    row.classList.toggle('followup-hidden', !isDue);
+
+                    // Inject or update the follow-up date cell (before the Links column)
+                    if (isDue) {
+                        let fuCell = row.querySelector('.followup-due-cell');
+                        if (!fuCell) {
+                            fuCell = document.createElement('td');
+                            fuCell.className = 'followup-due-cell';
+                            row.appendChild(fuCell);
+                        }
+                        const overdue = contact.nextFollowUp < today;
+                        fuCell.innerHTML = `<span class="followup-date-badge${overdue ? ' overdue' : ''}">${escapeHtml(contact.nextFollowUp)}${overdue ? ' <i class="ti ti-alert-circle"></i>' : ''}</span>`;
+                    }
+                });
+            });
+
+            // Remove group headers while filter is active; restore when cleared
+            ['active-table-body', 'archived-table-body', 'later-table-body', 'skip-table-body', 'all-table-body'].forEach(tbodyId => {
+                const tbody = document.getElementById(tbodyId);
+                if (!tbody) return;
+                if (followUpFilterActive) {
+                    tbody.querySelectorAll('tr.group-header').forEach(r => r.remove());
+                } else {
+                    addGroupHeaders(tbody);
+                }
+            });
+
+            updateAllEmptyStates();
         }
 

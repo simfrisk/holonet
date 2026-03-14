@@ -74,6 +74,7 @@
                     <button class="contact-search-clear" id="contact-search-clear"
                             onclick="clearContactSearch()" title="Clear search" style="display:none">×</button>
                 </div>
+                <button class="followup-filter-btn" id="followup-filter-btn" onclick="toggleFollowUpFilter()" title="Show contacts with overdue or due-today follow-ups"><i class="ti ti-calendar-due"></i> Follow-up Due</button>
                 <button class="add-contact-btn" onclick="openAddContactModal()"><i class="ti ti-plus"></i> Add Contact</button>
                 <button class="select-mode-btn" id="select-mode-btn" onclick="toggleSelectMode()"><i class="ti ti-checkbox"></i> Select</button>
             </div>
@@ -82,7 +83,12 @@
         <!-- Selection toolbar (appears when contacts are selected) -->
         <div id="selection-toolbar" class="selection-toolbar" style="display:none;">
             <span id="selection-count">0 selected</span>
-            <button class="selection-delete-btn" onclick="bulkDeleteSelected()"><i class="ti ti-trash"></i> Delete selected</button>
+            <span class="selection-toolbar-label">Set status:</span>
+            <button class="selection-status-btn" onclick="bulkSetStatus('')" title="Set to Active"><span class="status-swatch" style="background:#0073ea"></span> Active</button>
+            <button class="selection-status-btn" onclick="bulkSetStatus('contacted')" title="Set to Contacted"><span class="status-swatch" style="background:#00c875"></span> Contacted</button>
+            <button class="selection-status-btn" onclick="bulkSetStatus('later')" title="Set to Later"><span class="status-swatch" style="background:#fdab3d"></span> Later</button>
+            <button class="selection-status-btn" onclick="bulkSetStatus('skip')" title="Set to Skip"><span class="status-swatch" style="background:#e2445c"></span> Skip</button>
+            <button class="selection-delete-btn" onclick="bulkDeleteSelected()"><i class="ti ti-trash"></i> Delete</button>
             <button class="selection-cancel-btn" onclick="clearSelection()">Cancel</button>
         </div>
 

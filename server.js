@@ -918,6 +918,121 @@ app.delete('/api/contacts/:id', async (req, res) => {
     }
 });
 
+// Search contacts by name, email, or tenantName (case-insensitive)
+// GET /api/contacts/search?q=<query>
+app.get('/api/contacts/search', async (req, res) => {
+    try {
+        const q = (req.query.q || '').trim().toLowerCase();
+        if (!q) {
+            return res.json({ contacts: [] });
+        }
+
+        const viewUrl = `${dbUrl}/_design/contacts/_view/all_contacts`;
+        const viewResponse = await couchFetch(viewUrl);
+        if (!viewResponse.ok) {
+            throw new Error('Failed to fetch contacts');
+        }
+
+        const viewData = await viewResponse.json();
+        const contacts = viewData.rows
+            .map(row => {
+                const { _id, _rev, ...contact } = row.value;
+                return { id: _id, ...contact };
+            })
+            .filter(c =>
+                (c.name || '').toLowerCase().includes(q) ||
+                (c.email || '').toLowerCase().includes(q) ||
+                (c.tenantName || '').toLowerCase().includes(q)
+            );
+
+        res.json({ contacts });
+    } catch (error) {
+        console.error('Error searching contacts:', error);
+        res.status(500).json({ error: 'Failed to search contacts' });
+    }
+});
+
+// Get contacts with overdue or today follow-up (status != 'skip')
+// GET /api/contacts/due-followup
+app.get('/api/contacts/due-followup', async (req, res) => {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+
+        const viewUrl = `${dbUrl}/_design/contacts/_view/all_contacts`;
+        const viewResponse = await couchFetch(viewUrl);
+        if (!viewResponse.ok) {
+            throw new Error('Failed to fetch contacts');
+        }
+
+        const viewData = await viewResponse.json();
+        const contacts = viewData.rows
+            .map(row => {
+                const { _id, _rev, ...contact } = row.value;
+                return { id: _id, ...contact };
+            })
+            .filter(c =>
+                c.nextFollowUp &&
+                c.nextFollowUp <= today &&
+                c.status !== 'skip'
+            );
+
+        // Sort most overdue first (earliest date first)
+        contacts.sort((a, b) => (a.nextFollowUp || '').localeCompare(b.nextFollowUp || ''));
+
+        res.json({ contacts });
+    } catch (error) {
+        console.error('Error fetching due follow-ups:', error);
+        res.status(500).json({ error: 'Failed to fetch due follow-ups' });
+    }
+});
+
+// Bulk status update
+// POST /api/contacts/bulk-status  { ids: string[], status: string }
+app.post('/api/contacts/bulk-status', async (req, res) => {
+    try {
+        const { ids, status } = req.body;
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return res.status(400).json({ error: 'ids must be a non-empty array' });
+        }
+        if (!VALID_STATUSES.includes(status)) {
+            return res.status(400).json({ error: 'status must be null, contacted, later, or skip' });
+        }
+
+        const now = new Date().toISOString();
+
+        const docs = await Promise.all(ids.map(async (id) => {
+            const docUrl = `${dbUrl}/${id}`;
+            const getResponse = await couchFetch(docUrl);
+            if (!getResponse.ok) return null;
+            const doc = await getResponse.json();
+            doc.status = status;
+            if (status === 'contacted' && !doc.contactedAt) {
+                doc.contactedAt = now;
+            }
+            doc.updatedAt = now;
+            return doc;
+        }));
+
+        const validDocs = docs.filter(Boolean);
+        if (validDocs.length === 0) {
+            return res.json({ success: true, updated: 0 });
+        }
+
+        const bulkResponse = await couchFetch(`${dbUrl}/_bulk_docs`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ docs: validDocs })
+        });
+
+        if (!bulkResponse.ok) throw new Error('Bulk status update failed');
+
+        res.json({ success: true, updated: validDocs.length });
+    } catch (error) {
+        console.error('Error bulk updating status:', error);
+        res.status(500).json({ error: 'Failed to bulk update status' });
+    }
+});
+
 // Bulk delete contacts
 app.post('/api/contacts/bulk-delete', async (req, res) => {
     try {
@@ -940,30 +1055,7 @@ app.post('/api/contacts/reorder', async (req, res) => {
         if (!Array.isArray(order)) {
             return res.status(400).json({ error: 'order must be an array' });
         }
-
-        // Fetch all docs in parallel, update sortOrder, bulk write
-        const docs = await Promise.all(order.map(async ({ id, sortOrder }) => {
-            const docUrl = `${dbUrl}/${id}`;
-            const getResponse = await couchFetch(docUrl);
-            if (!getResponse.ok) return null;
-            const doc = await getResponse.json();
-            doc.sortOrder = sortOrder;
-            doc.updatedAt = new Date().toISOString();
-            return doc;
-        }));
-
-        const validDocs = docs.filter(Boolean);
-        const bulkUrl = `${dbUrl}/_bulk_docs`;
-        const bulkResponse = await couchFetch(bulkUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ docs: validDocs })
-        });
-
-        if (!bulkResponse.ok) {
-            throw new Error('Bulk reorder failed');
-        }
-
+        await bulkReorderDocs(order, 'sortOrder');
         res.json({ success: true });
     } catch (error) {
         console.error('Error reordering contacts:', error);
@@ -1111,23 +1203,7 @@ app.post('/api/drafts/reorder', async (req, res) => {
         if (!Array.isArray(order)) {
             return res.status(400).json({ error: 'order must be an array' });
         }
-        const docs = await Promise.all(order.map(async ({ id, sortOrder }) => {
-            const docUrl = `${dbUrl}/${id}`;
-            const getResponse = await couchFetch(docUrl);
-            if (!getResponse.ok) return null;
-            const doc = await getResponse.json();
-            doc.sortOrder = sortOrder;
-            doc.updatedAt = new Date().toISOString();
-            return doc;
-        }));
-        const validDocs = docs.filter(Boolean);
-        const bulkUrl = `${dbUrl}/_bulk_docs`;
-        const bulkResponse = await couchFetch(bulkUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ docs: validDocs })
-        });
-        if (!bulkResponse.ok) throw new Error('Bulk reorder failed');
+        await bulkReorderDocs(order, 'sortOrder');
         res.json({ success: true });
     } catch (error) {
         console.error('Error reordering drafts:', error);
@@ -1390,27 +1466,7 @@ app.post('/api/todos/reorder', async (req, res) => {
         if (!Array.isArray(order)) {
             return res.status(400).json({ error: 'order must be an array' });
         }
-
-        const docs = await Promise.all(order.map(async ({ id, sortOrder }) => {
-            const docUrl = `${dbUrl}/${id}`;
-            const getResponse = await couchFetch(docUrl);
-            if (!getResponse.ok) return null;
-            const doc = await getResponse.json();
-            doc.sortOrder = sortOrder;
-            doc.updatedAt = new Date().toISOString();
-            return doc;
-        }));
-
-        const validDocs = docs.filter(Boolean);
-        const bulkUrl = `${dbUrl}/_bulk_docs`;
-        const bulkResponse = await couchFetch(bulkUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ docs: validDocs })
-        });
-
-        if (!bulkResponse.ok) throw new Error('Bulk reorder failed');
-
+        await bulkReorderDocs(order, 'sortOrder');
         res.json({ success: true });
     } catch (error) {
         console.error('Error reordering todos:', error);
@@ -1573,27 +1629,7 @@ app.post('/api/todolists/reorder', async (req, res) => {
         if (!Array.isArray(order)) {
             return res.status(400).json({ error: 'order must be an array' });
         }
-
-        const docs = await Promise.all(order.map(async ({ id, sortOrder }) => {
-            const docUrl = `${dbUrl}/${id}`;
-            const getResponse = await couchFetch(docUrl);
-            if (!getResponse.ok) return null;
-            const doc = await getResponse.json();
-            doc.sortOrder = sortOrder;
-            doc.updatedAt = new Date().toISOString();
-            return doc;
-        }));
-
-        const validDocs = docs.filter(Boolean);
-        const bulkUrl = `${dbUrl}/_bulk_docs`;
-        const bulkResponse = await couchFetch(bulkUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ docs: validDocs })
-        });
-
-        if (!bulkResponse.ok) throw new Error('Bulk reorder failed');
-
+        await bulkReorderDocs(order, 'sortOrder');
         res.json({ success: true });
     } catch (error) {
         console.error('Error reordering todo lists:', error);
@@ -1813,27 +1849,7 @@ app.post('/api/tracked/reorder', async (req, res) => {
         if (!Array.isArray(order)) {
             return res.status(400).json({ error: 'order must be an array' });
         }
-
-        const docs = await Promise.all(order.map(async ({ id, cardOrder }) => {
-            const docUrl = `${dbUrl}/${id}`;
-            const getResponse = await couchFetch(docUrl);
-            if (!getResponse.ok) return null;
-            const doc = await getResponse.json();
-            doc.cardOrder = cardOrder;
-            doc.updatedAt = new Date().toISOString();
-            return doc;
-        }));
-
-        const validDocs = docs.filter(Boolean);
-        const bulkUrl = `${dbUrl}/_bulk_docs`;
-        const bulkResponse = await couchFetch(bulkUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ docs: validDocs })
-        });
-
-        if (!bulkResponse.ok) throw new Error('Bulk reorder failed');
-
+        await bulkReorderDocs(order, 'cardOrder');
         res.json({ success: true });
     } catch (error) {
         console.error('Error reordering tracked customers:', error);
@@ -2654,6 +2670,30 @@ async function fetchBriefItems(briefId) {
     });
 }
 
+// Helper: bulk update sortOrder (or a named order field) for an array of { id, <orderField> }
+// orderField defaults to 'sortOrder'; pass 'cardOrder' for tracked customers
+async function bulkReorderDocs(order, orderField = 'sortOrder') {
+    const docs = await Promise.all(order.map(async (item) => {
+        const id = item.id;
+        const value = item[orderField];
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+        if (!getResponse.ok) return null;
+        const doc = await getResponse.json();
+        doc[orderField] = value;
+        doc.updatedAt = new Date().toISOString();
+        return doc;
+    }));
+    const validDocs = docs.filter(Boolean);
+    if (validDocs.length === 0) return;
+    const bulkResponse = await couchFetch(`${dbUrl}/_bulk_docs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docs: validDocs })
+    });
+    if (!bulkResponse.ok) throw new Error('Bulk reorder failed');
+}
+
 // Helper: bulk delete docs by id (fetches current _rev)
 async function bulkDeleteDocs(ids) {
     if (ids.length === 0) return;
@@ -2862,23 +2902,7 @@ app.post('/api/brief-items/reorder', async (req, res) => {
     try {
         const { order } = req.body;
         if (!Array.isArray(order)) return res.status(400).json({ error: 'order must be an array' });
-
-        const docs = await Promise.all(order.map(async ({ id, sortOrder }) => {
-            const r = await couchFetch(`${dbUrl}/${id}`);
-            if (!r.ok) return null;
-            const doc = await r.json();
-            doc.sortOrder = sortOrder;
-            doc.updatedAt = new Date().toISOString();
-            return doc;
-        }));
-
-        const valid = docs.filter(Boolean);
-        const bulkRes = await couchFetch(`${dbUrl}/_bulk_docs`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ docs: valid })
-        });
-        if (!bulkRes.ok) throw new Error('Bulk reorder failed');
+        await bulkReorderDocs(order, 'sortOrder');
         res.json({ success: true });
     } catch (err) {
         console.error('Error reordering brief items:', err);
