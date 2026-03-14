@@ -477,24 +477,66 @@
 
         let contactSearchQuery = '';
         let contactSearchTimer = null;
+        let savedContactsData = null; // preserved during server search mode
 
         function onContactSearch(value) {
             clearTimeout(contactSearchTimer);
-            contactSearchTimer = setTimeout(() => {
+            contactSearchTimer = setTimeout(async () => {
                 contactSearchQuery = value.trim();
                 const clearBtn = document.getElementById('contact-search-clear');
                 if (clearBtn) clearBtn.style.display = contactSearchQuery ? 'flex' : 'none';
-                applyContactSearch();
+
+                if (contactSearchQuery.length >= 2) {
+                    await applyServerSearch(contactSearchQuery);
+                } else {
+                    // Restore original data if returning from server search mode
+                    if (savedContactsData) {
+                        contactsData = savedContactsData;
+                        savedContactsData = null;
+                        renderContacts();
+                    }
+                    // Still apply client-side filter for a single character
+                    applyContactSearch();
+                }
             }, 300);
+        }
+
+        async function applyServerSearch(q) {
+            const input = document.getElementById('contact-search');
+            try {
+                if (!savedContactsData) savedContactsData = contactsData;
+                if (input) input.setAttribute('placeholder', 'Searching...');
+
+                const res = await fetch(`/api/contacts/search?q=${encodeURIComponent(q)}`);
+                if (!res.ok) throw new Error('Search failed');
+                const data = await res.json();
+
+                if (input) input.setAttribute('placeholder', 'Search contacts\u2026');
+
+                // Swap in server results while keeping metadata intact
+                contactsData = { ...savedContactsData, contacts: data.contacts };
+                renderContacts();
+            } catch (err) {
+                console.error('Server search failed, falling back to client-side filter:', err);
+                if (input) input.setAttribute('placeholder', 'Search contacts\u2026');
+                if (savedContactsData) { contactsData = savedContactsData; savedContactsData = null; }
+                applyContactSearch();
+            }
         }
 
         function clearContactSearch() {
             contactSearchQuery = '';
             const input = document.getElementById('contact-search');
-            if (input) input.value = '';
+            if (input) { input.value = ''; input.setAttribute('placeholder', 'Search contacts\u2026'); }
             const clearBtn = document.getElementById('contact-search-clear');
             if (clearBtn) clearBtn.style.display = 'none';
-            applyContactSearch();
+            if (savedContactsData) {
+                contactsData = savedContactsData;
+                savedContactsData = null;
+                renderContacts();
+            } else {
+                applyContactSearch();
+            }
         }
 
         function applyContactSearch() {
