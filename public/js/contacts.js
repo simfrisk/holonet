@@ -494,6 +494,7 @@
                         contactsData = savedContactsData;
                         savedContactsData = null;
                         renderContacts();
+                        renderAllTab();
                     }
                     // Still apply client-side filter for a single character
                     applyContactSearch();
@@ -516,6 +517,7 @@
                 // Swap in server results while keeping metadata intact
                 contactsData = { ...savedContactsData, contacts: data.contacts };
                 renderContacts();
+                renderAllTab();
             } catch (err) {
                 console.error('Server search failed, falling back to client-side filter:', err);
                 if (input) input.setAttribute('placeholder', 'Search contacts\u2026');
@@ -534,6 +536,7 @@
                 contactsData = savedContactsData;
                 savedContactsData = null;
                 renderContacts();
+                renderAllTab();
             } else {
                 applyContactSearch();
             }
