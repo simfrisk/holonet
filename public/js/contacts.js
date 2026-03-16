@@ -63,7 +63,13 @@
 
         function pickStatus(contactId, value) {
             closeAllDropdowns();
-            const select = document.getElementById(`status-select-${contactId}`);
+            let select;
+            // When on the All tab, duplicate IDs exist -- prefer the select in all-table-body
+            if (typeof activeContactTab !== 'undefined' && activeContactTab === 'all') {
+                const allRow = document.querySelector(`#all-table-body tr[data-contact-id="${contactId}"]`);
+                if (allRow) select = allRow.querySelector('select');
+            }
+            select = select || document.getElementById(`status-select-${contactId}`);
             if (select) { select.value = value; select.dispatchEvent(new Event('change')); }
         }
 
@@ -428,6 +434,15 @@
 
             const rows = Array.from(tbody.querySelectorAll('tr[data-contact-id]'));
             if (rows.length === 0) return;
+
+            // Sort rows by priority order: focus, high, medium, low
+            const PRIORITY_RANK = { focus: 0, high: 1, medium: 2, low: 3 };
+            rows.sort((a, b) => {
+                const pa = a.className.match(/priority-(\w+)/)?.[1] || 'low';
+                const pb = b.className.match(/priority-(\w+)/)?.[1] || 'low';
+                return (PRIORITY_RANK[pa] ?? 99) - (PRIORITY_RANK[pb] ?? 99);
+            });
+            rows.forEach(row => tbody.appendChild(row));
 
             // Group rows by priority
             const groups = {};

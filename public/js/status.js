@@ -81,8 +81,34 @@
                 }
             }
 
-            // Move row to correct tab
-            if (!status) {
+            // Move row to correct tab (skip if we're in the All tab - update styling in place)
+            const isInAllTab = !!row.closest('#all-table-body');
+            if (isInAllTab) {
+                row.classList.toggle('archived-row', status === 'contacted');
+                row.classList.toggle('later-row', status === 'later');
+                row.classList.toggle('skip-row', status === 'skip');
+                if (!status) row.classList.remove('archived-row', 'later-row', 'skip-row');
+                // Also sync the original row in the tab-specific bodies
+                const originalRow = document.querySelector(
+                    `#active-table-body tr[data-contact-id="${contactId}"],` +
+                    `#archived-table-body tr[data-contact-id="${contactId}"],` +
+                    `#later-table-body tr[data-contact-id="${contactId}"],` +
+                    `#skip-table-body tr[data-contact-id="${contactId}"]`
+                );
+                if (originalRow) {
+                    // Update original row's status cell to match
+                    const origTd = originalRow.querySelector('td.status-td');
+                    if (origTd) origTd.dataset.status = status || 'active';
+                    const origBtnLabel = origTd?.querySelector('.status-btn-label');
+                    if (origBtnLabel) origBtnLabel.textContent = STATUS_INFO[status || '']?.label || 'Active';
+                    const origSelect = originalRow.querySelector('select');
+                    if (origSelect) origSelect.value = status || '';
+                    if (!status) moveToActive(originalRow);
+                    else if (status === 'contacted') moveToArchive(originalRow);
+                    else if (status === 'later') moveToLater(originalRow);
+                    else if (status === 'skip') moveToSkip(originalRow);
+                }
+            } else if (!status) {
                 moveToActive(row);
             } else if (status === 'contacted') {
                 moveToArchive(row);
