@@ -4,6 +4,7 @@
         let trackedLoaded = false;
         let trackedCustomers = []; // in-memory cache
         let statsLoaded = false;
+        let customersLoaded = false;
 
         function switchSection(sectionName, skipHash) {
             activeSection = sectionName;
@@ -53,6 +54,13 @@
                 if (sectionName === 'brief') {
                     loadBriefTab();
                 }
+                if (sectionName === 'customers') {
+                    if (!customersLoaded) {
+                        customersLoaded = true;
+                        initCustomersTab();
+                    }
+                    loadCustomers();
+                }
             }
 
             // Pause monitor polling when leaving the monitor tab
@@ -85,7 +93,7 @@
         function restoreNavFromHash() {
             const hash = window.location.hash.slice(1);
             const CONTACT_SUB_TABS = ['active', 'archived', 'later', 'skip', 'all'];
-            const TOP_SECTIONS = ['drafts', 'todos', 'tracked', 'stats', 'links', 'monitor', 'brief'];
+            const TOP_SECTIONS = ['drafts', 'todos', 'tracked', 'stats', 'links', 'monitor', 'brief', 'customers'];
 
             if (TOP_SECTIONS.includes(hash)) {
                 switchSection(hash, true);

@@ -47,6 +47,9 @@
                 <span class="pnav-icon"><i class="ti ti-calendar-check"></i></span> Brief
                 <span class="pnav-count" id="brief-count"></span>
             </button>
+            <button class="primary-nav-btn" data-section="customers" onclick="switchSection('customers')">
+                <span class="pnav-icon"><i class="ti ti-address-book"></i></span> Customers
+            </button>
         </div>
 
         <!-- Sub Navigation (contact list sub-tabs) -->
@@ -470,6 +473,47 @@
         </div>
     </div>
 
+    <!-- Customers Tab -->
+    <div id="customers-tab" class="tab-content">
+        <div class="customers-toolbar">
+            <input type="text" id="customers-search" class="customers-search-input" placeholder="Search by name, email, company, industry, role, tenant..." />
+            <div class="customers-filters">
+                <select id="customers-filter-status">
+                    <option value="">All statuses</option>
+                    <option value="null">Active</option>
+                    <option value="contacted">Contacted</option>
+                    <option value="later">Later</option>
+                    <option value="skip">Skip</option>
+                </select>
+                <select id="customers-filter-industry">
+                    <option value="">All industries</option>
+                </select>
+                <button id="customers-clear-filters" class="customers-clear-btn">Clear filters</button>
+            </div>
+            <span id="customers-count" class="customers-count"></span>
+        </div>
+        <div class="customers-table-wrapper">
+            <table class="customers-table" id="customers-table">
+                <thead>
+                    <tr>
+                        <th data-sort="name">Name</th>
+                        <th data-sort="company">Company</th>
+                        <th data-sort="role">Role</th>
+                        <th data-sort="industry">Industry</th>
+                        <th data-sort="tenantName">Tenant</th>
+                        <th data-sort="email">Email</th>
+                        <th data-sort="status">Status</th>
+                        <th data-sort="contactedAt">Last Contacted</th>
+                        <th>Tags</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="customers-tbody"></tbody>
+            </table>
+        </div>
+        <div id="customers-empty" class="customers-empty" style="display:none;">No customers match your search.</div>
+    </div>
+
     </div><!-- end .container -->
 
     <!-- Tracked Customer Detail Modal -->
@@ -696,6 +740,128 @@
         </div>
     </div>
 
+    <!-- Customer Profile Modal -->
+    <div id="customer-profile-modal" class="modal" onclick="if(event.target===this)closeProfile()">
+        <div class="modal-content customer-profile-modal-inner">
+            <div class="modal-header">
+                <h2 id="profile-modal-name">Customer Profile</h2>
+                <button class="close-button" id="close-profile-modal" onclick="closeProfile()">&#x2715;</button>
+            </div>
+            <div class="modal-body" style="padding: 24px;">
+                <div class="profile-grid">
+                    <!-- Left column: identity info -->
+                    <div class="profile-section">
+                        <h3 class="profile-section-title">Identity</h3>
+                        <div class="profile-field">
+                            <label class="profile-label">Name</label>
+                            <input type="text" id="profile-name" class="profile-input" placeholder="Full name" />
+                        </div>
+                        <div class="profile-field">
+                            <label class="profile-label">Email</label>
+                            <input type="text" id="profile-email" class="profile-input" placeholder="email@company.com" />
+                        </div>
+                        <div class="profile-field">
+                            <label class="profile-label">Tenant</label>
+                            <input type="text" id="profile-tenant" class="profile-input" placeholder="tenant-name" />
+                        </div>
+                        <div class="profile-field">
+                            <label class="profile-label">Company</label>
+                            <input type="text" id="profile-company" class="profile-input" placeholder="Acme Corp" />
+                        </div>
+                        <div class="profile-field">
+                            <label class="profile-label">Role / Title</label>
+                            <input type="text" id="profile-role" class="profile-input" placeholder="CTO, Developer, etc." />
+                        </div>
+                        <div class="profile-field">
+                            <label class="profile-label">Industry</label>
+                            <input type="text" id="profile-industry" class="profile-input" placeholder="Media, SaaS, etc." />
+                        </div>
+                        <div class="profile-field">
+                            <label class="profile-label">LinkedIn</label>
+                            <input type="text" id="profile-linkedin" class="profile-input" placeholder="https://linkedin.com/in/..." />
+                        </div>
+                        <div class="profile-field">
+                            <label class="profile-label">Tags (comma separated)</label>
+                            <input type="text" id="profile-tags" class="profile-input" placeholder="enterprise, trial, developer" />
+                        </div>
+                    </div>
+                    <!-- Right column: activity and notes -->
+                    <div class="profile-section">
+                        <h3 class="profile-section-title">Activity &amp; Notes</h3>
+                        <div class="profile-field">
+                            <label class="profile-label">Status</label>
+                            <select id="profile-status" class="profile-input">
+                                <option value="">Active</option>
+                                <option value="contacted">Contacted</option>
+                                <option value="later">Later</option>
+                                <option value="skip">Skip</option>
+                            </select>
+                        </div>
+                        <div class="profile-field">
+                            <label class="profile-label">Priority</label>
+                            <select id="profile-priority" class="profile-input">
+                                <option value="">None</option>
+                                <option value="focus">Focus</option>
+                                <option value="high">High</option>
+                                <option value="medium">Medium</option>
+                                <option value="low">Low</option>
+                            </select>
+                        </div>
+                        <div class="profile-field">
+                            <label class="profile-label">Activity Summary</label>
+                            <textarea id="profile-activity" class="profile-input" rows="3" placeholder="What have they been doing on the platform?"></textarea>
+                        </div>
+                        <div class="profile-field">
+                            <label class="profile-label">Notes</label>
+                            <textarea id="profile-notes" class="profile-input" rows="4" placeholder="Internal notes about this customer..."></textarea>
+                        </div>
+                        <div class="profile-field">
+                            <label class="profile-label">First Seen</label>
+                            <span id="profile-first-seen" class="profile-meta-value"></span>
+                        </div>
+                        <div class="profile-field">
+                            <label class="profile-label">Last Contacted</label>
+                            <span id="profile-contacted-at" class="profile-meta-value"></span>
+                        </div>
+                        <div class="profile-field">
+                            <label class="profile-label">Source</label>
+                            <span id="profile-source" class="profile-meta-value"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact History -->
+                <div class="profile-history-section">
+                    <div class="profile-history-header">
+                        <h3 class="profile-section-title" style="margin:0;">Contact History</h3>
+                        <button class="add-tracked-btn" id="add-history-btn">+ Add Entry</button>
+                    </div>
+                    <div id="add-history-form" class="add-history-form" style="display:none;">
+                        <input type="date" id="history-date" class="profile-input" />
+                        <select id="history-method" class="profile-input">
+                            <option value="email">Email</option>
+                            <option value="call">Call</option>
+                            <option value="slack">Slack</option>
+                            <option value="meeting">Meeting</option>
+                            <option value="other">Other</option>
+                        </select>
+                        <input type="text" id="history-summary" class="profile-input" placeholder="Brief summary..." style="flex:1;min-width:180px;" />
+                        <input type="text" id="history-source" class="profile-input" placeholder="Source (agent or manual)" />
+                        <button class="save-button" id="save-history-btn" style="padding:6px 14px;font-size:13px;">Save</button>
+                        <button class="cancel-button" id="cancel-history-btn" style="padding:6px 14px;font-size:13px;">Cancel</button>
+                    </div>
+                    <div id="profile-history-list" class="profile-history-list">
+                        <p class="no-history">No contact history yet.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-button" id="profile-cancel-btn" onclick="closeProfile()">Cancel</button>
+                <button class="save-button" id="profile-save-btn">Save Profile</button>
+            </div>
+        </div>
+    </div>
+
     <!-- JavaScript: load order matters — state first, then features, then init -->
     <script src="js/state.js"></script>
     <script src="js/contacts.js"></script>
@@ -710,6 +876,7 @@
     <script src="js/stats.js"></script>
     <script src="js/links.js"></script>
     <script src="js/briefs.js"></script>
+    <script src="js/customers.js"></script>
     <script src="js/init.js"></script>
 </body>
 </html>

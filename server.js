@@ -697,11 +697,11 @@ app.patch('/api/contacts/:id/contacted', async (req, res) => {
     }
 });
 
-// Update contact fields (name, email, tenantName, priority, activitySummary, notes)
+// Update contact fields (name, email, tenantName, priority, activitySummary, notes, company, role, industry, linkedIn, tags, status)
 app.patch('/api/contacts/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, email, tenantName, priority, activitySummary, notes } = req.body;
+        const { name, email, tenantName, priority, activitySummary, notes, company, role, industry, linkedIn, tags, status } = req.body;
 
         const docUrl = `${dbUrl}/${id}`;
         const getResponse = await couchFetch(docUrl);
@@ -718,6 +718,17 @@ app.patch('/api/contacts/:id', async (req, res) => {
         if (priority !== undefined) doc.priority = priority;
         if (activitySummary !== undefined) doc.activitySummary = activitySummary;
         if (notes !== undefined) doc.notes = notes;
+        if (company !== undefined) doc.company = company;
+        if (role !== undefined) doc.role = role;
+        if (industry !== undefined) doc.industry = industry;
+        if (linkedIn !== undefined) doc.linkedIn = linkedIn;
+        if (tags !== undefined) doc.tags = tags;
+        if (status !== undefined) {
+            doc.status = status;
+            if (status === 'contacted' && !doc.contactedAt) {
+                doc.contactedAt = new Date().toISOString();
+            }
+        }
         doc.updatedAt = new Date().toISOString();
 
         const updateResponse = await couchFetch(docUrl, {
@@ -730,10 +741,68 @@ app.patch('/api/contacts/:id', async (req, res) => {
             throw new Error('Failed to update contact');
         }
 
-        res.json({ success: true, contact: { id, ...doc } });
+        const { _id, _rev, ...contactData } = doc;
+        res.json({ success: true, contact: { id, ...contactData } });
     } catch (error) {
         console.error('Error updating contact:', error);
         res.status(500).json({ error: 'Failed to update contact' });
+    }
+});
+
+// Add contact history entry
+app.post('/api/contacts/:id/history', requireAuth, async (req, res) => {
+    try {
+        const docUrl = `${dbUrl}/${req.params.id}`;
+        const getResponse = await couchFetch(docUrl);
+        if (!getResponse.ok) return res.status(404).json({ error: 'Not found' });
+        const doc = await getResponse.json();
+        const { date, method, summary, source } = req.body;
+        if (!summary) return res.status(400).json({ error: 'summary is required' });
+        const entry = {
+            id: `history-${Date.now()}`,
+            date: date || new Date().toISOString().slice(0, 10),
+            method: method || 'other',
+            summary,
+            source: source || 'manual',
+            createdAt: new Date().toISOString()
+        };
+        if (!doc.contactHistory) doc.contactHistory = [];
+        doc.contactHistory.push(entry);
+        doc.updatedAt = new Date().toISOString();
+        const updateResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+        if (!updateResponse.ok) throw new Error('Failed to save history entry');
+        const { _id, _rev, ...contactData } = doc;
+        res.json({ id: _id, ...contactData });
+    } catch (err) {
+        console.error('Error adding history entry:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Delete contact history entry
+app.delete('/api/contacts/:id/history/:historyId', requireAuth, async (req, res) => {
+    try {
+        const docUrl = `${dbUrl}/${req.params.id}`;
+        const getResponse = await couchFetch(docUrl);
+        if (!getResponse.ok) return res.status(404).json({ error: 'Not found' });
+        const doc = await getResponse.json();
+        doc.contactHistory = (doc.contactHistory || []).filter(e => e.id !== req.params.historyId);
+        doc.updatedAt = new Date().toISOString();
+        const updateResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+        if (!updateResponse.ok) throw new Error('Failed to delete history entry');
+        const { _id, _rev, ...contactData } = doc;
+        res.json({ id: _id, ...contactData });
+    } catch (err) {
+        console.error('Error deleting history entry:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
@@ -813,6 +882,13 @@ app.post('/api/sync', async (req, res) => {
                     notes: doc.notes || '',
                     status: doc.status !== undefined ? doc.status : null,
                     contactedAt: doc.contactedAt || null,
+                    company: doc.company,
+                    role: doc.role,
+                    industry: doc.industry,
+                    linkedIn: doc.linkedIn,
+                    tags: doc.tags,
+                    contactHistory: doc.contactHistory,
+                    source: doc.source,
                     _rev: doc._rev
                 };
             });
@@ -856,10 +932,26 @@ app.post('/api/sync', async (req, res) => {
             // Remove the reactivate flag before storing
             const { reactivate, ...contactData } = contact;
 
+            // Preserve profile fields: never overwrite with sync data
+            const profileFields = {};
+            if (existing.company !== undefined) profileFields.company = existing.company;
+            if (existing.role !== undefined) profileFields.role = existing.role;
+            if (existing.industry !== undefined) profileFields.industry = existing.industry;
+            if (existing.linkedIn !== undefined) profileFields.linkedIn = existing.linkedIn;
+            if (existing.tags !== undefined) profileFields.tags = existing.tags;
+            if (existing.contactHistory !== undefined) profileFields.contactHistory = existing.contactHistory;
+            // Preserve source if already set; otherwise use incoming source if provided
+            if (existing.source) {
+                profileFields.source = existing.source;
+            } else if (contactData.source) {
+                profileFields.source = contactData.source;
+            }
+
             bulkDocs.push({
                 _id: contact.id,
                 _rev: existing._rev,
                 ...contactData,
+                ...profileFields,
                 notes: existing.notes || '',
                 status: finalStatus,
                 contactedAt: existing.contactedAt || null,
@@ -942,7 +1034,11 @@ app.get('/api/contacts/search', async (req, res) => {
             .filter(c =>
                 (c.name || '').toLowerCase().includes(q) ||
                 (c.email || '').toLowerCase().includes(q) ||
-                (c.tenantName || '').toLowerCase().includes(q)
+                (c.tenantName || '').toLowerCase().includes(q) ||
+                (c.company || '').toLowerCase().includes(q) ||
+                (c.role || '').toLowerCase().includes(q) ||
+                (c.industry || '').toLowerCase().includes(q) ||
+                ((c.tags || []).join(' ')).toLowerCase().includes(q)
             );
 
         res.json({ contacts });
