@@ -1195,7 +1195,7 @@
 
         .todo-item {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 10px;
             padding: 11px 14px;
             background: var(--color-surface-elevated);
@@ -1218,6 +1218,7 @@
             flex-shrink: 0;
             accent-color: var(--color-success);
             cursor: pointer;
+            margin-top: 1px;
         }
 
         /* Todo text */
