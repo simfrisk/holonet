@@ -2244,6 +2244,8 @@
             border-radius: 8px;
             overflow: hidden;
             z-index: 5;
+            gap: 3px;
+            padding: 3px;
         }
         .todo-delete-cancel, .todo-delete-confirm {
             flex: 1;
@@ -2253,6 +2255,7 @@
             font-weight: 600;
             font-family: inherit;
             transition: filter 0.15s;
+            border-radius: 6px;
         }
         .todo-delete-cancel {
             background: var(--color-surface-elevated);
