@@ -107,6 +107,14 @@
             if (filter === 'active') filtered = filtered.filter(t => !t.done);
             else if (filter === 'done') filtered = filtered.filter(t => t.done);
 
+            // Sort by sortOrder (if set), then by createdAt
+            filtered.sort((a, b) => {
+                const aSort = a.sortOrder != null ? a.sortOrder : Infinity;
+                const bSort = b.sortOrder != null ? b.sortOrder : Infinity;
+                if (aSort !== bSort) return aSort - bSort;
+                return (a.createdAt || '').localeCompare(b.createdAt || '');
+            });
+
             if (filtered.length === 0) {
                 const msgs = {
                     active: ['All done!', 'No active tasks.'],
