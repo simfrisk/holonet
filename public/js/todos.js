@@ -240,7 +240,7 @@
                 <div class="todo-actions">
                     <button class="todo-action-btn todo-delete-btn"
                             onclick="event.stopPropagation(); deleteTodoItem('${escapeAttr(todo.id)}')"
-                            title="Delete">\u{1F5D1}</button>
+                            title="Delete">&#x2715;</button>
                 </div>
             </div>`;
         }
