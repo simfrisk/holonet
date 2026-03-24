@@ -324,33 +324,58 @@
             }
         }
 
-        async function deleteTodoItem(id) {
-            if (!confirm('Delete this todo?')) return;
-            const todo = todosData.find(t => t.id === id);
-            const listId = todo ? (todo.listId || 'todolist-default') : null;
-            try {
-                const res = await fetch(`/api/todos/${id}`, { method: 'DELETE' });
-                if (!res.ok) throw new Error('Failed');
-                todosData = todosData.filter(t => t.id !== id);
-                updateTodosCount();
-                if (listId) rerenderTodoListDiv(listId);
-            } catch (err) {
-                console.error('Failed to delete todo:', err);
-            }
+        // ---- Confirm modal ----
+        let todoConfirmCallback = null;
+
+        function showTodoConfirm(title, message, btnText, callback) {
+            document.getElementById('todoConfirmTitle').textContent = title;
+            document.getElementById('todoConfirmMessage').textContent = message;
+            document.getElementById('todoConfirmBtn').textContent = btnText || 'Delete';
+            todoConfirmCallback = callback;
+            document.getElementById('todoConfirmModal').style.display = 'block';
         }
 
-        async function clearDoneTodos(listId) {
+        function cancelTodoConfirm() {
+            document.getElementById('todoConfirmModal').style.display = 'none';
+            todoConfirmCallback = null;
+        }
+
+        function executeTodoConfirm() {
+            document.getElementById('todoConfirmModal').style.display = 'none';
+            if (todoConfirmCallback) todoConfirmCallback();
+            todoConfirmCallback = null;
+        }
+
+        function deleteTodoItem(id) {
+            const todo = todosData.find(t => t.id === id);
+            const preview = todo ? todo.text.substring(0, 50) + (todo.text.length > 50 ? '...' : '') : '';
+            showTodoConfirm('Delete Todo', `Delete "${preview}"?`, 'Delete', async () => {
+                const listId = todo ? (todo.listId || 'todolist-default') : null;
+                try {
+                    const res = await fetch(`/api/todos/${id}`, { method: 'DELETE' });
+                    if (!res.ok) throw new Error('Failed');
+                    todosData = todosData.filter(t => t.id !== id);
+                    updateTodosCount();
+                    if (listId) rerenderTodoListDiv(listId);
+                } catch (err) {
+                    console.error('Failed to delete todo:', err);
+                }
+            });
+        }
+
+        function clearDoneTodos(listId) {
             const done = todosData.filter(t => t.done && (t.listId || 'todolist-default') === listId);
             if (done.length === 0) return;
-            if (!confirm(`Delete ${done.length} completed task${done.length > 1 ? 's' : ''}?`)) return;
-            try {
-                await Promise.all(done.map(t => fetch(`/api/todos/${t.id}`, { method: 'DELETE' })));
-                todosData = todosData.filter(t => !(t.done && (t.listId || 'todolist-default') === listId));
-                updateTodosCount();
-                rerenderTodoListDiv(listId);
-            } catch (err) {
-                console.error('Failed to clear done todos:', err);
-            }
+            showTodoConfirm('Clear Completed', `Delete ${done.length} completed task${done.length > 1 ? 's' : ''}?`, 'Delete All', async () => {
+                try {
+                    await Promise.all(done.map(t => fetch(`/api/todos/${t.id}`, { method: 'DELETE' })));
+                    todosData = todosData.filter(t => !(t.done && (t.listId || 'todolist-default') === listId));
+                    updateTodosCount();
+                    rerenderTodoListDiv(listId);
+                } catch (err) {
+                    console.error('Failed to clear done todos:', err);
+                }
+            });
         }
 
         // =========================================
