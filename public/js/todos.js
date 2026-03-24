@@ -325,6 +325,7 @@
         }
 
         async function deleteTodoItem(id) {
+            if (!confirm('Delete this todo?')) return;
             const todo = todosData.find(t => t.id === id);
             const listId = todo ? (todo.listId || 'todolist-default') : null;
             try {
