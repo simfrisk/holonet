@@ -1220,19 +1220,15 @@
             cursor: pointer;
         }
 
-        /* Editable text */
-        .todo-text-wrap { flex: 1; min-width: 0; }
+        /* Todo text */
+        .todo-text-wrap { flex: 1; min-width: 0; cursor: pointer; }
         .todo-text {
             font-size: 15px;
             color: var(--color-text);
-            background: none;
-            border: none;
-            width: 100%;
-            padding: 0;
-            font-family: inherit;
-            cursor: text;
+            line-height: 1.45;
+            word-break: break-word;
+            display: inline;
         }
-        .todo-text:focus { outline: none; color: var(--color-text); }
         .todo-item.done-item .todo-text { text-decoration: line-through; color: var(--color-text-muted); }
 
         .todo-meta { display: flex; gap: 6px; align-items: center; margin-top: 3px; flex-wrap: wrap; }
@@ -2233,14 +2229,10 @@
         }
 
         /* =========================================
-           TODO TEXT ROW + HAS-CONTENT INDICATOR
+           TODO HAS-CONTENT INDICATOR
            ========================================= */
-        .todo-text-row {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .todo-text-row .todo-text { flex: 1; }
+        .todo-item { cursor: pointer; }
+        .todo-item:hover { background: var(--color-bg-hover, rgba(255,255,255,0.03)); }
 
         .todo-has-content-badge {
             display: inline-flex;
@@ -2257,14 +2249,6 @@
         .todo-item.has-content {
             border-left: 3px solid #818cf8;
         }
-
-        .todo-open-btn {
-            font-size: 14px;
-            color: var(--color-text-subtle);
-            opacity: 0;
-            transition: opacity 0.15s;
-        }
-        .todo-item:hover .todo-open-btn { opacity: 1; }
 
         /* =========================================
            TODO DETAIL MODAL

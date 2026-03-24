@@ -227,26 +227,19 @@
                 ? `<span class="todo-has-content-badge" title="Has notes/checklist"><i class="ti ti-notes"></i></span>`
                 : '';
 
-            return `<div class="todo-item ${priorityClass} ${doneClass} ${hasContent ? 'has-content' : ''}" data-todo-id="${escapeHtml(todo.id)}" draggable="true">
+            return `<div class="todo-item ${priorityClass} ${doneClass} ${hasContent ? 'has-content' : ''}" data-todo-id="${escapeHtml(todo.id)}" draggable="true"
+                         onclick="if(!todoDragJustFinished && event.target.closest('.todo-checkbox, .todo-delete-btn, .todo-drag-handle')){}else if(!todoDragJustFinished){openTodoDetailModal('${escapeAttr(todo.id)}')}">
                 <span class="todo-drag-handle" title="Drag to reorder">&#x2807;</span>
                 <input type="checkbox" class="todo-checkbox" ${todo.done ? 'checked' : ''}
-                       onchange="toggleTodoDone('${escapeAttr(todo.id)}', this.checked)">
-                <div class="todo-text-wrap" onclick="if(!todoDragJustFinished){openTodoDetailModal('${escapeAttr(todo.id)}')}" style="cursor:pointer;">
-                    <div class="todo-text-row">
-                        <input type="text" class="todo-text" value="${escapeHtml(todo.text)}"
-                               onclick="event.stopPropagation()"
-                               onblur="saveTodoText('${escapeAttr(todo.id)}', this.value)"
-                               onkeydown="if(event.key==='Enter'){this.blur();}if(event.key==='Escape'){this.value=todosData.find(t=>t.id==='${escapeAttr(todo.id)}')?.text||this.value;this.blur();}">
-                        ${contentIndicator}
-                    </div>
+                       onchange="event.stopPropagation(); toggleTodoDone('${escapeAttr(todo.id)}', this.checked)">
+                <div class="todo-text-wrap">
+                    <span class="todo-text">${escapeHtml(todo.text)}</span>
+                    ${contentIndicator}
                     ${metaHtml ? `<div class="todo-meta">${metaHtml}</div>` : ''}
                 </div>
                 <div class="todo-actions">
-                    <button class="todo-action-btn todo-open-btn"
-                            onclick="openTodoDetailModal('${escapeAttr(todo.id)}')"
-                            title="Open details"><i class="ti ti-arrow-bar-right"></i></button>
                     <button class="todo-action-btn todo-delete-btn"
-                            onclick="deleteTodoItem('${escapeAttr(todo.id)}')"
+                            onclick="event.stopPropagation(); deleteTodoItem('${escapeAttr(todo.id)}')"
                             title="Delete">\u{1F5D1}</button>
                 </div>
             </div>`;
