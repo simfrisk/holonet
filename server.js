@@ -1493,7 +1493,7 @@ app.post('/api/todos', async (req, res) => {
 app.patch('/api/todos/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { text, done, priority, dueDate, listId, sortOrder } = req.body;
+        const { text, done, priority, dueDate, listId, sortOrder, content } = req.body;
 
         const docUrl = `${dbUrl}/${id}`;
         const getResponse = await couchFetch(docUrl);
@@ -1510,6 +1510,7 @@ app.patch('/api/todos/:id', async (req, res) => {
         if (dueDate !== undefined) doc.dueDate = dueDate;
         if (listId !== undefined) doc.listId = listId;
         if (sortOrder !== undefined) doc.sortOrder = sortOrder;
+        if (content !== undefined) doc.content = content;
         if (done === true && !doc.doneAt) doc.doneAt = new Date().toISOString();
         if (done === false) doc.doneAt = null;
         doc.updatedAt = new Date().toISOString();

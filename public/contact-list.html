@@ -740,6 +740,32 @@
         </div>
     </div>
 
+    <!-- Todo Detail Modal -->
+    <div id="todoDetailModal" class="modal" onclick="if(event.target===this)closeTodoDetailModal()">
+        <div class="modal-content todo-detail-modal-content">
+            <div class="modal-header">
+                <div style="flex:1;min-width:0;">
+                    <input type="text" id="todo-modal-title" class="todo-modal-title-input" placeholder="Todo title...">
+                    <p class="modal-contact-info" id="todo-modal-meta"></p>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span class="todo-modal-save-status" id="todo-modal-save-status"></span>
+                    <button class="close-button" onclick="closeTodoDetailModal()">&#x2715;</button>
+                </div>
+            </div>
+            <div class="todo-detail-body" id="todo-modal-body">
+                <div class="todo-detail-empty" id="todo-detail-empty">
+                    <p>Click a button below to add content</p>
+                </div>
+                <div id="todo-detail-blocks"></div>
+            </div>
+            <div class="modal-footer" style="justify-content:flex-start;">
+                <button class="todo-modal-add-btn" onclick="addTodoContentBlock('text')"><i class="ti ti-text-size"></i> Text</button>
+                <button class="todo-modal-add-btn" onclick="addTodoContentBlock('checklist')"><i class="ti ti-list-check"></i> Checklist</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Customer Profile Modal -->
     <div id="customer-profile-modal" class="modal" onclick="if(event.target===this)closeProfile()">
         <div class="modal-content customer-profile-modal-inner">

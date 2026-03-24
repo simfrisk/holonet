@@ -202,9 +202,14 @@
         // RENDER TODO ITEMS
         // =========================================
 
+        function todoHasContent(todo) {
+            return todo.content && Array.isArray(todo.content) && todo.content.length > 0;
+        }
+
         function buildTodoItemHtml(todo) {
             const priorityClass = todo.priority ? `priority-${todo.priority}` : '';
             const doneClass     = todo.done ? 'done-item' : '';
+            const hasContent    = todoHasContent(todo);
 
             let metaHtml = '';
             if (todo.priority) {
@@ -218,17 +223,28 @@
                 </span>`;
             }
 
-            return `<div class="todo-item ${priorityClass} ${doneClass}" data-todo-id="${escapeHtml(todo.id)}" draggable="true">
+            const contentIndicator = hasContent
+                ? `<span class="todo-has-content-badge" title="Has notes/checklist"><i class="ti ti-notes"></i></span>`
+                : '';
+
+            return `<div class="todo-item ${priorityClass} ${doneClass} ${hasContent ? 'has-content' : ''}" data-todo-id="${escapeHtml(todo.id)}" draggable="true">
                 <span class="todo-drag-handle" title="Drag to reorder">&#x2807;</span>
                 <input type="checkbox" class="todo-checkbox" ${todo.done ? 'checked' : ''}
                        onchange="toggleTodoDone('${escapeAttr(todo.id)}', this.checked)">
-                <div class="todo-text-wrap">
-                    <input type="text" class="todo-text" value="${escapeHtml(todo.text)}"
-                           onblur="saveTodoText('${escapeAttr(todo.id)}', this.value)"
-                           onkeydown="if(event.key==='Enter'){this.blur();}if(event.key==='Escape'){this.value=todosData.find(t=>t.id==='${escapeAttr(todo.id)}')?.text||this.value;this.blur();}">
+                <div class="todo-text-wrap" onclick="if(!todoDragJustFinished){openTodoDetailModal('${escapeAttr(todo.id)}')}" style="cursor:pointer;">
+                    <div class="todo-text-row">
+                        <input type="text" class="todo-text" value="${escapeHtml(todo.text)}"
+                               onclick="event.stopPropagation()"
+                               onblur="saveTodoText('${escapeAttr(todo.id)}', this.value)"
+                               onkeydown="if(event.key==='Enter'){this.blur();}if(event.key==='Escape'){this.value=todosData.find(t=>t.id==='${escapeAttr(todo.id)}')?.text||this.value;this.blur();}">
+                        ${contentIndicator}
+                    </div>
                     ${metaHtml ? `<div class="todo-meta">${metaHtml}</div>` : ''}
                 </div>
                 <div class="todo-actions">
+                    <button class="todo-action-btn todo-open-btn"
+                            onclick="openTodoDetailModal('${escapeAttr(todo.id)}')"
+                            title="Open details"><i class="ti ti-arrow-bar-right"></i></button>
                     <button class="todo-action-btn todo-delete-btn"
                             onclick="deleteTodoItem('${escapeAttr(todo.id)}')"
                             title="Delete">\u{1F5D1}</button>
@@ -348,6 +364,7 @@
         // =========================================
 
         let todoDragSrcId = null;
+        let todoDragJustFinished = false;
 
         function initTodoDragDropForList(listId) {
             const listEl = document.getElementById(`todo-list-${listId}`);
@@ -371,12 +388,15 @@
 
         function onTodoDragStart(e) {
             todoDragSrcId = this.dataset.todoId;
+            todoDragJustFinished = false;
             this.classList.add('todo-item-dragging');
             e.dataTransfer.effectAllowed = 'move';
         }
 
         function onTodoDragEnd() {
             todoDragSrcId = null;
+            todoDragJustFinished = true;
+            setTimeout(() => { todoDragJustFinished = false; }, 200);
             document.querySelectorAll('.todo-item').forEach(i => {
                 i.classList.remove('todo-item-dragging', 'todo-item-drag-over');
             });
@@ -440,3 +460,299 @@
                 console.error('Failed to persist todo order:', err);
             }
         }
+
+        // =========================================
+        // TODO DETAIL MODAL (Notion-like)
+        // =========================================
+
+        let todoModalCurrentId = null;
+        let todoModalSaveTimer = null;
+        let todoModalTitleTimer = null;
+
+        function openTodoDetailModal(todoId) {
+            const todo = todosData.find(t => t.id === todoId);
+            if (!todo) return;
+            todoModalCurrentId = todoId;
+
+            // Set title
+            const titleEl = document.getElementById('todo-modal-title');
+            titleEl.value = todo.text || '';
+
+            // Set meta info
+            const metaEl = document.getElementById('todo-modal-meta');
+            const listName = todoLists.find(l => l.id === (todo.listId || 'todolist-default'))?.name || 'Default';
+            let metaParts = [listName];
+            if (todo.priority) metaParts.push(todo.priority + ' priority');
+            if (todo.dueDate) metaParts.push('Due ' + formatDueDate(todo.dueDate));
+            metaEl.textContent = metaParts.join(' \u00b7 ');
+
+            // Render content blocks
+            renderTodoDetailBlocks(todo.content || []);
+
+            // Clear save status
+            updateTodoModalSaveStatus('');
+
+            // Show modal
+            document.getElementById('todoDetailModal').style.display = 'block';
+
+            // Wire up title auto-save
+            titleEl.oninput = () => {
+                clearTimeout(todoModalTitleTimer);
+                updateTodoModalSaveStatus('Unsaved changes');
+                todoModalTitleTimer = setTimeout(() => {
+                    const newText = titleEl.value.trim();
+                    if (newText && newText !== todo.text) {
+                        saveTodoText(todoId, newText);
+                        todo.text = newText;
+                        updateTodoModalSaveStatus('Saved');
+                        rerenderTodoListDiv(todo.listId || 'todolist-default');
+                    }
+                }, 800);
+            };
+        }
+
+        function closeTodoDetailModal() {
+            // Flush any pending saves
+            if (todoModalSaveTimer) {
+                clearTimeout(todoModalSaveTimer);
+                saveTodoModalContentNow();
+            }
+            if (todoModalTitleTimer) {
+                clearTimeout(todoModalTitleTimer);
+                const titleEl = document.getElementById('todo-modal-title');
+                const todo = todosData.find(t => t.id === todoModalCurrentId);
+                if (todo && titleEl) {
+                    const newText = titleEl.value.trim();
+                    if (newText && newText !== todo.text) {
+                        saveTodoText(todoModalCurrentId, newText);
+                        todo.text = newText;
+                    }
+                }
+            }
+
+            document.getElementById('todoDetailModal').style.display = 'none';
+
+            // Re-render the list to show updated content indicators
+            const todo = todosData.find(t => t.id === todoModalCurrentId);
+            if (todo) rerenderTodoListDiv(todo.listId || 'todolist-default');
+
+            todoModalCurrentId = null;
+        }
+
+        function updateTodoModalSaveStatus(text) {
+            const el = document.getElementById('todo-modal-save-status');
+            if (el) el.textContent = text;
+        }
+
+        // ---- Content block rendering ----
+
+        function renderTodoDetailBlocks(content) {
+            const blocksEl = document.getElementById('todo-detail-blocks');
+            const emptyEl = document.getElementById('todo-detail-empty');
+
+            if (!content || content.length === 0) {
+                emptyEl.style.display = 'block';
+                blocksEl.innerHTML = '';
+                return;
+            }
+
+            emptyEl.style.display = 'none';
+            blocksEl.innerHTML = content.map((block, idx) => {
+                if (block.type === 'text') return buildTextBlockHtml(block, idx);
+                if (block.type === 'checklist') return buildChecklistBlockHtml(block, idx);
+                return '';
+            }).join('');
+
+            // Auto-resize all textareas
+            blocksEl.querySelectorAll('.todo-block-textarea').forEach(autoResizeTextarea);
+        }
+
+        function buildTextBlockHtml(block, idx) {
+            return `<div class="todo-content-block todo-block-text" data-block-idx="${idx}">
+                <div class="todo-block-header">
+                    <span class="todo-block-type-label"><i class="ti ti-text-size"></i> Text</span>
+                    <button class="todo-block-delete" onclick="deleteTodoContentBlock(${idx})" title="Remove block">&#x2715;</button>
+                </div>
+                <textarea class="todo-block-textarea" placeholder="Write something..."
+                    oninput="autoResizeTextarea(this); scheduleTodoModalSave();">${escapeHtml(block.value || '')}</textarea>
+            </div>`;
+        }
+
+        function buildChecklistBlockHtml(block, idx) {
+            const items = block.items || [];
+            const itemsHtml = items.map((item, itemIdx) => buildChecklistItemHtml(idx, itemIdx, item)).join('');
+            return `<div class="todo-content-block todo-block-checklist" data-block-idx="${idx}">
+                <div class="todo-block-header">
+                    <span class="todo-block-type-label"><i class="ti ti-list-check"></i> Checklist</span>
+                    <button class="todo-block-delete" onclick="deleteTodoContentBlock(${idx})" title="Remove block">&#x2715;</button>
+                </div>
+                <div class="todo-checklist-items" data-block-idx="${idx}">
+                    ${itemsHtml}
+                </div>
+                <button class="todo-checklist-add-btn" onclick="addChecklistItem(${idx})">+ Add item</button>
+            </div>`;
+        }
+
+        function buildChecklistItemHtml(blockIdx, itemIdx, item) {
+            return `<div class="todo-checklist-item" data-block-idx="${blockIdx}" data-item-idx="${itemIdx}">
+                <input type="checkbox" class="todo-checklist-checkbox" ${item.done ? 'checked' : ''}
+                       onchange="scheduleTodoModalSave()">
+                <input type="text" class="todo-checklist-text ${item.done ? 'checked-text' : ''}" value="${escapeHtml(item.text || '')}"
+                       placeholder="To-do item..."
+                       oninput="scheduleTodoModalSave()"
+                       onkeydown="handleChecklistKeydown(event, ${blockIdx}, ${itemIdx})">
+                <button class="todo-checklist-item-delete" onclick="deleteChecklistItem(${blockIdx}, ${itemIdx})" title="Remove">&#x2715;</button>
+            </div>`;
+        }
+
+        function autoResizeTextarea(el) {
+            el.style.height = 'auto';
+            el.style.height = el.scrollHeight + 'px';
+        }
+
+        // ---- Content block actions ----
+
+        function addTodoContentBlock(type) {
+            syncContentToMemory();
+            const todo = todosData.find(t => t.id === todoModalCurrentId);
+            if (!todo) return;
+            if (!todo.content) todo.content = [];
+
+            if (type === 'text') {
+                todo.content.push({ type: 'text', id: 'block-' + Date.now(), value: '' });
+            } else if (type === 'checklist') {
+                todo.content.push({ type: 'checklist', id: 'block-' + Date.now(), items: [{ id: 'item-' + Date.now(), text: '', done: false }] });
+            }
+
+            renderTodoDetailBlocks(todo.content);
+            scheduleTodoModalSave();
+
+            // Focus the new block
+            const blocksEl = document.getElementById('todo-detail-blocks');
+            const lastBlock = blocksEl.lastElementChild;
+            if (lastBlock) {
+                const input = lastBlock.querySelector('textarea, .todo-checklist-text');
+                if (input) input.focus();
+            }
+        }
+
+        function deleteTodoContentBlock(idx) {
+            syncContentToMemory();
+            const todo = todosData.find(t => t.id === todoModalCurrentId);
+            if (!todo || !todo.content) return;
+            todo.content.splice(idx, 1);
+            renderTodoDetailBlocks(todo.content);
+            scheduleTodoModalSave();
+        }
+
+        function addChecklistItem(blockIdx) {
+            syncContentToMemory();
+            const todo = todosData.find(t => t.id === todoModalCurrentId);
+            if (!todo || !todo.content || !todo.content[blockIdx]) return;
+            const block = todo.content[blockIdx];
+            if (!block.items) block.items = [];
+            block.items.push({ id: 'item-' + Date.now(), text: '', done: false });
+            renderTodoDetailBlocks(todo.content);
+            scheduleTodoModalSave();
+
+            // Focus the new item
+            const blockEl = document.querySelector(`.todo-block-checklist[data-block-idx="${blockIdx}"]`);
+            if (blockEl) {
+                const items = blockEl.querySelectorAll('.todo-checklist-text');
+                const lastItem = items[items.length - 1];
+                if (lastItem) lastItem.focus();
+            }
+        }
+
+        function deleteChecklistItem(blockIdx, itemIdx) {
+            syncContentToMemory();
+            const todo = todosData.find(t => t.id === todoModalCurrentId);
+            if (!todo || !todo.content || !todo.content[blockIdx]) return;
+            const block = todo.content[blockIdx];
+            if (!block.items) return;
+            block.items.splice(itemIdx, 1);
+            renderTodoDetailBlocks(todo.content);
+            scheduleTodoModalSave();
+        }
+
+        function handleChecklistKeydown(event, blockIdx, itemIdx) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                event.target.blur();
+                scheduleTodoModalSave();
+            }
+            if (event.key === 'Backspace' && event.target.value === '') {
+                event.preventDefault();
+                syncContentToMemory();
+                deleteChecklistItem(blockIdx, itemIdx);
+            }
+        }
+
+        // Sync current DOM content into in-memory todo.content before re-renders
+        function syncContentToMemory() {
+            const todo = todosData.find(t => t.id === todoModalCurrentId);
+            if (!todo) return;
+            todo.content = collectContentBlocksFromDOM();
+        }
+
+        // ---- Auto-save ----
+
+        function scheduleTodoModalSave() {
+            clearTimeout(todoModalSaveTimer);
+            updateTodoModalSaveStatus('Unsaved changes');
+            todoModalSaveTimer = setTimeout(() => saveTodoModalContentNow(), 800);
+        }
+
+        function collectContentBlocksFromDOM() {
+            const blocks = [];
+            const blockEls = document.querySelectorAll('#todo-detail-blocks .todo-content-block');
+            blockEls.forEach(el => {
+                const idx = parseInt(el.dataset.blockIdx);
+                if (el.classList.contains('todo-block-text')) {
+                    const textarea = el.querySelector('.todo-block-textarea');
+                    blocks.push({ type: 'text', id: 'block-' + idx, value: textarea ? textarea.value : '' });
+                } else if (el.classList.contains('todo-block-checklist')) {
+                    const items = [];
+                    el.querySelectorAll('.todo-checklist-item').forEach(itemEl => {
+                        const checkbox = itemEl.querySelector('.todo-checklist-checkbox');
+                        const textInput = itemEl.querySelector('.todo-checklist-text');
+                        items.push({
+                            id: 'item-' + itemEl.dataset.itemIdx,
+                            text: textInput ? textInput.value : '',
+                            done: checkbox ? checkbox.checked : false
+                        });
+                    });
+                    blocks.push({ type: 'checklist', id: 'block-' + idx, items });
+                }
+            });
+            return blocks;
+        }
+
+        async function saveTodoModalContentNow() {
+            todoModalSaveTimer = null;
+            if (!todoModalCurrentId) return;
+
+            const content = collectContentBlocksFromDOM();
+            const todo = todosData.find(t => t.id === todoModalCurrentId);
+
+            try {
+                updateTodoModalSaveStatus('Saving...');
+                await fetch(`/api/todos/${todoModalCurrentId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ content })
+                });
+                if (todo) todo.content = content;
+                updateTodoModalSaveStatus('Saved');
+            } catch (err) {
+                console.error('Failed to save todo content:', err);
+                updateTodoModalSaveStatus('Save failed');
+            }
+        }
+
+        // Close modal on Escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && document.getElementById('todoDetailModal').style.display === 'block') {
+                closeTodoDetailModal();
+            }
+        });

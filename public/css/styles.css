@@ -2233,6 +2233,236 @@
         }
 
         /* =========================================
+           TODO TEXT ROW + HAS-CONTENT INDICATOR
+           ========================================= */
+        .todo-text-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .todo-text-row .todo-text { flex: 1; }
+
+        .todo-has-content-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            background: rgba(99, 102, 241, 0.15);
+            color: #818cf8;
+            font-size: 12px;
+            flex-shrink: 0;
+        }
+        .todo-item.has-content {
+            border-left: 3px solid #818cf8;
+        }
+
+        .todo-open-btn {
+            font-size: 14px;
+            color: var(--color-text-subtle);
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+        .todo-item:hover .todo-open-btn { opacity: 1; }
+
+        /* =========================================
+           TODO DETAIL MODAL
+           ========================================= */
+        .todo-detail-modal-content {
+            max-width: 720px;
+            min-height: unset;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .todo-modal-title-input {
+            width: 100%;
+            font-size: 18px;
+            font-weight: 600;
+            background: transparent;
+            border: none;
+            color: var(--color-text);
+            padding: 0;
+            outline: none;
+        }
+        .todo-modal-title-input::placeholder { color: var(--color-text-subtle); }
+        .todo-modal-title-input:focus {
+            border-bottom: 1px solid var(--color-primary);
+            padding-bottom: 2px;
+        }
+
+        .todo-modal-save-status {
+            font-size: 12px;
+            color: var(--color-text-subtle);
+            white-space: nowrap;
+        }
+
+        .todo-detail-body {
+            padding: 20px 30px;
+            overflow-y: auto;
+            flex: 1;
+            min-height: 200px;
+        }
+        .todo-detail-empty {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--color-text-muted);
+            font-size: 14px;
+        }
+        .todo-detail-empty p { margin: 0; }
+
+        /* Content blocks */
+        .todo-content-block {
+            margin-bottom: 16px;
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            overflow: hidden;
+            background: var(--color-bg-card);
+        }
+        .todo-block-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 12px;
+            background: var(--color-bg-sidebar);
+            border-bottom: 1px solid var(--color-border);
+        }
+        .todo-block-type-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--color-text-subtle);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .todo-block-type-label i { font-size: 14px; }
+        .todo-block-delete {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--color-text-subtle);
+            font-size: 14px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            opacity: 0;
+            transition: opacity 0.15s, color 0.15s;
+        }
+        .todo-content-block:hover .todo-block-delete { opacity: 1; }
+        .todo-block-delete:hover { color: var(--color-danger); }
+
+        /* Text block */
+        .todo-block-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 12px;
+            border: none;
+            resize: none;
+            font-size: 14px;
+            font-family: inherit;
+            line-height: 1.6;
+            color: var(--color-text);
+            background: transparent;
+            outline: none;
+            box-sizing: border-box;
+        }
+        .todo-block-textarea::placeholder { color: var(--color-text-muted); }
+
+        /* Checklist block */
+        .todo-checklist-items {
+            padding: 8px 12px 4px;
+        }
+        .todo-checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        .todo-checklist-checkbox {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+            cursor: pointer;
+            accent-color: var(--color-primary);
+        }
+        .todo-checklist-text {
+            flex: 1;
+            border: none;
+            background: transparent;
+            color: var(--color-text);
+            font-size: 14px;
+            font-family: inherit;
+            padding: 4px 0;
+            outline: none;
+        }
+        .todo-checklist-text.checked-text {
+            text-decoration: line-through;
+            color: var(--color-text-subtle);
+        }
+        .todo-checklist-text::placeholder { color: var(--color-text-muted); }
+        .todo-checklist-item-delete {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--color-text-subtle);
+            font-size: 12px;
+            padding: 2px 4px;
+            border-radius: 3px;
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+        .todo-checklist-item:hover .todo-checklist-item-delete { opacity: 1; }
+        .todo-checklist-item-delete:hover { color: var(--color-danger); }
+
+        .todo-checklist-add-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--color-text-subtle);
+            font-size: 13px;
+            padding: 8px 12px;
+            width: 100%;
+            text-align: left;
+            border-top: 1px solid var(--color-border);
+            transition: color 0.15s;
+        }
+        .todo-checklist-add-btn:hover { color: var(--color-primary); }
+
+        /* Add block buttons in modal footer */
+        .todo-modal-add-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border: 1px dashed var(--color-border);
+            border-radius: 6px;
+            background: transparent;
+            color: var(--color-text-subtle);
+            font-size: 13px;
+            cursor: pointer;
+            transition: border-color 0.15s, color 0.15s;
+        }
+        .todo-modal-add-btn:hover {
+            border-color: var(--color-primary);
+            color: var(--color-primary);
+        }
+        .todo-modal-add-btn i { font-size: 16px; }
+
+        /* Mobile responsive */
+        @media (max-width: 600px) {
+            .todo-detail-modal-content {
+                max-width: 100%;
+                margin: 0;
+                border-radius: 0;
+                height: 100vh;
+                max-height: 100vh;
+            }
+            .todo-detail-body { padding: 16px; }
+        }
+
+        /* =========================================
            TRACKED CARD DRAG-AND-DROP (Feature 2)
            ========================================= */
         .tracked-drag-handle {
