@@ -763,10 +763,18 @@
             <div class="modal-header">
                 <div style="flex:1;min-width:0;">
                     <input type="text" id="todo-modal-title" class="todo-modal-title-input" placeholder="Todo title...">
-                    <p class="modal-contact-info" id="todo-modal-meta"></p>
+                    <div class="todo-modal-props">
+                        <select id="todo-modal-priority" class="todo-modal-select" onchange="saveTodoModalProp()">
+                            <option value="">No priority</option>
+                            <option value="high">High</option>
+                            <option value="medium">Medium</option>
+                            <option value="low">Low</option>
+                        </select>
+                        <input type="date" id="todo-modal-duedate" class="todo-modal-date" onchange="saveTodoModalProp()">
+                        <span class="todo-modal-save-status" id="todo-modal-save-status"></span>
+                    </div>
                 </div>
-                <div style="display:flex;align-items:center;gap:10px;">
-                    <span class="todo-modal-save-status" id="todo-modal-save-status"></span>
+                <div style="display:flex;align-items:flex-start;gap:10px;padding-top:2px;">
                     <button class="close-button" onclick="closeTodoDetailModal()">&#x2715;</button>
                 </div>
             </div>

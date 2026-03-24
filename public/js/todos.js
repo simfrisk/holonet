@@ -86,19 +86,6 @@
                     ${deleteBtn}
                 </div>
 
-                <form class="todo-add-form" onsubmit="addTodo(event, '${escapeAttr(listId)}')">
-                    <input type="text" class="todo-add-text" id="todo-add-text-${escapeHtml(listId)}"
-                           placeholder="Add a to-do…" autocomplete="off">
-                    <select class="todo-add-priority" id="todo-add-priority-${escapeHtml(listId)}" title="Priority">
-                        <option value="">— priority</option>
-                        <option value="high">High</option>
-                        <option value="medium">Medium</option>
-                        <option value="low">Low</option>
-                    </select>
-                    <input type="date" class="todo-add-date" id="todo-add-date-${escapeHtml(listId)}" title="Due date">
-                    <button type="submit" class="todo-add-btn">Add</button>
-                </form>
-
                 <div class="todo-filters">
                     <button class="todo-filter-btn ${filter === 'active' ? 'active' : ''}"
                             data-filter="active"
@@ -110,6 +97,8 @@
                 </div>
 
                 <div class="todo-list" id="todo-list-${escapeHtml(listId)}">${itemsHtml}</div>
+
+                <button class="todo-new-btn" onclick="quickAddTodo('${escapeAttr(listId)}')">+ New</button>
             </div>`;
         }
 
@@ -255,35 +244,29 @@
         // ADD / EDIT / DELETE TODOS
         // =========================================
 
-        async function addTodo(event, listId) {
-            event.preventDefault();
-            const textEl     = document.getElementById(`todo-add-text-${listId}`);
-            const priorityEl = document.getElementById(`todo-add-priority-${listId}`);
-            const dateEl     = document.getElementById(`todo-add-date-${listId}`);
-            if (!textEl) return;
-            const text = (textEl.value || '').trim();
-            if (!text) { textEl.focus(); return; }
-
+        async function quickAddTodo(listId) {
             try {
                 const res = await fetch('/api/todos', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        text,
-                        priority: priorityEl ? (priorityEl.value || null) : null,
-                        dueDate:  dateEl     ? (dateEl.value     || null) : null,
-                        listId:   listId
+                        text: 'Untitled',
+                        priority: null,
+                        dueDate: null,
+                        listId: listId
                     })
                 });
                 if (!res.ok) throw new Error('Failed');
                 const data = await res.json();
                 todosData.unshift(data.todo);
-                textEl.value = '';
-                if (priorityEl) priorityEl.value = '';
-                if (dateEl) dateEl.value = '';
-                textEl.focus();
                 updateTodosCount();
                 rerenderTodoListDiv(listId);
+                openTodoDetailModal(data.todo.id);
+                // Focus the title so user can start typing immediately
+                setTimeout(() => {
+                    const titleEl = document.getElementById('todo-modal-title');
+                    if (titleEl) { titleEl.select(); titleEl.focus(); }
+                }, 100);
             } catch (err) {
                 console.error('Failed to add todo:', err);
             }
@@ -497,13 +480,9 @@
             const titleEl = document.getElementById('todo-modal-title');
             titleEl.value = todo.text || '';
 
-            // Set meta info
-            const metaEl = document.getElementById('todo-modal-meta');
-            const listName = todoLists.find(l => l.id === (todo.listId || 'todolist-default'))?.name || 'Default';
-            let metaParts = [listName];
-            if (todo.priority) metaParts.push(todo.priority + ' priority');
-            if (todo.dueDate) metaParts.push('Due ' + formatDueDate(todo.dueDate));
-            metaEl.textContent = metaParts.join(' \u00b7 ');
+            // Set priority and date
+            document.getElementById('todo-modal-priority').value = todo.priority || '';
+            document.getElementById('todo-modal-duedate').value = todo.dueDate || '';
 
             // Render content blocks
             renderTodoDetailBlocks(todo.content || []);
@@ -561,6 +540,28 @@
         function updateTodoModalSaveStatus(text) {
             const el = document.getElementById('todo-modal-save-status');
             if (el) el.textContent = text;
+        }
+
+        async function saveTodoModalProp() {
+            if (!todoModalCurrentId) return;
+            const todo = todosData.find(t => t.id === todoModalCurrentId);
+            if (!todo) return;
+            const priority = document.getElementById('todo-modal-priority').value || null;
+            const dueDate = document.getElementById('todo-modal-duedate').value || null;
+            todo.priority = priority;
+            todo.dueDate = dueDate;
+            try {
+                updateTodoModalSaveStatus('Saving...');
+                await fetch(`/api/todos/${todoModalCurrentId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ priority, dueDate })
+                });
+                updateTodoModalSaveStatus('Saved');
+            } catch (err) {
+                console.error('Failed to save todo props:', err);
+                updateTodoModalSaveStatus('Save failed');
+            }
         }
 
         // ---- Content block rendering ----
