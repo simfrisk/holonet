@@ -740,23 +740,6 @@
         </div>
     </div>
 
-    <!-- Todo Confirm Modal -->
-    <div id="todoConfirmModal" class="modal" onclick="if(event.target===this)cancelTodoConfirm()">
-        <div class="modal-content" style="max-width:380px;min-height:unset;">
-            <div class="modal-header">
-                <h2 id="todoConfirmTitle">Confirm</h2>
-                <button class="close-button" onclick="cancelTodoConfirm()">&#x2715;</button>
-            </div>
-            <div class="modal-body" style="padding:16px 24px;">
-                <p id="todoConfirmMessage" style="font-size:14px;color:var(--color-text-muted);margin:0;"></p>
-            </div>
-            <div class="modal-footer">
-                <button class="cancel-button" onclick="cancelTodoConfirm()">Cancel</button>
-                <button class="save-button" id="todoConfirmBtn" style="background-color:var(--color-danger);" onclick="executeTodoConfirm()">Delete</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Todo Detail Modal -->
     <div id="todoDetailModal" class="modal" onclick="if(event.target===this)closeTodoDetailModal()">
         <div class="modal-content todo-detail-modal-content">

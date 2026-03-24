@@ -2236,6 +2236,35 @@
         .todo-item { cursor: pointer; }
         .todo-item:hover { background: var(--color-bg-hover, rgba(255,255,255,0.03)); }
 
+        /* Inline delete overlay */
+        .todo-delete-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            border-radius: 8px;
+            overflow: hidden;
+            z-index: 5;
+        }
+        .todo-delete-cancel, .todo-delete-confirm {
+            flex: 1;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            transition: filter 0.15s;
+        }
+        .todo-delete-cancel {
+            background: var(--color-surface-elevated);
+            color: var(--color-text);
+        }
+        .todo-delete-confirm {
+            background: var(--color-danger);
+            color: #fff;
+        }
+        .todo-delete-cancel:hover { filter: brightness(1.2); }
+        .todo-delete-confirm:hover { filter: brightness(1.15); }
+
         .todo-item { position: relative; }
         .todo-has-content-badge {
             position: absolute;
