@@ -678,8 +678,8 @@
         function handleChecklistKeydown(event, blockIdx, itemIdx) {
             if (event.key === 'Enter') {
                 event.preventDefault();
-                event.target.blur();
-                scheduleTodoModalSave();
+                syncContentToMemory();
+                addChecklistItem(blockIdx);
             }
             if (event.key === 'Backspace' && event.target.value === '') {
                 event.preventDefault();
