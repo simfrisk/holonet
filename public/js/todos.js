@@ -232,9 +232,9 @@
                 <span class="todo-drag-handle" title="Drag to reorder">&#x2807;</span>
                 <input type="checkbox" class="todo-checkbox" ${todo.done ? 'checked' : ''}
                        onchange="event.stopPropagation(); toggleTodoDone('${escapeAttr(todo.id)}', this.checked)">
+                ${contentIndicator}
                 <div class="todo-text-wrap">
                     <span class="todo-text">${escapeHtml(todo.text)}</span>
-                    ${contentIndicator}
                     ${metaHtml ? `<div class="todo-meta">${metaHtml}</div>` : ''}
                 </div>
                 <div class="todo-actions">
