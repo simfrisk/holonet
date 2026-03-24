@@ -203,6 +203,67 @@
             return todo.content && Array.isArray(todo.content) && todo.content.length > 0;
         }
 
+        function buildContentIndicatorsHtml(contentBlocks) {
+            if (!contentBlocks || contentBlocks.length === 0) return '';
+            let noteCount = 0;
+            let checkDone = 0;
+            let checkTotal = 0;
+
+            for (const block of contentBlocks) {
+                if (block.type === 'text' && block.value && block.value.trim()) {
+                    noteCount++;
+                } else if (block.type === 'checklist' && block.items) {
+                    checkTotal += block.items.length;
+                    checkDone += block.items.filter(i => i.done).length;
+                }
+            }
+
+            let indicators = '';
+            if (noteCount > 0) {
+                indicators += `<span class="content-inline-indicator"><i class="ti ti-notes"></i> ${noteCount}</span>`;
+            }
+            if (checkTotal > 0) {
+                const allDone = checkDone === checkTotal;
+                indicators += `<span class="content-inline-indicator ${allDone ? 'checklist-done' : ''}"><i class="ti ti-checkbox"></i> ${checkDone}/${checkTotal}</span>`;
+            }
+
+            return indicators
+                ? `<span class="content-inline-indicators"><button class="content-toggle-btn" onclick="event.stopPropagation(); toggleContentPreview(this)" title="Show content">&#x25BE;</button>${indicators}</span>`
+                : '';
+        }
+
+        function buildClickPreviewHtml(contentBlocks) {
+            if (!contentBlocks || contentBlocks.length === 0) return '';
+            const MAX_ITEMS = 4;
+            let lines = [];
+
+            for (const block of contentBlocks) {
+                if (lines.length >= MAX_ITEMS) break;
+                if (block.type === 'text' && block.value && block.value.trim()) {
+                    const truncated = block.value.length > 90
+                        ? escapeHtml(block.value.slice(0, 90)) + '…'
+                        : escapeHtml(block.value);
+                    lines.push(`<div class="click-preview-text">${truncated}</div>`);
+                } else if (block.type === 'checklist' && block.items) {
+                    for (const item of block.items) {
+                        if (lines.length >= MAX_ITEMS) break;
+                        const doneClass = item.done ? 'done' : '';
+                        lines.push(`<div class="click-preview-check ${doneClass}"><input type="checkbox" tabindex="-1" ${item.done ? 'checked' : ''} disabled><span>${escapeHtml(item.text || '')}</span></div>`);
+                    }
+                }
+            }
+
+            return lines.length > 0 ? `<div class="click-preview">${lines.join('')}</div>` : '';
+        }
+
+        function toggleContentPreview(btn) {
+            const preview = btn.closest('.todo-text-wrap').querySelector('.click-preview');
+            if (!preview) return;
+            const isOpen = preview.classList.toggle('open');
+            btn.classList.toggle('expanded', isOpen);
+            btn.title = isOpen ? 'Hide content' : 'Show content';
+        }
+
         function buildTodoItemHtml(todo) {
             const priorityClass = todo.priority ? `priority-${todo.priority}` : '';
             const doneClass     = todo.done ? 'done-item' : '';
@@ -220,19 +281,18 @@
                 </span>`;
             }
 
-            const contentIndicator = hasContent
-                ? `<span class="todo-has-content-badge" title="Has notes/checklist"><i class="ti ti-notes"></i></span>`
-                : '';
+            const inlineIndicators = hasContent ? buildContentIndicatorsHtml(todo.content) : '';
+            const clickPreview = hasContent ? buildClickPreviewHtml(todo.content) : '';
 
             return `<div class="todo-item ${priorityClass} ${doneClass} ${hasContent ? 'has-content' : ''}" data-todo-id="${escapeHtml(todo.id)}" draggable="true"
                          onclick="if(!todoDragJustFinished && event.target.closest('.todo-checkbox, .todo-delete-btn, .todo-drag-handle')){}else if(!todoDragJustFinished){openTodoDetailModal('${escapeAttr(todo.id)}')}">
                 <span class="todo-drag-handle" title="Drag to reorder">&#x2807;</span>
                 <input type="checkbox" class="todo-checkbox" ${todo.done ? 'checked' : ''}
                        onchange="event.stopPropagation(); toggleTodoDone('${escapeAttr(todo.id)}', this.checked)">
-                ${contentIndicator}
                 <div class="todo-text-wrap">
                     <span class="todo-text">${escapeHtml(todo.text)}</span>
-                    ${metaHtml ? `<div class="todo-meta">${metaHtml}</div>` : ''}
+                    ${metaHtml || inlineIndicators ? `<div class="todo-meta">${metaHtml}${inlineIndicators}</div>` : ''}
+                    ${clickPreview}
                 </div>
                 <div class="todo-actions">
                     <button class="todo-action-btn todo-delete-btn"

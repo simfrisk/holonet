@@ -2269,25 +2269,88 @@
         .todo-delete-confirm:hover { filter: brightness(1.15); }
 
         .todo-item { position: relative; }
-        .todo-has-content-badge {
-            position: absolute;
-            top: 4px;
-            right: 4px;
+        .todo-item.has-content {
+            border-left-color: #818cf8;
+        }
+
+        /* Inline indicators */
+        .content-inline-indicators {
+            display: inline-flex;
+            gap: 6px;
+            align-items: center;
+            margin-left: 4px;
+        }
+        .content-inline-indicator {
+            font-size: 11px;
+            color: #818cf8;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .content-inline-indicator i { font-size: 13px; }
+        .content-inline-indicator.checklist-done { color: var(--color-success); }
+
+        /* Toggle button — visual size stays small, tap target is 36x36 */
+        .content-toggle-btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 18px;
-            height: 18px;
-            border-radius: 4px;
-            background: rgba(99, 102, 241, 0.15);
+            width: 20px;
+            height: 20px;
+            border: none;
+            background: rgba(129,140,248,0.15);
             color: #818cf8;
-            font-size: 11px;
-            flex-shrink: 0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.15s, transform 0.15s;
+            line-height: 1;
+            position: relative;
+        }
+        .content-toggle-btn::before {
+            content: '';
+            position: absolute;
+            inset: -8px;
+        }
+        .content-toggle-btn:hover { background: rgba(129,140,248,0.25); }
+        .content-toggle-btn.expanded { transform: rotate(180deg); }
+
+        /* Click-to-expand preview */
+        .click-preview {
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: max-height 0.2s ease, opacity 0.15s ease, padding 0.2s ease, margin 0.2s ease;
+            padding: 0;
+            margin-top: 0;
+            border-top: 1px solid transparent;
+        }
+        .click-preview.open {
+            max-height: 200px;
+            opacity: 1;
+            padding: 8px 0;
+            margin-top: 8px;
+            border-top-color: var(--color-border);
+        }
+        .click-preview-text {
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--color-text-muted);
+        }
+        .click-preview-check {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: var(--color-text-muted);
+            padding: 1px 0;
+        }
+        .click-preview-check input {
+            width: 13px; height: 13px;
+            accent-color: var(--color-success);
             pointer-events: none;
         }
-        .todo-item.has-content {
-            border-left: 3px solid #818cf8;
-        }
+        .click-preview-check.done span { text-decoration: line-through; opacity: 0.6; }
 
         /* =========================================
            TODO DETAIL MODAL
