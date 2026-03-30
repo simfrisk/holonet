@@ -52,9 +52,9 @@
 
         function renderVideoCard(v) {
             const platformBadges = (v.platforms || []).map(p => {
-                const isPosted = v.status === 'posted' && (v.postedOn || []).includes(p);
+                const isPosted = (v.postedOn || []).includes(p);
                 const postedClass = isPosted ? ' platform-badge-posted' : '';
-                return `<span class="platform-badge platform-badge-${p}${postedClass}" title="${p}${isPosted ? ' (posted)' : ''}">
+                return `<span class="platform-badge platform-badge-${p}${postedClass}" title="${p}${isPosted ? ' (posted)' : ' — click to mark posted'}" onclick="event.stopPropagation();togglePlatformPosted('${v.id}','${p}')">
                     <i class="ti ${PLATFORM_ICONS[p]}"></i>${isPosted ? '<i class="ti ti-check" style="font-size:10px;margin-left:2px;"></i>' : ''}
                 </span>`;
             }).join('');
@@ -216,6 +216,31 @@
                 closeVideoModal();
             } catch (err) {
                 console.error('Failed to save video:', err);
+            }
+        }
+
+        async function togglePlatformPosted(videoId, platform) {
+            const video = videosData.find(v => v.id === videoId);
+            if (!video) return;
+
+            const postedOn = video.postedOn || [];
+            const idx = postedOn.indexOf(platform);
+            if (idx >= 0) {
+                postedOn.splice(idx, 1);
+            } else {
+                postedOn.push(platform);
+            }
+            video.postedOn = postedOn;
+            renderVideoKanban();
+
+            try {
+                await fetch(`/api/videos/${videoId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ postedOn })
+                });
+            } catch (err) {
+                console.error('Failed to toggle platform posted:', err);
             }
         }
 

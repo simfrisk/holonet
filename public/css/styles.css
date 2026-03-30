@@ -4596,7 +4596,10 @@
             padding: 2px 6px;
             border-radius: 4px;
             font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.1s;
         }
+        .platform-badge:hover { transform: scale(1.15); }
         .platform-badge-youtube { background: #ff000018; color: #cc0000; }
         .platform-badge-instagram { background: #e1306c18; color: #c13584; }
         .platform-badge-tiktok { background: #00000012; color: var(--color-text); }
