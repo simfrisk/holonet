@@ -4447,3 +4447,197 @@
             margin: 0;
         }
 
+        /* =========================================
+           VIDEO PLANNER / KANBAN
+           ========================================= */
+
+        .videos-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .videos-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
+        .add-video-btn {
+            padding: 8px 14px;
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+        }
+        .add-video-btn:hover { background: var(--color-primary-hover); }
+
+        .kanban-board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            min-height: 400px;
+        }
+
+        .kanban-column {
+            background: var(--color-surface-elevated);
+            border: 1px solid var(--color-border);
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            min-height: 300px;
+        }
+
+        .kanban-column-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .kanban-column-title {
+            font-weight: 600;
+            font-size: 13px;
+            flex: 1;
+        }
+
+        .kanban-column-count {
+            background: var(--color-border);
+            color: var(--color-text-muted);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 10px;
+        }
+
+        .kanban-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .kanban-dot-idea { background: #6c757d; }
+        .kanban-dot-scripted { background: #0066cc; }
+        .kanban-dot-filmed { background: #e67e22; }
+        .kanban-dot-edited { background: #8e44ad; }
+        .kanban-dot-posted { background: #28a745; }
+
+        .kanban-cards {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 40px;
+            border-radius: 6px;
+            transition: background 0.15s;
+        }
+
+        .kanban-cards.kanban-drop-over {
+            background: var(--color-drag-placeholder-bg);
+        }
+
+        .kanban-empty {
+            color: var(--color-text-subtle);
+            font-size: 12px;
+            text-align: center;
+            padding: 20px 8px;
+            border: 2px dashed var(--color-border);
+            border-radius: 8px;
+        }
+
+        .video-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            padding: 12px;
+            cursor: pointer;
+            transition: box-shadow 0.2s, border-color 0.2s;
+        }
+        .video-card:hover {
+            box-shadow: 0 2px 12px var(--color-shadow);
+            border-color: var(--color-primary);
+        }
+        .video-card-dragging {
+            opacity: 0.4;
+        }
+
+        .video-card-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            line-height: 1.3;
+        }
+
+        .video-card-desc {
+            font-size: 12px;
+            color: var(--color-text-muted);
+            margin-bottom: 8px;
+            line-height: 1.4;
+        }
+
+        .video-card-platforms {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .video-card-no-platforms {
+            font-size: 11px;
+            color: var(--color-text-subtle);
+        }
+
+        .platform-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            font-size: 12px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 500;
+        }
+        .platform-badge-youtube { background: #ff000018; color: #cc0000; }
+        .platform-badge-instagram { background: #e1306c18; color: #c13584; }
+        .platform-badge-tiktok { background: #00000012; color: var(--color-text); }
+        .platform-badge-facebook { background: #1877f218; color: #1877f2; }
+
+        .platform-badge-posted {
+            outline: 2px solid var(--color-success);
+            outline-offset: -1px;
+        }
+
+        html[data-theme="dark"] .platform-badge-youtube { background: #ff000025; color: #ff6b6b; }
+        html[data-theme="dark"] .platform-badge-instagram { background: #e1306c25; color: #f06292; }
+        html[data-theme="dark"] .platform-badge-tiktok { background: #ffffff15; color: var(--color-text); }
+        html[data-theme="dark"] .platform-badge-facebook { background: #1877f225; color: #64b5f6; }
+
+        /* Video modal platform checkboxes */
+        .video-platform-checks {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .platform-check {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .platform-check input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        /* Responsive: stack kanban columns on small screens */
+        @media (max-width: 900px) {
+            .kanban-board {
+                grid-template-columns: 1fr;
+            }
+            .kanban-column {
+                min-height: unset;
+            }
+        }
+

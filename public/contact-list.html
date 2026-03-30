@@ -50,6 +50,9 @@
             <button class="primary-nav-btn" data-section="customers" onclick="switchSection('customers')">
                 <span class="pnav-icon"><i class="ti ti-address-book"></i></span> Customers
             </button>
+            <button class="primary-nav-btn" data-section="videos" onclick="switchSection('videos')">
+                <span class="pnav-icon"><i class="ti ti-video"></i></span> Videos <span class="pnav-count" id="videos-count">0</span>
+            </button>
         </div>
 
         <!-- Sub Navigation (contact list sub-tabs) -->
@@ -514,7 +517,113 @@
         <div id="customers-empty" class="customers-empty" style="display:none;">No customers match your search.</div>
     </div>
 
+    <!-- Videos Tab -->
+    <div id="videos-tab" class="tab-content">
+        <div class="videos-header">
+            <h3>Social Media Planner</h3>
+            <button class="add-video-btn" onclick="openVideoModal(null)">+ Add Video</button>
+        </div>
+        <div class="kanban-board">
+            <div class="kanban-column" data-status="idea">
+                <div class="kanban-column-header">
+                    <span class="kanban-dot kanban-dot-idea"></span>
+                    <span class="kanban-column-title">Idea</span>
+                    <span class="kanban-column-count" id="kanban-count-idea">0</span>
+                </div>
+                <div class="kanban-cards" id="kanban-idea"></div>
+            </div>
+            <div class="kanban-column" data-status="scripted">
+                <div class="kanban-column-header">
+                    <span class="kanban-dot kanban-dot-scripted"></span>
+                    <span class="kanban-column-title">Scripted</span>
+                    <span class="kanban-column-count" id="kanban-count-scripted">0</span>
+                </div>
+                <div class="kanban-cards" id="kanban-scripted"></div>
+            </div>
+            <div class="kanban-column" data-status="filmed">
+                <div class="kanban-column-header">
+                    <span class="kanban-dot kanban-dot-filmed"></span>
+                    <span class="kanban-column-title">Filmed</span>
+                    <span class="kanban-column-count" id="kanban-count-filmed">0</span>
+                </div>
+                <div class="kanban-cards" id="kanban-filmed"></div>
+            </div>
+            <div class="kanban-column" data-status="edited">
+                <div class="kanban-column-header">
+                    <span class="kanban-dot kanban-dot-edited"></span>
+                    <span class="kanban-column-title">Edited</span>
+                    <span class="kanban-column-count" id="kanban-count-edited">0</span>
+                </div>
+                <div class="kanban-cards" id="kanban-edited"></div>
+            </div>
+            <div class="kanban-column" data-status="posted">
+                <div class="kanban-column-header">
+                    <span class="kanban-dot kanban-dot-posted"></span>
+                    <span class="kanban-column-title">Posted</span>
+                    <span class="kanban-column-count" id="kanban-count-posted">0</span>
+                </div>
+                <div class="kanban-cards" id="kanban-posted"></div>
+            </div>
+        </div>
+    </div>
+
     </div><!-- end .container -->
+
+    <!-- Video Modal -->
+    <div id="videoModal" class="modal" onclick="if(event.target===this)closeVideoModal()">
+        <div class="modal-content" style="max-width: 560px;">
+            <div class="modal-header">
+                <h2 id="video-modal-title">Add Video</h2>
+                <button class="close-button" onclick="closeVideoModal()">&times;</button>
+            </div>
+            <div class="modal-body" style="padding: 20px;">
+                <input type="hidden" id="video-edit-id" />
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Title</label>
+                    <input type="text" id="video-title" placeholder="Video title..." style="width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 14px; background: var(--color-input-bg); color: var(--color-text); font-family: inherit;" />
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Description / Script Notes</label>
+                    <textarea id="video-description" rows="3" placeholder="Script outline, talking points..." style="width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 14px; background: var(--color-input-bg); color: var(--color-text); font-family: inherit; resize: vertical;"></textarea>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Target Platforms</label>
+                    <div class="video-platform-checks">
+                        <label class="platform-check"><input type="checkbox" id="plat-youtube" value="youtube" /> <i class="ti ti-brand-youtube"></i> YouTube</label>
+                        <label class="platform-check"><input type="checkbox" id="plat-instagram" value="instagram" /> <i class="ti ti-brand-instagram"></i> Instagram</label>
+                        <label class="platform-check"><input type="checkbox" id="plat-tiktok" value="tiktok" /> <i class="ti ti-brand-tiktok"></i> TikTok</label>
+                        <label class="platform-check"><input type="checkbox" id="plat-facebook" value="facebook" /> <i class="ti ti-brand-facebook"></i> Facebook</label>
+                    </div>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Status</label>
+                    <select id="video-status" style="width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 14px; background: var(--color-input-bg); color: var(--color-text); font-family: inherit;">
+                        <option value="idea">Idea</option>
+                        <option value="scripted">Scripted</option>
+                        <option value="filmed">Filmed</option>
+                        <option value="edited">Edited</option>
+                        <option value="posted">Posted</option>
+                    </select>
+                </div>
+                <div id="video-posted-on-section" style="margin-bottom: 16px; display: none;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Posted On</label>
+                    <div class="video-platform-checks">
+                        <label class="platform-check"><input type="checkbox" id="posted-youtube" value="youtube" /> <i class="ti ti-brand-youtube"></i> YouTube</label>
+                        <label class="platform-check"><input type="checkbox" id="posted-instagram" value="instagram" /> <i class="ti ti-brand-instagram"></i> Instagram</label>
+                        <label class="platform-check"><input type="checkbox" id="posted-tiktok" value="tiktok" /> <i class="ti ti-brand-tiktok"></i> TikTok</label>
+                        <label class="platform-check"><input type="checkbox" id="posted-facebook" value="facebook" /> <i class="ti ti-brand-facebook"></i> Facebook</label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; justify-content: space-between; padding: 16px 20px;">
+                <button id="video-delete-btn" class="cancel-button" style="color: var(--color-danger); display: none;" onclick="deleteVideo()">Delete</button>
+                <div style="display: flex; gap: 10px; margin-left: auto;">
+                    <button class="cancel-button" onclick="closeVideoModal()">Cancel</button>
+                    <button class="save-button" onclick="saveVideo()">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Tracked Customer Detail Modal -->
     <div id="trackedModal" class="modal" onclick="if(event.target===this)autoSaveTrackedModal()">
@@ -911,6 +1020,7 @@
     <script src="js/links.js"></script>
     <script src="js/briefs.js"></script>
     <script src="js/customers.js"></script>
+    <script src="js/videos.js"></script>
     <script src="js/init.js"></script>
 </body>
 </html>

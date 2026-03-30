@@ -180,7 +180,7 @@ async function createDesignDocuments() {
         if (checkResponse.ok) {
             existingDoc = await checkResponse.json();
             // All required views present — nothing to do
-            const required = ['all_contacts', 'by_email', 'by_tenant', 'all_drafts', 'all_todos', 'all_tracked', 'all_todolists', 'all_briefs', 'all_brief_items'];
+            const required = ['all_contacts', 'by_email', 'by_tenant', 'all_drafts', 'all_todos', 'all_tracked', 'all_todolists', 'all_briefs', 'all_brief_items', 'all_videos'];
             if (existingDoc.views && required.every(v => existingDoc.views[v])) {
                 return;
             }
@@ -230,6 +230,13 @@ async function createDesignDocuments() {
                     map: function(doc) {
                         if (doc.type === 'tracked_customer') {
                             emit(doc.addedAt, doc);
+                        }
+                    }.toString()
+                },
+                all_videos: {
+                    map: function(doc) {
+                        if (doc.type === 'video') {
+                            emit(doc.createdAt, doc);
                         }
                     }.toString()
                 },
@@ -3123,6 +3130,135 @@ app.delete('/api/brief-items/:id', async (req, res) => {
     } catch (err) {
         console.error('Error deleting brief item:', err);
         res.status(500).json({ error: 'Failed to delete brief item' });
+    }
+});
+
+// ==================== VIDEO PLANNER ====================
+
+app.get('/api/videos', async (req, res) => {
+    try {
+        const viewUrl = `${dbUrl}/_design/contacts/_view/all_videos`;
+        const viewResponse = await couchFetch(viewUrl);
+
+        if (!viewResponse.ok) {
+            return res.json({ videos: [] });
+        }
+
+        const viewData = await viewResponse.json();
+        const videos = viewData.rows.map(row => {
+            const { _id, _rev, type, ...item } = row.value;
+            return { id: _id, ...item };
+        });
+
+        // Sort by status order, then by createdAt within each status
+        const statusOrder = { 'idea': 0, 'scripted': 1, 'filmed': 2, 'edited': 3, 'posted': 4 };
+        videos.sort((a, b) => {
+            const aRank = statusOrder[a.status] ?? 5;
+            const bRank = statusOrder[b.status] ?? 5;
+            if (aRank !== bRank) return aRank - bRank;
+            return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+        });
+
+        res.json({ videos });
+    } catch (error) {
+        console.error('Error fetching videos:', error);
+        res.status(500).json({ error: 'Failed to fetch videos' });
+    }
+});
+
+app.post('/api/videos', async (req, res) => {
+    try {
+        const { title, description, platforms, status } = req.body;
+
+        if (!title) {
+            return res.status(400).json({ error: 'title is required' });
+        }
+
+        const id = `video-${Date.now()}`;
+        const doc = {
+            _id: id,
+            type: 'video',
+            title,
+            description: description || '',
+            platforms: platforms || [],
+            status: status || 'idea',
+            postedOn: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+        };
+
+        const docUrl = `${dbUrl}/${id}`;
+        const response = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!response.ok) throw new Error('Failed to create video');
+
+        res.json({ success: true, id, video: { id, ...doc } });
+    } catch (error) {
+        console.error('Error creating video:', error);
+        res.status(500).json({ error: 'Failed to create video' });
+    }
+});
+
+app.patch('/api/videos/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, description, platforms, status, postedOn } = req.body;
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Video not found' });
+        }
+
+        const doc = await getResponse.json();
+
+        if (title !== undefined) doc.title = title;
+        if (description !== undefined) doc.description = description;
+        if (platforms !== undefined) doc.platforms = platforms;
+        if (status !== undefined) doc.status = status;
+        if (postedOn !== undefined) doc.postedOn = postedOn;
+        doc.updatedAt = new Date().toISOString();
+
+        const updateResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+
+        if (!updateResponse.ok) throw new Error('Failed to update video');
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error updating video:', error);
+        res.status(500).json({ error: 'Failed to update video' });
+    }
+});
+
+app.delete('/api/videos/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+
+        if (!getResponse.ok) {
+            return res.status(404).json({ error: 'Video not found' });
+        }
+
+        const doc = await getResponse.json();
+        const deleteResponse = await couchFetch(`${docUrl}?rev=${doc._rev}`, { method: 'DELETE' });
+
+        if (!deleteResponse.ok) throw new Error('Failed to delete video');
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting video:', error);
+        res.status(500).json({ error: 'Failed to delete video' });
     }
 });
 
