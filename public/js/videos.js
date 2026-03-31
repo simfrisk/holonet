@@ -61,8 +61,14 @@
 
             const desc = v.description ? `<div class="video-card-desc">${escapeHtml(v.description).substring(0, 80)}${v.description.length > 80 ? '...' : ''}</div>` : '';
 
+            const brandBadge = v.brand ? `<span class="video-brand-badge video-brand-${v.brand}">${v.brand === 'liivo' ? 'Liivo' : 'OSC'}</span>` : '';
+            const weekBadge = v.week ? `<span class="video-week-badge">${escapeHtml(v.week)}</span>` : '';
+
             return `<div class="video-card" draggable="true" data-video-id="${v.id}" onclick="openVideoModal('${v.id}')">
-                <div class="video-card-title">${escapeHtml(v.title)}</div>
+                <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;margin-bottom:2px;">
+                    <div class="video-card-title" style="margin-bottom:0;">${escapeHtml(v.title)}</div>
+                    <div style="display:flex;gap:4px;flex-shrink:0;">${brandBadge}${weekBadge}</div>
+                </div>
                 ${desc}
                 <div class="video-card-platforms">${platformBadges || '<span class="video-card-no-platforms">No platforms</span>'}</div>
             </div>`;
@@ -127,6 +133,9 @@
             // Reset
             document.getElementById('video-title').value = '';
             document.getElementById('video-description').value = '';
+            document.getElementById('video-notes').value = '';
+            document.getElementById('video-week').value = '';
+            document.getElementById('video-brand').value = '';
             statusSelect.value = 'idea';
             ['youtube', 'instagram', 'tiktok', 'facebook'].forEach(p => {
                 document.getElementById(`plat-${p}`).checked = false;
@@ -142,6 +151,9 @@
                 deleteBtn.style.display = '';
                 document.getElementById('video-title').value = video.title;
                 document.getElementById('video-description').value = video.description || '';
+                document.getElementById('video-notes').value = video.notes || '';
+                document.getElementById('video-week').value = video.week || '';
+                document.getElementById('video-brand').value = video.brand || '';
                 statusSelect.value = video.status || 'idea';
                 (video.platforms || []).forEach(p => {
                     const el = document.getElementById(`plat-${p}`);
@@ -180,6 +192,9 @@
             if (!title) return;
 
             const description = document.getElementById('video-description').value.trim();
+            const notes = document.getElementById('video-notes').value;
+            const week = document.getElementById('video-week').value.trim();
+            const brand = document.getElementById('video-brand').value;
             const status = document.getElementById('video-status').value;
             const platforms = ['youtube', 'instagram', 'tiktok', 'facebook'].filter(p =>
                 document.getElementById(`plat-${p}`).checked
@@ -188,7 +203,7 @@
                 document.getElementById(`posted-${p}`).checked
             );
 
-            const body = { title, description, platforms, status, postedOn };
+            const body = { title, description, notes, week, brand, platforms, status, postedOn };
 
             try {
                 if (editId) {

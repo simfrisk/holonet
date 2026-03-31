@@ -98,6 +98,8 @@ app.use(express.json({ limit: '10mb' }));
 app.use((req, res, next) => {
     const exempt = ['/login.html', '/api/login', '/api/health'];
     if (exempt.includes(req.path)) return next();
+    // Video API endpoints use their own dual auth (API key OR cookie)
+    if (req.path.startsWith('/api/videos')) return next();
     return requireAuth(req, res, next);
 });
 
@@ -3135,7 +3137,19 @@ app.delete('/api/brief-items/:id', async (req, res) => {
 
 // ==================== VIDEO PLANNER ====================
 
+// Helper: dual auth for video endpoints (API key OR cookie)
+function requireVideoAuth(req, res) {
+    const apiKeyValid = !API_KEY || (req.headers['x-api-key'] === API_KEY || req.query.apiKey === API_KEY);
+    const cookieAuth = isAuthenticated(req);
+    if (!apiKeyValid && !cookieAuth) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return false;
+    }
+    return true;
+}
+
 app.get('/api/videos', async (req, res) => {
+    if (!requireVideoAuth(req, res)) return;
     try {
         const viewUrl = `${dbUrl}/_design/contacts/_view/all_videos`;
         const viewResponse = await couchFetch(viewUrl);
@@ -3159,16 +3173,54 @@ app.get('/api/videos', async (req, res) => {
             return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
         });
 
-        res.json({ videos });
+        // Optional filters via query params
+        let filtered = videos;
+        if (req.query.week) {
+            filtered = filtered.filter(v => v.week === req.query.week);
+        }
+        if (req.query.brand) {
+            filtered = filtered.filter(v => v.brand === req.query.brand);
+        }
+        if (req.query.status) {
+            filtered = filtered.filter(v => v.status === req.query.status);
+        }
+
+        res.json({ videos: filtered });
     } catch (error) {
         console.error('Error fetching videos:', error);
         res.status(500).json({ error: 'Failed to fetch videos' });
     }
 });
 
-app.post('/api/videos', async (req, res) => {
+// GET single video by ID (for agents to read back full details)
+app.get('/api/videos/:id', async (req, res) => {
+    if (!requireVideoAuth(req, res)) return;
     try {
-        const { title, description, platforms, status } = req.body;
+        const { id } = req.params;
+        const docUrl = `${dbUrl}/${id}`;
+        const response = await couchFetch(docUrl);
+
+        if (!response.ok) {
+            return res.status(404).json({ error: 'Video not found' });
+        }
+
+        const doc = await response.json();
+        if (doc.type !== 'video') {
+            return res.status(404).json({ error: 'Video not found' });
+        }
+
+        const { _id, _rev, type, ...item } = doc;
+        res.json({ video: { id: _id, ...item } });
+    } catch (error) {
+        console.error('Error fetching video:', error);
+        res.status(500).json({ error: 'Failed to fetch video' });
+    }
+});
+
+app.post('/api/videos', async (req, res) => {
+    if (!requireVideoAuth(req, res)) return;
+    try {
+        const { title, description, platforms, status, notes, week, brand } = req.body;
 
         if (!title) {
             return res.status(400).json({ error: 'title is required' });
@@ -3180,6 +3232,9 @@ app.post('/api/videos', async (req, res) => {
             type: 'video',
             title,
             description: description || '',
+            notes: notes || '',
+            week: week || '',
+            brand: brand || '',
             platforms: platforms || [],
             status: status || 'idea',
             postedOn: [],
@@ -3204,9 +3259,10 @@ app.post('/api/videos', async (req, res) => {
 });
 
 app.patch('/api/videos/:id', async (req, res) => {
+    if (!requireVideoAuth(req, res)) return;
     try {
         const { id } = req.params;
-        const { title, description, platforms, status, postedOn } = req.body;
+        const { title, description, platforms, status, postedOn, notes, week, brand } = req.body;
 
         const docUrl = `${dbUrl}/${id}`;
         const getResponse = await couchFetch(docUrl);
@@ -3219,6 +3275,9 @@ app.patch('/api/videos/:id', async (req, res) => {
 
         if (title !== undefined) doc.title = title;
         if (description !== undefined) doc.description = description;
+        if (notes !== undefined) doc.notes = notes;
+        if (week !== undefined) doc.week = week;
+        if (brand !== undefined) doc.brand = brand;
         if (platforms !== undefined) doc.platforms = platforms;
         if (status !== undefined) doc.status = status;
         if (postedOn !== undefined) doc.postedOn = postedOn;
@@ -3240,6 +3299,7 @@ app.patch('/api/videos/:id', async (req, res) => {
 });
 
 app.delete('/api/videos/:id', async (req, res) => {
+    if (!requireVideoAuth(req, res)) return;
     try {
         const { id } = req.params;
 

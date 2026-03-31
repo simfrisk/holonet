@@ -583,8 +583,26 @@
                     <input type="text" id="video-title" placeholder="Video title..." style="width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 14px; background: var(--color-input-bg); color: var(--color-text); font-family: inherit;" />
                 </div>
                 <div style="margin-bottom: 16px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Description / Script Notes</label>
-                    <textarea id="video-description" rows="3" placeholder="Script outline, talking points..." style="width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 14px; background: var(--color-input-bg); color: var(--color-text); font-family: inherit; resize: vertical;"></textarea>
+                    <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Description (shown on card)</label>
+                    <textarea id="video-description" rows="2" placeholder="Short summary for the kanban card..." style="width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 14px; background: var(--color-input-bg); color: var(--color-text); font-family: inherit; resize: vertical;"></textarea>
+                </div>
+                <div style="margin-bottom: 16px;">
+                    <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Notes (script, filming, captions)</label>
+                    <textarea id="video-notes" rows="8" placeholder="Full script, filming instructions, captions per platform..." style="width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13px; background: var(--color-input-bg); color: var(--color-text); font-family: monospace; resize: vertical; white-space: pre-wrap;"></textarea>
+                </div>
+                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <div style="flex: 1;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Week</label>
+                        <input type="text" id="video-week" placeholder="e.g. 2026-W14" style="width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 14px; background: var(--color-input-bg); color: var(--color-text); font-family: inherit;" />
+                    </div>
+                    <div style="flex: 1;">
+                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Brand</label>
+                        <select id="video-brand" style="width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 14px; background: var(--color-input-bg); color: var(--color-text); font-family: inherit;">
+                            <option value="">— none —</option>
+                            <option value="osc">OSC</option>
+                            <option value="liivo">Liivo</option>
+                        </select>
+                    </div>
                 </div>
                 <div style="margin-bottom: 16px;">
                     <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Target Platforms</label>
