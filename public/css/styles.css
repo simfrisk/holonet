@@ -4662,6 +4662,12 @@
             background: transparent;
             border-color: transparent;
             resize: none;
+            overflow: hidden;
+        }
+        /* Auto-height textareas in read mode so nothing gets clipped */
+        #videoModal.vm-readonly textarea {
+            field-sizing: content;
+            min-height: 1.6em;
         }
         #videoModal.vm-readonly .vm-add-btn,
         #videoModal.vm-readonly .vm-prompt-remove,
@@ -4681,7 +4687,7 @@
         .vm-input { width: 100%; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13px; background: var(--color-input-bg); color: var(--color-text); font-family: inherit; }
         .vm-mono { font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace; font-size: 12px; white-space: pre-wrap; line-height: 1.5; }
         .vm-small { font-size: 11px; padding: 5px 10px; color: var(--color-text-muted); }
-        .vm-hook-input { font-size: 15px; font-weight: 600; font-style: italic; }
+        .vm-hook-input { font-size: 15px; font-weight: 600; font-style: italic; word-wrap: break-word; }
 
         /* Collapsible sections */
         .vm-section { border: 1px solid var(--color-border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
@@ -4711,7 +4717,8 @@
         .vm-timeline-table { width: 100%; border-collapse: collapse; font-size: 12px; }
         .vm-timeline-table th { text-align: left; padding: 4px 6px; font-size: 11px; color: var(--color-text-muted); border-bottom: 1px solid var(--color-border); }
         .vm-timeline-table td { padding: 3px 4px; vertical-align: top; }
-        .vm-timeline-table input { width: 100%; padding: 4px 6px; font-size: 12px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-input-bg); color: var(--color-text); font-family: inherit; }
+        .vm-timeline-table input { width: 100%; padding: 4px 6px; font-size: 12px; border: 1px solid var(--color-border); border-radius: 4px; background: var(--color-input-bg); color: var(--color-text); font-family: inherit; overflow: hidden; text-overflow: ellipsis; }
+        #videoModal.vm-readonly .vm-timeline-table input { text-overflow: unset; white-space: normal; height: auto; }
         .vm-timeline-remove { background: none; border: none; color: var(--color-text-subtle); cursor: pointer; font-size: 14px; padding: 2px; }
         .vm-timeline-remove:hover { color: var(--color-danger); }
 
