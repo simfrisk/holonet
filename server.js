@@ -3220,7 +3220,12 @@ app.get('/api/videos/:id', async (req, res) => {
 app.post('/api/videos', async (req, res) => {
     if (!requireVideoAuth(req, res)) return;
     try {
-        const { title, description, platforms, status, notes, week, brand } = req.body;
+        const { title, description, platforms, status,
+                notes, week, brand,
+                hook, duration, cameraType, context, directorNotes,
+                manuscript, recordingInstructions,
+                codexPrompts, editingTimeline, editingNotes,
+                captions, postingNotes } = req.body;
 
         if (!title) {
             return res.status(400).json({ error: 'title is required' });
@@ -3238,6 +3243,19 @@ app.post('/api/videos', async (req, res) => {
             platforms: platforms || [],
             status: status || 'idea',
             postedOn: [],
+            // Structured production fields
+            hook: hook || '',
+            duration: duration || '',
+            cameraType: cameraType || '',
+            context: context || '',
+            directorNotes: directorNotes || '',
+            manuscript: manuscript || '',
+            recordingInstructions: recordingInstructions || '',
+            codexPrompts: codexPrompts || [],        // [{label, prompt}]
+            editingTimeline: editingTimeline || [],   // [{time, action, overlay}]
+            editingNotes: editingNotes || '',
+            captions: captions || {},                 // {tiktok, instagram, youtube, facebook}
+            postingNotes: postingNotes || {},          // {tiktok, instagram, youtube, facebook}
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
         };
@@ -3262,7 +3280,7 @@ app.patch('/api/videos/:id', async (req, res) => {
     if (!requireVideoAuth(req, res)) return;
     try {
         const { id } = req.params;
-        const { title, description, platforms, status, postedOn, notes, week, brand } = req.body;
+        const body = req.body;
 
         const docUrl = `${dbUrl}/${id}`;
         const getResponse = await couchFetch(docUrl);
@@ -3273,14 +3291,18 @@ app.patch('/api/videos/:id', async (req, res) => {
 
         const doc = await getResponse.json();
 
-        if (title !== undefined) doc.title = title;
-        if (description !== undefined) doc.description = description;
-        if (notes !== undefined) doc.notes = notes;
-        if (week !== undefined) doc.week = week;
-        if (brand !== undefined) doc.brand = brand;
-        if (platforms !== undefined) doc.platforms = platforms;
-        if (status !== undefined) doc.status = status;
-        if (postedOn !== undefined) doc.postedOn = postedOn;
+        // All patchable video fields
+        const patchableFields = [
+            'title', 'description', 'notes', 'week', 'brand',
+            'platforms', 'status', 'postedOn',
+            'hook', 'duration', 'cameraType', 'context', 'directorNotes',
+            'manuscript', 'recordingInstructions',
+            'codexPrompts', 'editingTimeline', 'editingNotes',
+            'captions', 'postingNotes'
+        ];
+        for (const field of patchableFields) {
+            if (body[field] !== undefined) doc[field] = body[field];
+        }
         doc.updatedAt = new Date().toISOString();
 
         const updateResponse = await couchFetch(docUrl, {

@@ -571,66 +571,187 @@
 
     <!-- Video Modal -->
     <div id="videoModal" class="modal" onclick="if(event.target===this)closeVideoModal()">
-        <div class="modal-content" style="max-width: 560px;">
+        <div class="modal-content" style="max-width: 780px;">
             <div class="modal-header">
                 <h2 id="video-modal-title">Add Video</h2>
                 <button class="close-button" onclick="closeVideoModal()">&times;</button>
             </div>
-            <div class="modal-body" style="padding: 20px;">
+            <div class="modal-body" style="padding: 20px; max-height: 75vh; overflow-y: auto;">
                 <input type="hidden" id="video-edit-id" />
+
+                <!-- Basic Info -->
                 <div style="margin-bottom: 16px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Title</label>
-                    <input type="text" id="video-title" placeholder="Video title..." style="width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 14px; background: var(--color-input-bg); color: var(--color-text); font-family: inherit;" />
+                    <label class="vm-label">Title</label>
+                    <input type="text" id="video-title" placeholder="Video title..." class="vm-input" />
                 </div>
                 <div style="margin-bottom: 16px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Description (shown on card)</label>
-                    <textarea id="video-description" rows="2" placeholder="Short summary for the kanban card..." style="width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 14px; background: var(--color-input-bg); color: var(--color-text); font-family: inherit; resize: vertical;"></textarea>
+                    <label class="vm-label">Description (shown on card)</label>
+                    <textarea id="video-description" rows="2" placeholder="Short summary for the kanban card..." class="vm-input" style="resize: vertical;"></textarea>
                 </div>
-                <div style="margin-bottom: 16px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Notes (script, filming, captions)</label>
-                    <textarea id="video-notes" rows="8" placeholder="Full script, filming instructions, captions per platform..." style="width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13px; background: var(--color-input-bg); color: var(--color-text); font-family: monospace; resize: vertical; white-space: pre-wrap;"></textarea>
-                </div>
-                <div style="display: flex; gap: 12px; margin-bottom: 16px;">
-                    <div style="flex: 1;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Week</label>
-                        <input type="text" id="video-week" placeholder="e.g. 2026-W14" style="width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 14px; background: var(--color-input-bg); color: var(--color-text); font-family: inherit;" />
+
+                <!-- Quick meta row -->
+                <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 100px;">
+                        <label class="vm-label">Week</label>
+                        <input type="text" id="video-week" placeholder="2026-W14" class="vm-input" />
                     </div>
-                    <div style="flex: 1;">
-                        <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Brand</label>
-                        <select id="video-brand" style="width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 14px; background: var(--color-input-bg); color: var(--color-text); font-family: inherit;">
-                            <option value="">— none —</option>
+                    <div style="flex: 1; min-width: 100px;">
+                        <label class="vm-label">Brand</label>
+                        <select id="video-brand" class="vm-input">
+                            <option value="">--</option>
                             <option value="osc">OSC</option>
                             <option value="liivo">Liivo</option>
                         </select>
                     </div>
-                </div>
-                <div style="margin-bottom: 16px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Target Platforms</label>
-                    <div class="video-platform-checks">
-                        <label class="platform-check"><input type="checkbox" id="plat-youtube" value="youtube" /> <i class="ti ti-brand-youtube"></i> YouTube</label>
-                        <label class="platform-check"><input type="checkbox" id="plat-instagram" value="instagram" /> <i class="ti ti-brand-instagram"></i> Instagram</label>
-                        <label class="platform-check"><input type="checkbox" id="plat-tiktok" value="tiktok" /> <i class="ti ti-brand-tiktok"></i> TikTok</label>
-                        <label class="platform-check"><input type="checkbox" id="plat-facebook" value="facebook" /> <i class="ti ti-brand-facebook"></i> Facebook</label>
+                    <div style="flex: 1; min-width: 100px;">
+                        <label class="vm-label">Duration</label>
+                        <input type="text" id="video-duration" placeholder="58 seconds" class="vm-input" />
+                    </div>
+                    <div style="flex: 1.5; min-width: 140px;">
+                        <label class="vm-label">Camera type</label>
+                        <input type="text" id="video-cameraType" placeholder="Face cam + screen recording" class="vm-input" />
                     </div>
                 </div>
-                <div style="margin-bottom: 16px;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Status</label>
-                    <select id="video-status" style="width: 100%; padding: 10px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 14px; background: var(--color-input-bg); color: var(--color-text); font-family: inherit;">
-                        <option value="idea">Idea</option>
-                        <option value="scripted">Scripted</option>
-                        <option value="filmed">Filmed</option>
-                        <option value="edited">Edited</option>
-                        <option value="posted">Posted</option>
-                    </select>
+
+                <!-- Platforms + Status row -->
+                <div style="display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap;">
+                    <div style="flex: 2;">
+                        <label class="vm-label">Target Platforms</label>
+                        <div class="video-platform-checks">
+                            <label class="platform-check"><input type="checkbox" id="plat-youtube" value="youtube" /> <i class="ti ti-brand-youtube"></i> YT</label>
+                            <label class="platform-check"><input type="checkbox" id="plat-instagram" value="instagram" /> <i class="ti ti-brand-instagram"></i> IG</label>
+                            <label class="platform-check"><input type="checkbox" id="plat-tiktok" value="tiktok" /> <i class="ti ti-brand-tiktok"></i> TT</label>
+                            <label class="platform-check"><input type="checkbox" id="plat-facebook" value="facebook" /> <i class="ti ti-brand-facebook"></i> FB</label>
+                        </div>
+                    </div>
+                    <div style="flex: 1;">
+                        <label class="vm-label">Status</label>
+                        <select id="video-status" class="vm-input">
+                            <option value="idea">Idea</option>
+                            <option value="scripted">Scripted</option>
+                            <option value="filmed">Filmed</option>
+                            <option value="edited">Edited</option>
+                            <option value="posted">Posted</option>
+                        </select>
+                    </div>
                 </div>
                 <div id="video-posted-on-section" style="margin-bottom: 16px; display: none;">
-                    <label style="display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px;">Posted On</label>
+                    <label class="vm-label">Posted On</label>
                     <div class="video-platform-checks">
                         <label class="platform-check"><input type="checkbox" id="posted-youtube" value="youtube" /> <i class="ti ti-brand-youtube"></i> YouTube</label>
                         <label class="platform-check"><input type="checkbox" id="posted-instagram" value="instagram" /> <i class="ti ti-brand-instagram"></i> Instagram</label>
                         <label class="platform-check"><input type="checkbox" id="posted-tiktok" value="tiktok" /> <i class="ti ti-brand-tiktok"></i> TikTok</label>
                         <label class="platform-check"><input type="checkbox" id="posted-facebook" value="facebook" /> <i class="ti ti-brand-facebook"></i> Facebook</label>
                     </div>
+                </div>
+
+                <!-- Hook -->
+                <div class="vm-section" id="vm-sec-hook">
+                    <div class="vm-section-header" onclick="toggleVmSection('hook')">
+                        <span class="vm-section-icon">&#9660;</span>
+                        <span>Hook</span>
+                        <span class="vm-section-hint" id="vm-hint-hook"></span>
+                    </div>
+                    <div class="vm-section-body">
+                        <textarea id="video-hook" rows="2" placeholder="Opening hook line..." class="vm-input vm-hook-input" style="resize: vertical;"></textarea>
+                    </div>
+                </div>
+
+                <!-- Context & Director Notes -->
+                <div class="vm-section" id="vm-sec-context">
+                    <div class="vm-section-header" onclick="toggleVmSection('context')">
+                        <span class="vm-section-icon">&#9660;</span>
+                        <span>Context & Director Notes</span>
+                        <span class="vm-section-hint" id="vm-hint-context"></span>
+                    </div>
+                    <div class="vm-section-body">
+                        <label class="vm-label">Context (what this video teaches)</label>
+                        <textarea id="video-context" rows="3" placeholder="Why this video exists, what viewers learn..." class="vm-input vm-mono" style="resize: vertical;"></textarea>
+                        <label class="vm-label" style="margin-top: 12px;">Director notes (pacing, delivery, warnings)</label>
+                        <textarea id="video-directorNotes" rows="3" placeholder="Delivery tips, pacing notes, what to emphasize..." class="vm-input vm-mono" style="resize: vertical;"></textarea>
+                    </div>
+                </div>
+
+                <!-- Manuscript -->
+                <div class="vm-section" id="vm-sec-manuscript">
+                    <div class="vm-section-header" onclick="toggleVmSection('manuscript')">
+                        <span class="vm-section-icon">&#9660;</span>
+                        <span>Manuscript</span>
+                        <span class="vm-section-hint" id="vm-hint-manuscript"></span>
+                    </div>
+                    <div class="vm-section-body">
+                        <textarea id="video-manuscript" rows="10" placeholder="0:00 -- Face cam hook&#10;&quot;Stop accepting the first thing AI gives you.&quot;&#10;&#10;0:03 -- Cut to screen recording&#10;&quot;Instead of asking for one design...&quot;" class="vm-input vm-mono" style="resize: vertical;"></textarea>
+                    </div>
+                </div>
+
+                <!-- Recording -->
+                <div class="vm-section" id="vm-sec-recording">
+                    <div class="vm-section-header" onclick="toggleVmSection('recording')">
+                        <span class="vm-section-icon">&#9660;</span>
+                        <span>Recording Instructions</span>
+                        <span class="vm-section-hint" id="vm-hint-recording"></span>
+                    </div>
+                    <div class="vm-section-body">
+                        <textarea id="video-recordingInstructions" rows="4" placeholder="Face cam: iPhone back camera, portrait mode, look at lens...&#10;Screen: OBS, 1920x1080, narrower browser window..." class="vm-input vm-mono" style="resize: vertical;"></textarea>
+                        <div id="video-codexPrompts-container" style="margin-top: 12px;">
+                            <label class="vm-label">Codex Prompts <button class="vm-add-btn" onclick="addCodexPrompt()">+ Add</button></label>
+                            <div id="video-codexPrompts-list"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Editing -->
+                <div class="vm-section" id="vm-sec-editing">
+                    <div class="vm-section-header" onclick="toggleVmSection('editing')">
+                        <span class="vm-section-icon">&#9660;</span>
+                        <span>Editing</span>
+                        <span class="vm-section-hint" id="vm-hint-editing"></span>
+                    </div>
+                    <div class="vm-section-body">
+                        <label class="vm-label">Editing Timeline <button class="vm-add-btn" onclick="addTimelineRow()">+ Add row</button></label>
+                        <div id="video-editingTimeline-list"></div>
+                        <label class="vm-label" style="margin-top: 12px;">Editing Notes (captions style, music, export)</label>
+                        <textarea id="video-editingNotes" rows="3" placeholder="Auto-captions: Poppins Bold, white. Music: upbeat, 20% volume. Export 1080x1920." class="vm-input vm-mono" style="resize: vertical;"></textarea>
+                    </div>
+                </div>
+
+                <!-- Captions & Posting -->
+                <div class="vm-section" id="vm-sec-captions">
+                    <div class="vm-section-header" onclick="toggleVmSection('captions')">
+                        <span class="vm-section-icon">&#9660;</span>
+                        <span>Captions & Posting</span>
+                        <span class="vm-section-hint" id="vm-hint-captions"></span>
+                    </div>
+                    <div class="vm-section-body">
+                        <div class="vm-caption-grid">
+                            <div>
+                                <label class="vm-label"><i class="ti ti-brand-tiktok"></i> TikTok caption</label>
+                                <textarea id="video-caption-tiktok" rows="2" class="vm-input" style="resize: vertical;" placeholder="TikTok caption + hashtags..."></textarea>
+                                <textarea id="video-postingnote-tiktok" rows="1" class="vm-input vm-small" placeholder="Posting tip (e.g. reply to comments in first hour)" style="margin-top:4px;"></textarea>
+                            </div>
+                            <div>
+                                <label class="vm-label"><i class="ti ti-brand-instagram"></i> Instagram caption</label>
+                                <textarea id="video-caption-instagram" rows="2" class="vm-input" style="resize: vertical;" placeholder="Instagram caption + hashtags..."></textarea>
+                                <textarea id="video-postingnote-instagram" rows="1" class="vm-input vm-small" placeholder="Posting tip" style="margin-top:4px;"></textarea>
+                            </div>
+                            <div>
+                                <label class="vm-label"><i class="ti ti-brand-youtube"></i> YouTube caption</label>
+                                <textarea id="video-caption-youtube" rows="2" class="vm-input" style="resize: vertical;" placeholder="YouTube description..."></textarea>
+                                <textarea id="video-postingnote-youtube" rows="1" class="vm-input vm-small" placeholder="Posting tip" style="margin-top:4px;"></textarea>
+                            </div>
+                            <div>
+                                <label class="vm-label"><i class="ti ti-brand-facebook"></i> Facebook caption</label>
+                                <textarea id="video-caption-facebook" rows="2" class="vm-input" style="resize: vertical;" placeholder="Facebook caption..."></textarea>
+                                <textarea id="video-postingnote-facebook" rows="1" class="vm-input vm-small" placeholder="Posting tip" style="margin-top:4px;"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Legacy notes (hidden if empty, shown for backwards compat) -->
+                <div id="video-notes-section" style="margin-bottom: 16px; display: none;">
+                    <label class="vm-label">Notes (legacy)</label>
+                    <textarea id="video-notes" rows="4" class="vm-input vm-mono" style="resize: vertical;"></textarea>
                 </div>
             </div>
             <div class="modal-footer" style="display: flex; justify-content: space-between; padding: 16px 20px;">

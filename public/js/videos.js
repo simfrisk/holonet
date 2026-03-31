@@ -13,6 +13,7 @@
             tiktok: 'TT',
             facebook: 'FB'
         };
+        const PLATFORMS = ['youtube', 'instagram', 'tiktok', 'facebook'];
 
         async function loadVideosTab() {
             try {
@@ -121,6 +122,99 @@
             });
         }
 
+        // ---- Collapsible sections ----
+
+        function toggleVmSection(name) {
+            const sec = document.getElementById(`vm-sec-${name}`);
+            if (sec) sec.classList.toggle('collapsed');
+        }
+
+        function updateSectionHints(video) {
+            const hints = {
+                hook: video.hook ? video.hook.substring(0, 40) + (video.hook.length > 40 ? '...' : '') : '',
+                context: video.context ? 'has content' : '',
+                manuscript: video.manuscript ? `${video.manuscript.split('\n').length} lines` : '',
+                recording: (video.codexPrompts || []).length ? `${video.codexPrompts.length} prompt(s)` : '',
+                editing: (video.editingTimeline || []).length ? `${video.editingTimeline.length} row(s)` : '',
+                captions: Object.values(video.captions || {}).filter(Boolean).length ? `${Object.values(video.captions || {}).filter(Boolean).length} platform(s)` : ''
+            };
+            for (const [key, val] of Object.entries(hints)) {
+                const el = document.getElementById(`vm-hint-${key}`);
+                if (el) el.textContent = val;
+            }
+        }
+
+        // ---- Codex Prompts ----
+
+        function addCodexPrompt(label = '', prompt = '') {
+            const list = document.getElementById('video-codexPrompts-list');
+            const idx = list.children.length;
+            const card = document.createElement('div');
+            card.className = 'vm-prompt-card';
+            card.innerHTML = `
+                <button class="vm-prompt-remove" onclick="this.parentElement.remove()" title="Remove">&times;</button>
+                <input type="text" class="vm-input codex-label" placeholder="Label (e.g. Codex prompt 1)" value="${escapeHtml(label)}" style="margin-bottom:6px;" />
+                <div style="position:relative;">
+                    <textarea class="vm-input vm-mono codex-prompt" rows="4" placeholder="Paste the prompt text here...">${escapeHtml(prompt)}</textarea>
+                    <button class="vm-copy-btn" style="position:absolute;top:6px;right:6px;" onclick="copyPromptText(this)">Copy</button>
+                </div>`;
+            list.appendChild(card);
+        }
+
+        function copyPromptText(btn) {
+            const textarea = btn.parentElement.querySelector('.codex-prompt');
+            navigator.clipboard.writeText(textarea.value);
+            btn.textContent = 'Copied!';
+            setTimeout(() => btn.textContent = 'Copy', 1500);
+        }
+
+        function getCodexPrompts() {
+            const list = document.getElementById('video-codexPrompts-list');
+            return Array.from(list.children).map(card => ({
+                label: card.querySelector('.codex-label').value,
+                prompt: card.querySelector('.codex-prompt').value
+            })).filter(p => p.prompt);
+        }
+
+        // ---- Editing Timeline ----
+
+        function addTimelineRow(time = '', action = '', overlay = '') {
+            const list = document.getElementById('video-editingTimeline-list');
+            // Create table if needed
+            let table = list.querySelector('.vm-timeline-table');
+            if (!table) {
+                table = document.createElement('table');
+                table.className = 'vm-timeline-table';
+                table.innerHTML = '<tr><th style="width:90px">Time</th><th>Action</th><th style="width:160px">Text overlay</th><th style="width:28px"></th></tr>';
+                list.appendChild(table);
+            }
+            const row = table.insertRow(-1);
+            row.innerHTML = `
+                <td><input type="text" class="tl-time" value="${escapeHtml(time)}" placeholder="0:00-0:03" /></td>
+                <td><input type="text" class="tl-action" value="${escapeHtml(action)}" placeholder="Face cam hook..." /></td>
+                <td><input type="text" class="tl-overlay" value="${escapeHtml(overlay)}" placeholder="Text on screen" /></td>
+                <td><button class="vm-timeline-remove" onclick="removeTimelineRow(this)" title="Remove">&times;</button></td>`;
+        }
+
+        function removeTimelineRow(btn) {
+            const row = btn.closest('tr');
+            const table = row.closest('table');
+            row.remove();
+            // Remove table if empty (only header left)
+            if (table && table.rows.length <= 1) table.remove();
+        }
+
+        function getEditingTimeline() {
+            const list = document.getElementById('video-editingTimeline-list');
+            const table = list.querySelector('.vm-timeline-table');
+            if (!table) return [];
+            return Array.from(table.rows).slice(1).map(row => ({
+                time: row.querySelector('.tl-time').value,
+                action: row.querySelector('.tl-action').value,
+                overlay: row.querySelector('.tl-overlay').value
+            })).filter(r => r.time || r.action);
+        }
+
         // ---- Modal ----
 
         function openVideoModal(videoId) {
@@ -130,18 +224,46 @@
             const deleteBtn = document.getElementById('video-delete-btn');
             const statusSelect = document.getElementById('video-status');
 
-            // Reset
+            // Reset basic fields
             document.getElementById('video-title').value = '';
             document.getElementById('video-description').value = '';
             document.getElementById('video-notes').value = '';
             document.getElementById('video-week').value = '';
             document.getElementById('video-brand').value = '';
+            document.getElementById('video-duration').value = '';
+            document.getElementById('video-cameraType').value = '';
             statusSelect.value = 'idea';
-            ['youtube', 'instagram', 'tiktok', 'facebook'].forEach(p => {
+            PLATFORMS.forEach(p => {
                 document.getElementById(`plat-${p}`).checked = false;
                 document.getElementById(`posted-${p}`).checked = false;
             });
             document.getElementById('video-posted-on-section').style.display = 'none';
+
+            // Reset structured fields
+            document.getElementById('video-hook').value = '';
+            document.getElementById('video-context').value = '';
+            document.getElementById('video-directorNotes').value = '';
+            document.getElementById('video-manuscript').value = '';
+            document.getElementById('video-recordingInstructions').value = '';
+            document.getElementById('video-editingNotes').value = '';
+            document.getElementById('video-codexPrompts-list').innerHTML = '';
+            document.getElementById('video-editingTimeline-list').innerHTML = '';
+            PLATFORMS.forEach(p => {
+                document.getElementById(`video-caption-${p}`).value = '';
+                document.getElementById(`video-postingnote-${p}`).value = '';
+            });
+
+            // Reset section hints
+            ['hook', 'context', 'manuscript', 'recording', 'editing', 'captions'].forEach(s => {
+                const el = document.getElementById(`vm-hint-${s}`);
+                if (el) el.textContent = '';
+            });
+
+            // Hide legacy notes
+            document.getElementById('video-notes-section').style.display = 'none';
+
+            // Collapse all sections by default for new videos
+            document.querySelectorAll('.vm-section').forEach(s => s.classList.add('collapsed'));
 
             if (videoId) {
                 const video = videosData.find(v => v.id === videoId);
@@ -149,11 +271,14 @@
                 titleEl.textContent = 'Edit Video';
                 editIdEl.value = videoId;
                 deleteBtn.style.display = '';
+
+                // Basic fields
                 document.getElementById('video-title').value = video.title;
                 document.getElementById('video-description').value = video.description || '';
-                document.getElementById('video-notes').value = video.notes || '';
                 document.getElementById('video-week').value = video.week || '';
                 document.getElementById('video-brand').value = video.brand || '';
+                document.getElementById('video-duration').value = video.duration || '';
+                document.getElementById('video-cameraType').value = video.cameraType || '';
                 statusSelect.value = video.status || 'idea';
                 (video.platforms || []).forEach(p => {
                     const el = document.getElementById(`plat-${p}`);
@@ -166,10 +291,49 @@
                 if (video.status === 'posted') {
                     document.getElementById('video-posted-on-section').style.display = '';
                 }
+
+                // Structured fields
+                document.getElementById('video-hook').value = video.hook || '';
+                document.getElementById('video-context').value = video.context || '';
+                document.getElementById('video-directorNotes').value = video.directorNotes || '';
+                document.getElementById('video-manuscript').value = video.manuscript || '';
+                document.getElementById('video-recordingInstructions').value = video.recordingInstructions || '';
+                document.getElementById('video-editingNotes').value = video.editingNotes || '';
+
+                // Codex prompts
+                (video.codexPrompts || []).forEach(p => addCodexPrompt(p.label, p.prompt));
+
+                // Editing timeline
+                (video.editingTimeline || []).forEach(r => addTimelineRow(r.time, r.action, r.overlay));
+
+                // Captions
+                const captions = video.captions || {};
+                const postingNotes = video.postingNotes || {};
+                PLATFORMS.forEach(p => {
+                    document.getElementById(`video-caption-${p}`).value = captions[p] || '';
+                    document.getElementById(`video-postingnote-${p}`).value = postingNotes[p] || '';
+                });
+
+                // Legacy notes (show only if it has content and no structured fields)
+                if (video.notes && !video.hook && !video.manuscript) {
+                    document.getElementById('video-notes').value = video.notes;
+                    document.getElementById('video-notes-section').style.display = '';
+                }
+
+                // Expand sections that have content
+                updateSectionHints(video);
+                if (video.hook) document.getElementById('vm-sec-hook').classList.remove('collapsed');
+                if (video.context || video.directorNotes) document.getElementById('vm-sec-context').classList.remove('collapsed');
+                if (video.manuscript) document.getElementById('vm-sec-manuscript').classList.remove('collapsed');
+                if (video.recordingInstructions || (video.codexPrompts || []).length) document.getElementById('vm-sec-recording').classList.remove('collapsed');
+                if ((video.editingTimeline || []).length || video.editingNotes) document.getElementById('vm-sec-editing').classList.remove('collapsed');
+                if (Object.values(video.captions || {}).some(Boolean)) document.getElementById('vm-sec-captions').classList.remove('collapsed');
             } else {
                 titleEl.textContent = 'Add Video';
                 editIdEl.value = '';
                 deleteBtn.style.display = 'none';
+                // Expand all sections for new video creation
+                document.querySelectorAll('.vm-section').forEach(s => s.classList.remove('collapsed'));
             }
 
             // Show/hide postedOn when status changes
@@ -191,19 +355,33 @@
             const title = document.getElementById('video-title').value.trim();
             if (!title) return;
 
-            const description = document.getElementById('video-description').value.trim();
-            const notes = document.getElementById('video-notes').value;
-            const week = document.getElementById('video-week').value.trim();
-            const brand = document.getElementById('video-brand').value;
-            const status = document.getElementById('video-status').value;
-            const platforms = ['youtube', 'instagram', 'tiktok', 'facebook'].filter(p =>
-                document.getElementById(`plat-${p}`).checked
-            );
-            const postedOn = ['youtube', 'instagram', 'tiktok', 'facebook'].filter(p =>
-                document.getElementById(`posted-${p}`).checked
-            );
-
-            const body = { title, description, notes, week, brand, platforms, status, postedOn };
+            const body = {
+                title,
+                description: document.getElementById('video-description').value.trim(),
+                notes: document.getElementById('video-notes').value,
+                week: document.getElementById('video-week').value.trim(),
+                brand: document.getElementById('video-brand').value,
+                duration: document.getElementById('video-duration').value.trim(),
+                cameraType: document.getElementById('video-cameraType').value.trim(),
+                status: document.getElementById('video-status').value,
+                platforms: PLATFORMS.filter(p => document.getElementById(`plat-${p}`).checked),
+                postedOn: PLATFORMS.filter(p => document.getElementById(`posted-${p}`).checked),
+                // Structured fields
+                hook: document.getElementById('video-hook').value,
+                context: document.getElementById('video-context').value,
+                directorNotes: document.getElementById('video-directorNotes').value,
+                manuscript: document.getElementById('video-manuscript').value,
+                recordingInstructions: document.getElementById('video-recordingInstructions').value,
+                codexPrompts: getCodexPrompts(),
+                editingTimeline: getEditingTimeline(),
+                editingNotes: document.getElementById('video-editingNotes').value,
+                captions: {},
+                postingNotes: {}
+            };
+            PLATFORMS.forEach(p => {
+                body.captions[p] = document.getElementById(`video-caption-${p}`).value;
+                body.postingNotes[p] = document.getElementById(`video-postingnote-${p}`).value;
+            });
 
             try {
                 if (editId) {
