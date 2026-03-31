@@ -14,6 +14,8 @@
             facebook: 'FB'
         };
         const PLATFORMS = ['youtube', 'instagram', 'tiktok', 'facebook'];
+        let videoEditMode = false;
+        let videoEditDirty = false;
 
         async function loadVideosTab() {
             try {
@@ -342,12 +344,81 @@
                     statusSelect.value === 'posted' ? '' : 'none';
             };
 
+            // Set edit mode: new videos start editable, existing start read-only
+            if (videoId) {
+                setVideoEditMode(false);
+                document.getElementById('video-edit-toggle').style.display = '';
+            } else {
+                setVideoEditMode(true);
+                document.getElementById('video-edit-toggle').style.display = 'none';
+            }
+
             modal.style.display = 'flex';
-            document.getElementById('video-title').focus();
+            if (!videoId) document.getElementById('video-title').focus();
+        }
+
+        // ---- Read/Edit mode ----
+
+        function setVideoEditMode(editing) {
+            videoEditMode = editing;
+            videoEditDirty = false;
+            const modal = document.getElementById('videoModal');
+            const editBtn = document.getElementById('video-edit-toggle');
+
+            if (editing) {
+                modal.classList.remove('vm-readonly');
+                editBtn.classList.add('active');
+                editBtn.innerHTML = '<i class="ti ti-pencil"></i> Editing';
+                document.getElementById('video-footer-read').style.display = 'none';
+                document.getElementById('video-footer-edit').style.display = 'flex';
+                // Track changes
+                modal.querySelectorAll('input, textarea, select').forEach(el => {
+                    el.addEventListener('input', markVideoDirty, { once: true });
+                    el.addEventListener('change', markVideoDirty, { once: true });
+                });
+            } else {
+                modal.classList.add('vm-readonly');
+                editBtn.classList.remove('active');
+                editBtn.innerHTML = '<i class="ti ti-pencil"></i> Edit';
+                document.getElementById('video-footer-read').style.display = 'flex';
+                document.getElementById('video-footer-edit').style.display = 'none';
+            }
+        }
+
+        function markVideoDirty() {
+            videoEditDirty = true;
+        }
+
+        function toggleVideoEditMode() {
+            if (videoEditMode) {
+                // Switching from edit to read — warn if dirty
+                if (videoEditDirty && !confirm('You have unsaved changes. Discard them?')) return;
+                // Reload the video data to discard changes
+                const editId = document.getElementById('video-edit-id').value;
+                if (editId) openVideoModal(editId);
+            } else {
+                setVideoEditMode(true);
+            }
+        }
+
+        function cancelVideoEdit() {
+            if (videoEditDirty && !confirm('Discard unsaved changes?')) return;
+            const editId = document.getElementById('video-edit-id').value;
+            if (editId) {
+                // Reload to discard changes
+                openVideoModal(editId);
+            } else {
+                closeVideoModal();
+            }
         }
 
         function closeVideoModal() {
+            if (videoEditMode && videoEditDirty) {
+                if (!confirm('You have unsaved changes. Close anyway?')) return;
+            }
             document.getElementById('videoModal').style.display = 'none';
+            videoEditMode = false;
+            videoEditDirty = false;
         }
 
         async function saveVideo() {

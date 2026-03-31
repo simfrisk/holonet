@@ -4639,6 +4639,43 @@
             white-space: nowrap;
         }
 
+        /* Video modal edit toggle button */
+        .vm-edit-btn {
+            font-size: 12px; font-weight: 600;
+            padding: 4px 12px; border-radius: 6px;
+            border: 1px solid var(--color-border);
+            background: var(--color-bg-subtle);
+            color: var(--color-text-muted);
+            cursor: pointer; display: inline-flex; align-items: center; gap: 4px;
+        }
+        .vm-edit-btn:hover { border-color: var(--color-accent); color: var(--color-accent); }
+        .vm-edit-btn.active {
+            background: var(--color-accent); color: #fff; border-color: var(--color-accent);
+        }
+
+        /* Read-only state for video modal fields */
+        #videoModal.vm-readonly input,
+        #videoModal.vm-readonly textarea,
+        #videoModal.vm-readonly select {
+            pointer-events: none;
+            opacity: 0.85;
+            background: transparent;
+            border-color: transparent;
+            resize: none;
+        }
+        #videoModal.vm-readonly .vm-add-btn,
+        #videoModal.vm-readonly .vm-prompt-remove,
+        #videoModal.vm-readonly .vm-timeline-remove,
+        #videoModal.vm-readonly .platform-check input {
+            pointer-events: none;
+            opacity: 0.4;
+        }
+        /* Keep copy buttons clickable in read mode */
+        #videoModal.vm-readonly .vm-copy-btn {
+            pointer-events: auto;
+            opacity: 1;
+        }
+
         /* Video modal shared input styles */
         .vm-label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 13px; }
         .vm-input { width: 100%; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 6px; font-size: 13px; background: var(--color-input-bg); color: var(--color-text); font-family: inherit; }

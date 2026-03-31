@@ -573,7 +573,12 @@
     <div id="videoModal" class="modal" onclick="if(event.target===this)closeVideoModal()">
         <div class="modal-content" style="max-width: 780px;">
             <div class="modal-header">
-                <h2 id="video-modal-title">Add Video</h2>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <h2 id="video-modal-title">Add Video</h2>
+                    <button id="video-edit-toggle" class="vm-edit-btn" onclick="toggleVideoEditMode()" style="display:none;">
+                        <i class="ti ti-pencil"></i> Edit
+                    </button>
+                </div>
                 <button class="close-button" onclick="closeVideoModal()">&times;</button>
             </div>
             <div class="modal-body" style="padding: 20px; max-height: 75vh; overflow-y: auto;">
@@ -756,8 +761,11 @@
             </div>
             <div class="modal-footer" style="display: flex; justify-content: space-between; padding: 16px 20px;">
                 <button id="video-delete-btn" class="cancel-button" style="color: var(--color-danger); display: none;" onclick="deleteVideo()">Delete</button>
-                <div style="display: flex; gap: 10px; margin-left: auto;">
-                    <button class="cancel-button" onclick="closeVideoModal()">Cancel</button>
+                <div id="video-footer-read" style="display: flex; gap: 10px; margin-left: auto;">
+                    <button class="cancel-button" onclick="closeVideoModal()">Close</button>
+                </div>
+                <div id="video-footer-edit" style="display: none; gap: 10px; margin-left: auto;">
+                    <button class="cancel-button" onclick="cancelVideoEdit()">Cancel</button>
                     <button class="save-button" onclick="saveVideo()">Save</button>
                 </div>
             </div>
