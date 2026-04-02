@@ -297,7 +297,7 @@
                     <span class="tenant-name">Tenant: <a href="${tenantLink}" target="_blank" class="tenant-link">${escapeHtml(contact.tenantName || '—')}</a></span>
                 </td>
                 <td data-label="Email">${escapeHtml(contact.email || '—')}</td>
-                <td data-label="Activity" class="activity-summary">${escapeHtml(contact.activitySummary || '')}</td>
+                <td data-label="Activity" class="activity-summary">${buildActivityCell(contact.activitySummary)}</td>
                 <td data-label="Notes" class="notes-cell">
                     <button class="expand-button" onclick="openNoteModal('${contact.id}', '${escapeAttr(contact.name)}', '${escapeAttr(contact.email || '')}')" title="Expand note editor">Expand</button>
                     <span class="note-save-status" id="note-status-${contact.id}"></span>
@@ -315,6 +315,33 @@
             `;
 
             return row;
+        }
+
+        // Activity summary: show first 90 chars, toggle to expand
+        const ACTIVITY_MAX = 90;
+        function buildActivityCell(activitySummary) {
+            if (!activitySummary) return '';
+            if (activitySummary.length <= ACTIVITY_MAX) return escapeHtml(activitySummary);
+            return `<div class="activity-wrap">
+                <span class="activity-short">${escapeHtml(activitySummary.slice(0, ACTIVITY_MAX))}…</span>
+                <span class="activity-full" style="display:none">${escapeHtml(activitySummary)}</span>
+                <button class="activity-toggle-btn" onclick="event.stopPropagation();toggleActivityText(this)">more</button>
+            </div>`;
+        }
+
+        function toggleActivityText(btn) {
+            const wrap = btn.parentElement;
+            const short = wrap.querySelector('.activity-short');
+            const full = wrap.querySelector('.activity-full');
+            if (full.style.display === 'none') {
+                short.style.display = 'none';
+                full.style.display = '';
+                btn.textContent = 'less';
+            } else {
+                full.style.display = 'none';
+                short.style.display = '';
+                btn.textContent = 'more';
+            }
         }
 
         // Escape HTML to prevent XSS

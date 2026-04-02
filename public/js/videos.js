@@ -16,6 +16,9 @@
         const PLATFORMS = ['youtube', 'instagram', 'tiktok', 'facebook'];
         let videoEditMode = false;
         let videoEditDirty = false;
+        let archivedVideos = [];
+        let archiveLoaded = false;
+        let archiveVisible = false;
 
         async function loadVideosTab() {
             try {
@@ -30,12 +33,37 @@
             }
         }
 
+        let activeVideosView = 'kanban';
+
+        function switchVideosView(view) {
+            activeVideosView = view;
+            document.querySelectorAll('.videos-subnav-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.videosView === view);
+            });
+            document.getElementById('videos-kanban-view').style.display = view === 'kanban' ? '' : 'none';
+            document.getElementById('videos-archive-view').style.display = view === 'archive' ? '' : 'none';
+            document.getElementById('videos-add-btn').style.display = view === 'kanban' ? '' : 'none';
+            if (view === 'archive') renderArchiveList();
+        }
+
         function renderVideoKanban() {
-            const total = videosData.length;
+            // Separate archived from active
+            const active = videosData.filter(v => v.status !== 'archived');
+            archivedVideos = videosData.filter(v => v.status === 'archived');
+            const total = active.length;
             document.getElementById('videos-count').textContent = total;
+            const countBadge = document.getElementById('videos-count-badge');
+            if (countBadge) countBadge.textContent = total;
+
+            // Update archive count badge
+            const archCountEl = document.getElementById('video-archive-count');
+            if (archCountEl) archCountEl.textContent = archivedVideos.length ? `(${archivedVideos.length})` : '';
+
+            // If archive view is active, re-render it
+            if (activeVideosView === 'archive') renderArchiveList();
 
             VIDEO_STATUSES.forEach(status => {
-                const cards = videosData.filter(v => v.status === status);
+                const cards = active.filter(v => v.status === status);
                 const container = document.getElementById(`kanban-${status}`);
                 const countEl = document.getElementById(`kanban-count-${status}`);
                 countEl.textContent = cards.length;
@@ -273,6 +301,13 @@
                 titleEl.textContent = 'Edit Video';
                 editIdEl.value = videoId;
                 deleteBtn.style.display = '';
+                const archiveBtn = document.getElementById('video-archive-btn');
+                archiveBtn.style.display = '';
+                if (video.status === 'archived') {
+                    archiveBtn.innerHTML = '<i class="ti ti-archive-off"></i> Unarchive';
+                } else {
+                    archiveBtn.innerHTML = '<i class="ti ti-archive"></i> Archive';
+                }
 
                 // Basic fields
                 document.getElementById('video-title').value = video.title;
@@ -522,4 +557,46 @@
             } catch (err) {
                 console.error('Failed to delete video:', err);
             }
+        }
+
+        // ---- Archive ----
+
+        async function archiveVideo() {
+            const editId = document.getElementById('video-edit-id').value;
+            if (!editId) return;
+
+            const video = videosData.find(v => v.id === editId);
+            if (!video) return;
+
+            // If already archived, unarchive back to posted
+            const newStatus = video.status === 'archived' ? 'posted' : 'archived';
+
+            try {
+                const resp = await fetch(`/api/videos/${editId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                if (resp.ok) {
+                    video.status = newStatus;
+                    renderVideoKanban();
+                    videoEditMode = false;
+                    videoEditDirty = false;
+                    closeVideoModal();
+                }
+            } catch (err) {
+                console.error('Failed to archive video:', err);
+            }
+        }
+
+        function renderArchiveList() {
+            const list = document.getElementById('video-archive-list');
+            if (archivedVideos.length === 0) {
+                list.innerHTML = '<div style="text-align:center;color:var(--color-text-subtle);padding:20px;font-size:13px;">No archived videos</div>';
+                return;
+            }
+            list.innerHTML = '<div class="vm-archive-grid">' +
+                archivedVideos.map(v => renderVideoCard(v)).join('') +
+                '</div>';
+            // Re-init click handlers (drag not needed for archived)
         }

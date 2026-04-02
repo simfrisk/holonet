@@ -1,5 +1,5 @@
         const CONTACT_TABS = ['active', 'archived', 'later', 'skip', 'all'];
-        let activeSection = 'contacts';
+        let activeSection = 'todos';
         let activeContactTab = 'active';
         let trackedLoaded = false;
         let trackedCustomers = []; // in-memory cache
@@ -112,5 +112,6 @@
                 }
                 switchSection('contacts', true);
             }
-            // default (no hash or unknown): stays on contacts/active
+            // default (no hash or unknown): start on todos
+            else { switchSection('todos', true); }
         }

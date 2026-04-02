@@ -393,6 +393,19 @@
             font-style: italic;
         }
 
+        .activity-toggle-btn {
+            background: none;
+            border: none;
+            color: var(--color-primary);
+            font-size: 11px;
+            cursor: pointer;
+            padding: 0 2px;
+            opacity: 0.8;
+            vertical-align: baseline;
+        }
+        .activity-toggle-btn:hover { opacity: 1; text-decoration: underline; }
+        .activity-full { white-space: pre-wrap; }
+
         .activity-summary {
             font-size: 14px;
             color: var(--color-text-muted);
@@ -2371,6 +2384,11 @@
             color: var(--color-text);
             padding: 0;
             outline: none;
+            resize: none;
+            overflow: hidden;
+            line-height: 1.4;
+            font-family: inherit;
+            display: block;
         }
         .todo-modal-title-input::placeholder { color: var(--color-text-subtle); }
         .todo-modal-title-input:focus {
@@ -4451,11 +4469,43 @@
            VIDEO PLANNER / KANBAN
            ========================================= */
 
+        .videos-subnav {
+            display: flex;
+            gap: 4px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--color-border);
+            padding-bottom: 0;
+        }
+        .videos-subnav-btn {
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            padding: 6px 14px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--color-text-muted);
+            cursor: pointer;
+            margin-bottom: -1px;
+            border-radius: 4px 4px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .videos-subnav-btn:hover { color: var(--color-text); }
+        .videos-subnav-btn.active {
+            color: var(--color-primary);
+            border-bottom-color: var(--color-primary);
+        }
+        .videos-subnav-btn span {
+            font-size: 11px;
+            color: var(--color-text-subtle);
+        }
+
         .videos-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
         }
         .videos-header h3 { margin: 0; font-size: 16px; font-weight: 600; }
         .add-video-btn {
@@ -4638,6 +4688,23 @@
             color: var(--color-text-muted);
             white-space: nowrap;
         }
+
+        /* Archive toggle and list */
+        .vm-archive-toggle {
+            font-size: 13px; font-weight: 500;
+            padding: 6px 16px; border-radius: 6px;
+            border: 1px solid var(--color-border);
+            background: none; color: var(--color-text-muted);
+            cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+        }
+        .vm-archive-toggle:hover { border-color: var(--color-text-muted); color: var(--color-text); }
+        .vm-archive-toggle.active { border-color: var(--color-accent); color: var(--color-accent); }
+        .vm-archive-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 10px; padding: 4px 0;
+        }
+        .vm-archive-grid .video-card { opacity: 0.7; }
+        .vm-archive-grid .video-card:hover { opacity: 1; }
 
         /* Video modal edit toggle button */
         .vm-edit-btn {

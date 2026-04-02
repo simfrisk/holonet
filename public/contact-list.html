@@ -25,33 +25,33 @@
 
         <!-- Primary Navigation -->
         <div class="primary-nav">
-            <button class="primary-nav-btn active" data-section="contacts" onclick="switchSection('contacts')">
-                <span class="pnav-icon"><i class="ti ti-users"></i></span> Contact List <span class="pnav-count" id="contacts-section-count">0</span>
+            <button class="primary-nav-btn active" data-section="todos" onclick="switchSection('todos')">
+                <span class="pnav-icon"><i class="ti ti-circle-check"></i></span> To-do <span class="pnav-count" id="todos-count">0</span>
+            </button>
+            <button class="primary-nav-btn" data-section="videos" onclick="switchSection('videos')">
+                <span class="pnav-icon"><i class="ti ti-video"></i></span> Videos <span class="pnav-count" id="videos-count">0</span>
             </button>
             <button class="primary-nav-btn" data-section="tracked" onclick="switchSection('tracked')">
                 <span class="pnav-icon"><i class="ti ti-pin"></i></span> Track Customers <span class="pnav-count" id="tracked-count">0</span>
             </button>
-            <button class="primary-nav-btn" data-section="drafts" onclick="switchSection('drafts')">
-                <span class="pnav-icon"><i class="ti ti-mail"></i></span> Email Drafts <span class="pnav-count" id="drafts-count">0</span>
-            </button>
-            <button class="primary-nav-btn" data-section="todos" onclick="switchSection('todos')">
-                <span class="pnav-icon"><i class="ti ti-circle-check"></i></span> To-do <span class="pnav-count" id="todos-count">0</span>
-            </button>
-            <button class="primary-nav-btn" data-section="stats" onclick="switchSection('stats')">
-                <span class="pnav-icon"><i class="ti ti-chart-bar"></i></span> Stats
-            </button>
-            <button class="primary-nav-btn" data-section="links" onclick="switchSection('links')">
-                <span class="pnav-icon"><i class="ti ti-link"></i></span> Quick Links
-            </button>
-            <button class="primary-nav-btn" data-section="brief" onclick="switchSection('brief')">
-                <span class="pnav-icon"><i class="ti ti-calendar-check"></i></span> Brief
-                <span class="pnav-count" id="brief-count"></span>
+            <button class="primary-nav-btn" data-section="contacts" onclick="switchSection('contacts')">
+                <span class="pnav-icon"><i class="ti ti-users"></i></span> Contact List <span class="pnav-count" id="contacts-section-count">0</span>
             </button>
             <button class="primary-nav-btn" data-section="customers" onclick="switchSection('customers')">
                 <span class="pnav-icon"><i class="ti ti-address-book"></i></span> Customers
             </button>
-            <button class="primary-nav-btn" data-section="videos" onclick="switchSection('videos')">
-                <span class="pnav-icon"><i class="ti ti-video"></i></span> Videos <span class="pnav-count" id="videos-count">0</span>
+            <button class="primary-nav-btn" data-section="drafts" onclick="switchSection('drafts')">
+                <span class="pnav-icon"><i class="ti ti-mail"></i></span> Email <span class="pnav-count" id="drafts-count">0</span>
+            </button>
+            <button class="primary-nav-btn" data-section="links" onclick="switchSection('links')">
+                <span class="pnav-icon"><i class="ti ti-link"></i></span> Quick Links
+            </button>
+            <button class="primary-nav-btn" data-section="stats" onclick="switchSection('stats')">
+                <span class="pnav-icon"><i class="ti ti-chart-bar"></i></span> Stats
+            </button>
+            <button class="primary-nav-btn" data-section="brief" onclick="switchSection('brief')">
+                <span class="pnav-icon"><i class="ti ti-calendar-check"></i></span> Brief
+                <span class="pnav-count" id="brief-count"></span>
             </button>
         </div>
 
@@ -521,49 +521,68 @@
     <div id="videos-tab" class="tab-content">
         <div class="videos-header">
             <h3>Social Media Planner</h3>
-            <button class="add-video-btn" onclick="openVideoModal(null)">+ Add Video</button>
+            <button class="add-video-btn" id="videos-add-btn" onclick="openVideoModal(null)">+ Add Video</button>
         </div>
-        <div class="kanban-board">
-            <div class="kanban-column" data-status="idea">
-                <div class="kanban-column-header">
-                    <span class="kanban-dot kanban-dot-idea"></span>
-                    <span class="kanban-column-title">Idea</span>
-                    <span class="kanban-column-count" id="kanban-count-idea">0</span>
+
+        <!-- Videos sub-nav -->
+        <div class="videos-subnav">
+            <button class="videos-subnav-btn active" data-videos-view="kanban" onclick="switchVideosView('kanban')">
+                Kanban <span id="videos-count-badge">0</span>
+            </button>
+            <button class="videos-subnav-btn" data-videos-view="archive" onclick="switchVideosView('archive')">
+                Archive <span id="video-archive-count"></span>
+            </button>
+        </div>
+
+        <!-- Kanban view -->
+        <div id="videos-kanban-view">
+            <div class="kanban-board">
+                <div class="kanban-column" data-status="idea">
+                    <div class="kanban-column-header">
+                        <span class="kanban-dot kanban-dot-idea"></span>
+                        <span class="kanban-column-title">Idea</span>
+                        <span class="kanban-column-count" id="kanban-count-idea">0</span>
+                    </div>
+                    <div class="kanban-cards" id="kanban-idea"></div>
                 </div>
-                <div class="kanban-cards" id="kanban-idea"></div>
-            </div>
-            <div class="kanban-column" data-status="scripted">
-                <div class="kanban-column-header">
-                    <span class="kanban-dot kanban-dot-scripted"></span>
-                    <span class="kanban-column-title">Scripted</span>
-                    <span class="kanban-column-count" id="kanban-count-scripted">0</span>
+                <div class="kanban-column" data-status="scripted">
+                    <div class="kanban-column-header">
+                        <span class="kanban-dot kanban-dot-scripted"></span>
+                        <span class="kanban-column-title">Scripted</span>
+                        <span class="kanban-column-count" id="kanban-count-scripted">0</span>
+                    </div>
+                    <div class="kanban-cards" id="kanban-scripted"></div>
                 </div>
-                <div class="kanban-cards" id="kanban-scripted"></div>
-            </div>
-            <div class="kanban-column" data-status="filmed">
-                <div class="kanban-column-header">
-                    <span class="kanban-dot kanban-dot-filmed"></span>
-                    <span class="kanban-column-title">Filmed</span>
-                    <span class="kanban-column-count" id="kanban-count-filmed">0</span>
+                <div class="kanban-column" data-status="filmed">
+                    <div class="kanban-column-header">
+                        <span class="kanban-dot kanban-dot-filmed"></span>
+                        <span class="kanban-column-title">Filmed</span>
+                        <span class="kanban-column-count" id="kanban-count-filmed">0</span>
+                    </div>
+                    <div class="kanban-cards" id="kanban-filmed"></div>
                 </div>
-                <div class="kanban-cards" id="kanban-filmed"></div>
-            </div>
-            <div class="kanban-column" data-status="edited">
-                <div class="kanban-column-header">
-                    <span class="kanban-dot kanban-dot-edited"></span>
-                    <span class="kanban-column-title">Edited</span>
-                    <span class="kanban-column-count" id="kanban-count-edited">0</span>
+                <div class="kanban-column" data-status="edited">
+                    <div class="kanban-column-header">
+                        <span class="kanban-dot kanban-dot-edited"></span>
+                        <span class="kanban-column-title">Edited</span>
+                        <span class="kanban-column-count" id="kanban-count-edited">0</span>
+                    </div>
+                    <div class="kanban-cards" id="kanban-edited"></div>
                 </div>
-                <div class="kanban-cards" id="kanban-edited"></div>
-            </div>
-            <div class="kanban-column" data-status="posted">
-                <div class="kanban-column-header">
-                    <span class="kanban-dot kanban-dot-posted"></span>
-                    <span class="kanban-column-title">Posted</span>
-                    <span class="kanban-column-count" id="kanban-count-posted">0</span>
+                <div class="kanban-column" data-status="posted">
+                    <div class="kanban-column-header">
+                        <span class="kanban-dot kanban-dot-posted"></span>
+                        <span class="kanban-column-title">Posted</span>
+                        <span class="kanban-column-count" id="kanban-count-posted">0</span>
+                    </div>
+                    <div class="kanban-cards" id="kanban-posted"></div>
                 </div>
-                <div class="kanban-cards" id="kanban-posted"></div>
             </div>
+        </div>
+
+        <!-- Archive view (lazy loaded) -->
+        <div id="videos-archive-view" style="display:none;">
+            <div id="video-archive-list"></div>
         </div>
     </div>
 
@@ -760,7 +779,10 @@
                 </div>
             </div>
             <div class="modal-footer" style="display: flex; justify-content: space-between; padding: 16px 20px;">
-                <button id="video-delete-btn" class="cancel-button" style="color: var(--color-danger); display: none;" onclick="deleteVideo()">Delete</button>
+                <div style="display: flex; gap: 8px;">
+                    <button id="video-delete-btn" class="cancel-button" style="color: var(--color-danger); display: none;" onclick="deleteVideo()">Delete</button>
+                    <button id="video-archive-btn" class="cancel-button" style="display: none;" onclick="archiveVideo()"><i class="ti ti-archive"></i> Archive</button>
+                </div>
                 <div id="video-footer-read" style="display: flex; gap: 10px; margin-left: auto;">
                     <button class="cancel-button" onclick="closeVideoModal()">Close</button>
                 </div>
@@ -1001,7 +1023,7 @@
         <div class="modal-content todo-detail-modal-content">
             <div class="modal-header">
                 <div style="flex:1;min-width:0;">
-                    <input type="text" id="todo-modal-title" class="todo-modal-title-input" placeholder="Todo title...">
+                    <textarea id="todo-modal-title" class="todo-modal-title-input" placeholder="Todo title..." rows="1"></textarea>
                     <div class="todo-modal-props">
                         <select id="todo-modal-priority" class="todo-modal-select" onchange="saveTodoModalProp()">
                             <option value="">No priority</option>

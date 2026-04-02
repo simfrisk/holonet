@@ -535,6 +535,7 @@
             // Set title
             const titleEl = document.getElementById('todo-modal-title');
             titleEl.value = todo.text || '';
+            autoResizeTodoTitle(titleEl);
 
             // Set priority and date
             document.getElementById('todo-modal-priority').value = todo.priority || '';
@@ -551,6 +552,7 @@
 
             // Wire up title auto-save
             titleEl.oninput = () => {
+                autoResizeTodoTitle(titleEl);
                 clearTimeout(todoModalTitleTimer);
                 updateTodoModalSaveStatus('Unsaved changes');
                 todoModalTitleTimer = setTimeout(() => {
@@ -682,6 +684,11 @@
         }
 
         function autoResizeTextarea(el) {
+            el.style.height = 'auto';
+            el.style.height = el.scrollHeight + 'px';
+        }
+
+        function autoResizeTodoTitle(el) {
             el.style.height = 'auto';
             el.style.height = el.scrollHeight + 'px';
         }
