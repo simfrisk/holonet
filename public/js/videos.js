@@ -90,7 +90,7 @@
                 </span>`;
             }).join('');
 
-            const isCampaign = v.notes && v.notes.includes('Campaign slug:');
+            const isCampaign = v.notes && v.notes.startsWith('Campaign:');
             const campaignClass = isCampaign ? ' video-card-campaign' : '';
 
             const brandBadge = v.brand ? `<span class="video-brand-badge video-brand-${v.brand}">${v.brand === 'liivo' ? 'Liivo' : 'OSC'}</span>` : '';
