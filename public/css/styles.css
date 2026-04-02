@@ -4627,6 +4627,17 @@
             line-height: 1.4;
         }
 
+        .video-card-campaign {
+            border-left: 3px solid #f59e0b;
+            background: #f59e0b08;
+        }
+        .video-card-campaign:hover {
+            border-color: #f59e0b;
+        }
+        html[data-theme="dark"] .video-card-campaign {
+            background: #f59e0b10;
+        }
+
         .video-card-platforms {
             display: flex;
             gap: 4px;

@@ -90,17 +90,17 @@
                 </span>`;
             }).join('');
 
-            const desc = v.description ? `<div class="video-card-desc">${escapeHtml(v.description).substring(0, 80)}${v.description.length > 80 ? '...' : ''}</div>` : '';
+            const isCampaign = v.notes && v.notes.includes('Campaign slug:');
+            const campaignClass = isCampaign ? ' video-card-campaign' : '';
 
             const brandBadge = v.brand ? `<span class="video-brand-badge video-brand-${v.brand}">${v.brand === 'liivo' ? 'Liivo' : 'OSC'}</span>` : '';
             const weekBadge = v.week ? `<span class="video-week-badge">${escapeHtml(v.week)}</span>` : '';
 
-            return `<div class="video-card" draggable="true" data-video-id="${v.id}" onclick="openVideoModal('${v.id}')">
+            return `<div class="video-card${campaignClass}" draggable="true" data-video-id="${v.id}" onclick="openVideoModal('${v.id}')">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;margin-bottom:2px;">
                     <div class="video-card-title" style="margin-bottom:0;">${escapeHtml(v.title)}</div>
                     <div style="display:flex;gap:4px;flex-shrink:0;">${brandBadge}${weekBadge}</div>
                 </div>
-                ${desc}
                 <div class="video-card-platforms">${platformBadges || '<span class="video-card-no-platforms">No platforms</span>'}</div>
             </div>`;
         }
