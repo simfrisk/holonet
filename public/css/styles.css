@@ -4629,13 +4629,17 @@
 
         .video-card-campaign {
             border-left: 3px solid #f59e0b;
-            background: #f59e0b08;
+            background: #fef3c7;
         }
         .video-card-campaign:hover {
-            border-color: #f59e0b;
+            border-color: #d97706;
+            background: #fde68a;
         }
         html[data-theme="dark"] .video-card-campaign {
-            background: #f59e0b10;
+            background: #f59e0b18;
+        }
+        html[data-theme="dark"] .video-card-campaign:hover {
+            background: #f59e0b28;
         }
 
         .video-card-platforms {
