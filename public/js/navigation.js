@@ -1,4 +1,47 @@
         const CONTACT_TABS = ['active', 'archived', 'later', 'skip', 'all'];
+
+        // ---- Sidebar toggle ----
+        let sidebarOpen = true; // desktop: starts open
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const isMobile = window.innerWidth <= 600;
+            if (isMobile) {
+                if (sidebar.classList.contains('open')) {
+                    closeSidebar();
+                } else {
+                    openSidebar();
+                }
+            } else {
+                sidebar.classList.toggle('collapsed');
+                sidebarOpen = !sidebar.classList.contains('collapsed');
+            }
+        }
+
+        function openSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            sidebar.classList.add('open');
+            sidebar.classList.remove('collapsed');
+            overlay.style.display = 'block';
+            requestAnimationFrame(() => overlay.classList.add('visible'));
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            const isMobile = window.innerWidth <= 600;
+            if (isMobile) {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('visible');
+                document.body.style.overflow = '';
+                setTimeout(() => { overlay.style.display = 'none'; }, 250);
+            } else {
+                sidebar.classList.add('collapsed');
+                sidebarOpen = false;
+            }
+        }
         let activeSection = 'todos';
         let activeContactTab = 'active';
         let trackedLoaded = false;
@@ -11,6 +54,8 @@
 
         function switchSection(sectionName, skipHash) {
             activeSection = sectionName;
+            // Auto-close sidebar on mobile after selecting a section
+            if (window.innerWidth <= 600) closeSidebar();
             if (!skipHash) {
                 const hash = sectionName === 'contacts' ? `contacts-${activeContactTab}` : sectionName;
                 history.replaceState(null, '', `#${hash}`);

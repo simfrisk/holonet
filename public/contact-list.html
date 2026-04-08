@@ -14,7 +14,10 @@
     <div class="container">
         <header>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h1 style="margin: 0;">OSC Sales Contact List</h1>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Toggle menu"><i class="ti ti-menu-2"></i></button>
+                    <h1 style="margin: 0;">OSC Sales Contact List</h1>
+                </div>
                 <div style="display: flex; gap: 10px; align-items: center;">
                     <button class="dark-mode-btn" data-section="monitor" onclick="switchSection('monitor')" title="Monitor"><i class="ti ti-activity"></i></button>
                     <button class="dark-mode-btn" id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle dark mode"><i class="ti ti-moon"></i></button>
@@ -23,41 +26,57 @@
             </div>
         </header>
 
-        <!-- Primary Navigation -->
-        <div class="primary-nav">
-            <button class="primary-nav-btn active" data-section="todos" onclick="switchSection('todos')">
-                <span class="pnav-icon"><i class="ti ti-circle-check"></i></span> To-do <span class="pnav-count" id="todos-count">0</span>
-            </button>
-            <button class="primary-nav-btn" data-section="videos" onclick="switchSection('videos')">
-                <span class="pnav-icon"><i class="ti ti-video"></i></span> Videos <span class="pnav-count" id="videos-count">0</span>
-            </button>
-            <button class="primary-nav-btn" data-section="tracked" onclick="switchSection('tracked')">
-                <span class="pnav-icon"><i class="ti ti-pin"></i></span> Track Customers <span class="pnav-count" id="tracked-count">0</span>
-            </button>
-            <button class="primary-nav-btn" data-section="contacts" onclick="switchSection('contacts')">
-                <span class="pnav-icon"><i class="ti ti-users"></i></span> Contact List <span class="pnav-count" id="contacts-section-count">0</span>
-            </button>
-            <button class="primary-nav-btn" data-section="customers" onclick="switchSection('customers')">
-                <span class="pnav-icon"><i class="ti ti-address-book"></i></span> Customers
-            </button>
-            <button class="primary-nav-btn" data-section="drafts" onclick="switchSection('drafts')">
-                <span class="pnav-icon"><i class="ti ti-mail"></i></span> Email <span class="pnav-count" id="drafts-count">0</span>
-            </button>
-            <button class="primary-nav-btn" data-section="links" onclick="switchSection('links')">
-                <span class="pnav-icon"><i class="ti ti-link"></i></span> Quick Links
-            </button>
-            <button class="primary-nav-btn" data-section="stats" onclick="switchSection('stats')">
-                <span class="pnav-icon"><i class="ti ti-chart-bar"></i></span> Stats
-            </button>
-            <button class="primary-nav-btn" data-section="brief" onclick="switchSection('brief')">
-                <span class="pnav-icon"><i class="ti ti-calendar-check"></i></span> Brief
-                <span class="pnav-count" id="brief-count"></span>
-            </button>
-            <button class="primary-nav-btn" data-section="support" onclick="switchSection('support')" id="support-nav-btn">
-                <span class="pnav-icon"><i class="ti ti-headset"></i></span> Liivo Support
-                <span class="pnav-count" id="support-count"></span>
-            </button>
-        </div>
+        <!-- Sidebar overlay (mobile backdrop) -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+        <!-- App body: sidebar + main content -->
+        <div class="app-body">
+
+        <!-- Sidebar Navigation -->
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <span class="sidebar-title">Navigation</span>
+                <button class="sidebar-close" onclick="closeSidebar()" title="Close menu"><i class="ti ti-x"></i></button>
+            </div>
+            <!-- Primary Navigation -->
+            <div class="primary-nav">
+                <button class="primary-nav-btn active" data-section="todos" onclick="switchSection('todos')">
+                    <span class="pnav-icon"><i class="ti ti-circle-check"></i></span> To-do <span class="pnav-count" id="todos-count">0</span>
+                </button>
+                <button class="primary-nav-btn" data-section="videos" onclick="switchSection('videos')">
+                    <span class="pnav-icon"><i class="ti ti-video"></i></span> Videos <span class="pnav-count" id="videos-count">0</span>
+                </button>
+                <button class="primary-nav-btn" data-section="tracked" onclick="switchSection('tracked')">
+                    <span class="pnav-icon"><i class="ti ti-pin"></i></span> Track Customers <span class="pnav-count" id="tracked-count">0</span>
+                </button>
+                <button class="primary-nav-btn" data-section="contacts" onclick="switchSection('contacts')">
+                    <span class="pnav-icon"><i class="ti ti-users"></i></span> Contact List <span class="pnav-count" id="contacts-section-count">0</span>
+                </button>
+                <button class="primary-nav-btn" data-section="customers" onclick="switchSection('customers')">
+                    <span class="pnav-icon"><i class="ti ti-address-book"></i></span> Customers
+                </button>
+                <button class="primary-nav-btn" data-section="drafts" onclick="switchSection('drafts')">
+                    <span class="pnav-icon"><i class="ti ti-mail"></i></span> Email <span class="pnav-count" id="drafts-count">0</span>
+                </button>
+                <button class="primary-nav-btn" data-section="links" onclick="switchSection('links')">
+                    <span class="pnav-icon"><i class="ti ti-link"></i></span> Quick Links
+                </button>
+                <button class="primary-nav-btn" data-section="stats" onclick="switchSection('stats')">
+                    <span class="pnav-icon"><i class="ti ti-chart-bar"></i></span> Stats
+                </button>
+                <button class="primary-nav-btn" data-section="brief" onclick="switchSection('brief')">
+                    <span class="pnav-icon"><i class="ti ti-calendar-check"></i></span> Brief
+                    <span class="pnav-count" id="brief-count"></span>
+                </button>
+                <button class="primary-nav-btn" data-section="support" onclick="switchSection('support')" id="support-nav-btn">
+                    <span class="pnav-icon"><i class="ti ti-headset"></i></span> Liivo Support
+                    <span class="pnav-count" id="support-count"></span>
+                </button>
+            </div>
+        </nav>
+
+        <!-- Main content area -->
+        <div class="main-content">
 
         <!-- Sub Navigation (contact list sub-tabs) -->
         <div class="sub-nav" id="contact-sub-nav">
@@ -599,6 +618,8 @@
         <div id="support-conversations" class="support-conversations"></div>
     </div>
 
+        </div><!-- end .main-content -->
+        </div><!-- end .app-body -->
     </div><!-- end .container -->
 
     <!-- Video Modal -->
