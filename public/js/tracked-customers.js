@@ -99,48 +99,66 @@
             return icons[type] || '<i class="ti ti-note"></i>';
         }
 
+        async function onModalCategoryChange(newCategory, trackedId) {
+            if (!trackedId) return; // new customer — category set on save
+            await changeCardCategory(trackedId, newCategory);
+        }
+
+        async function changeCardCategory(trackedId, newCategory) {
+            const category = newCategory || null;
+            try {
+                const response = await fetch(`/api/tracked/${trackedId}/category`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category })
+                });
+                if (!response.ok) throw new Error('Failed');
+                const idx = trackedCustomers.findIndex(c => c.id === trackedId);
+                if (idx !== -1) trackedCustomers[idx].category = category;
+                renderTrackedGrid();
+            } catch (err) {
+                alert('Failed to update section.');
+            }
+        }
+
         function renderTrackedCard(c) {
             const category = c.category || null;
             const categoryClass = category ? ` tracked-card-category-${category}` : '';
-            const tenantLink = c.tenantName
-                ? `<a href="https://app.osaas.io/admin/tenant/${escapeHtml(c.tenantName)}" class="tracked-card-tenant" target="_blank">${escapeHtml(c.tenantName)} ↗</a>`
-                : '';
-            const lastTp = (c.touchpoints || [])[0];
-            const lastTpNotePreview = lastTp ? lastTp.note.substring(0, 60) + (lastTp.note.length > 60 ? '…' : '') : '';
-            const lastTpHtml = lastTp
-                ? `<div class="tracked-meta-row"><span class="tracked-meta-icon">${touchpointIcon(lastTp.type)}</span><span>${escapeHtml(lastTpNotePreview)} <span style="color:var(--color-text-subtle)">${escapeHtml(lastTp.date)}</span></span></div>`
-                : '';
-            const followUpHtml = c.nextFollowUp
-                ? (() => {
-                    const today = new Date().toISOString().split('T')[0];
-                    const overdue = c.nextFollowUp < today;
-                    return `<div class="tracked-meta-row ${overdue ? 'tracked-meta-overdue' : ''}"><span class="tracked-meta-icon"><i class="ti ti-calendar"></i></span><span>Follow-up: ${escapeHtml(c.nextFollowUp)}${overdue ? ' (overdue)' : ''}</span></div>`;
-                  })()
-                : '';
-            const notesPreview = c.notes ? `<div class="tracked-card-notes-preview">${escapeHtml(c.notes)}</div>` : '';
+
+            const tenantLabel = c.tenantName || c.name || '(No tenant)';
+            const nameHtml = (c.name && c.tenantName)
+                ? `<p class="tracked-card-secondary">${escapeHtml(c.name)}</p>` : '';
+
+            const planBadgeHtml = c.plan
+                ? `<span class="plan-badge plan-${escapeHtml(c.plan.toLowerCase().replace(/\s+/g, '-'))}">${escapeHtml(c.plan)}</span>` : '';
+
+            // Only show a follow-up pill if overdue/due today
+            const overdueHtml = (() => {
+                if (!c.nextFollowUp) return '';
+                const today = new Date().toISOString().split('T')[0];
+                if (c.nextFollowUp <= today) return `<span class="tracked-card-overdue-pill"><i class="ti ti-calendar-due"></i> Follow-up</span>`;
+                return '';
+            })();
 
             return `
                 <div class="tracked-card${categoryClass}" draggable="true" data-tracked-id="${c.id}" data-category="${category || ''}" onclick="openTrackedModal('${c.id}')">
                     <div class="tracked-card-top">
-                        <span class="tracked-drag-handle" title="Drag to reorder" onmousedown="event.stopPropagation()" onclick="event.stopPropagation()">⠿</span>
                         <div class="tracked-card-badges">
                             <span class="health-badge health-${escapeHtml(c.health || 'unknown')}">
                                 <span class="health-dot"></span>${healthLabel(c.health || 'unknown')}
                             </span>
-                            <span class="stage-badge">${escapeHtml(c.stage || 'Onboarding')}</span>
+                            ${planBadgeHtml}
                         </div>
                         <button class="tracked-card-remove" title="Remove from tracking" onclick="event.stopPropagation();removeTracked('${c.id}')">×</button>
                     </div>
-                    <div>
-                        <p class="tracked-card-name">${escapeHtml(c.name)}</p>
-                        ${c.organization ? `<p class="tracked-card-org">${escapeHtml(c.organization)}</p>` : ''}
-                        ${tenantLink}
+                    <div class="tracked-card-identity">
+                        <div class="tracked-card-primary">
+                            <span class="tracked-card-tenant-name">${escapeHtml(tenantLabel)}</span>
+                            ${c.tenantName ? `<a href="https://app.osaas.io/admin/tenant/${escapeHtml(c.tenantName)}" class="tracked-card-admin-link" target="_blank" onclick="event.stopPropagation()" title="Open in admin">↗</a>` : ''}
+                        </div>
+                        ${nameHtml}
                     </div>
-                    <div class="tracked-card-meta">
-                        ${followUpHtml}
-                        ${lastTpHtml}
-                    </div>
-                    ${notesPreview}
+                    ${overdueHtml}
                 </div>`;
         }
 
@@ -170,15 +188,20 @@
             const contact = contactsData && contactsData.contacts.find(c => c.id === contactId);
             if (!contact) return;
 
+            if (!contact.tenantName) {
+                alert('This contact has no tenant set. Please add a tenant slug first.');
+                return;
+            }
+
             try {
                 const response = await fetch('/api/tracked', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contactId: contact.id,
-                        name: contact.name || '(Unknown)',
+                        name: contact.name || null,
                         organization: contact.organization || null,
-                        tenantName: contact.tenantName || null,
+                        tenantName: contact.tenantName,
                         email: contact.email || null,
                         health: 'unknown',
                         stage: 'Onboarding',
@@ -226,8 +249,8 @@
                 const c = trackedCustomers.find(t => t.id === trackedId);
                 if (!c) return;
                 originalGlobalTodoIds = (c.todos || []).filter(t => t.globalTodoId).map(t => t.globalTodoId);
-                document.getElementById('tracked-modal-title').textContent = c.name;
-                document.getElementById('tracked-modal-subtitle').textContent = [c.organization, c.tenantName, c.email].filter(Boolean).join(' · ');
+                document.getElementById('tracked-modal-title').textContent = c.tenantName || c.name || 'Customer';
+                document.getElementById('tracked-modal-subtitle').textContent = [c.name, c.organization, c.email].filter(Boolean).join(' · ');
                 bodyEl.innerHTML = buildTrackedModalBody(c);
             } else {
                 originalGlobalTodoIds = [];
@@ -373,6 +396,8 @@
         function buildTrackedModalBody(c) {
             const health = c ? (c.health || 'unknown') : 'unknown';
             const stage = c ? (c.stage || '') : '';
+            const plan = c ? (c.plan || '') : '';
+            const signedUpAt = c ? (c.signedUpAt || '') : '';
             const notes = c ? (c.notes || '') : '';
             const nextFollowUp = c ? (c.nextFollowUp || '') : '';
             const touchpoints = c ? (c.touchpoints || []) : [];
@@ -392,6 +417,11 @@
                 ? `<a href="https://app.osaas.io/admin/tenant/${tenantVal}" target="_blank" class="notion-tenant-link" title="Open in admin">↗</a>`
                 : '';
 
+            const planOptions = ['', 'Free', 'Creator', 'Developer', 'Enterprise', 'Custom'];
+            const planSelectHtml = planOptions.map(p =>
+                `<option value="${p}" ${plan === p ? 'selected' : ''}>${p || 'Unknown'}</option>`
+            ).join('');
+
             return `
                 <div class="notion-card-layout">
                     <div class="notion-main-pane">
@@ -410,6 +440,22 @@
                     </div>
                     <div class="notion-props-pane">
                         <div class="notion-prop-row">
+                            <span class="notion-prop-label">Section</span>
+                            <select class="notion-prop-select" id="tm-category" onchange="onModalCategoryChange(this.value, '${c ? c.id : ''}')">
+                                <option value="" ${!c?.category ? 'selected' : ''}>Unassigned</option>
+                                <option value="focus" ${c?.category==='focus'?'selected':''}>In Focus</option>
+                                <option value="paying" ${c?.category==='paying'?'selected':''}>Paying</option>
+                                <option value="trial" ${c?.category==='trial'?'selected':''}>Trial</option>
+                            </select>
+                        </div>
+                        <div class="notion-prop-row">
+                            <span class="notion-prop-label">Tenant *</span>
+                            <div style="display:flex;align-items:center;gap:4px;flex:1;min-width:0">
+                                <input class="notion-prop-input" id="tm-tenant" placeholder="tenant-slug" value="${escapeHtml(tenantVal)}" style="flex:1;min-width:0">
+                                <span id="tm-tenant-link">${tenantLinkHtml}</span>
+                            </div>
+                        </div>
+                        <div class="notion-prop-row">
                             <span class="notion-prop-label">Health</span>
                             <select class="notion-prop-select health-${health}" id="tm-health" onchange="this.className='notion-prop-select health-'+this.value">
                                 <option value="good" ${health==='good'?'selected':''}>● Good</option>
@@ -419,17 +465,27 @@
                             </select>
                         </div>
                         <div class="notion-prop-row">
-                            <span class="notion-prop-label">Stage</span>
-                            <input class="notion-prop-input" id="tm-stage" placeholder="e.g. Active, Onboarding…" value="${escapeHtml(stage)}">
+                            <span class="notion-prop-label">Plan</span>
+                            <select class="notion-prop-select" id="tm-plan">
+                                ${planSelectHtml}
+                            </select>
+                        </div>
+                        <div class="notion-prop-row">
+                            <span class="notion-prop-label">Signed Up</span>
+                            <input type="date" class="notion-prop-input" id="tm-signed-up" value="${escapeHtml(signedUpAt)}">
                         </div>
                         <div class="notion-prop-row">
                             <span class="notion-prop-label">Follow-up</span>
                             <input type="date" class="notion-prop-input" id="tm-followup" value="${nextFollowUp}">
                         </div>
+                        <div class="notion-prop-row">
+                            <span class="notion-prop-label">Stage</span>
+                            <input class="notion-prop-input" id="tm-stage" placeholder="e.g. Active, Onboarding…" value="${escapeHtml(stage)}">
+                        </div>
                         <div class="notion-props-divider"></div>
                         <div class="notion-prop-row">
-                            <span class="notion-prop-label">Name *</span>
-                            <input class="notion-prop-input" id="tm-name" placeholder="Full name" value="${escapeHtml(c ? (c.name || '') : '')}">
+                            <span class="notion-prop-label">Name</span>
+                            <input class="notion-prop-input" id="tm-name" placeholder="Contact name" value="${escapeHtml(c ? (c.name || '') : '')}">
                         </div>
                         <div class="notion-prop-row">
                             <span class="notion-prop-label">Organization</span>
@@ -438,13 +494,6 @@
                         <div class="notion-prop-row">
                             <span class="notion-prop-label">Email</span>
                             <input type="email" class="notion-prop-input" id="tm-email" placeholder="email@example.com" value="${escapeHtml(c ? (c.email || '') : '')}">
-                        </div>
-                        <div class="notion-prop-row">
-                            <span class="notion-prop-label">Tenant</span>
-                            <div style="display:flex;align-items:center;gap:4px;flex:1;min-width:0">
-                                <input class="notion-prop-input" id="tm-tenant" placeholder="tenant-slug" value="${escapeHtml(tenantVal)}" style="flex:1;min-width:0">
-                                <span id="tm-tenant-link">${tenantLinkHtml}</span>
-                            </div>
                         </div>
                         <div class="notion-props-divider"></div>
                         <div id="notion-custom-fields">${customFieldsHtml}</div>
@@ -579,6 +628,8 @@
         async function saveTrackedModal(closeAfter = false) {
             const health = document.getElementById('tm-health')?.value;
             const stage = document.getElementById('tm-stage')?.value || '';
+            const plan = document.getElementById('tm-plan')?.value || null;
+            const signedUpAt = document.getElementById('tm-signed-up')?.value || null;
             const notes = document.getElementById('tm-notes')?.value || '';
             const nextFollowUp = document.getElementById('tm-followup')?.value || null;
             const customFields = collectCustomFields();
@@ -587,19 +638,21 @@
             const statusEl = document.getElementById('notion-save-status');
             if (statusEl) statusEl.textContent = 'Saving…';
 
+            const tenant = document.getElementById('tm-tenant')?.value?.trim() || null;
+            if (!tenant) { if (statusEl) statusEl.textContent = ''; alert('Tenant is required.'); return; }
+            const name = document.getElementById('tm-name')?.value?.trim() || null;
+            const org = document.getElementById('tm-org')?.value?.trim() || null;
+            const email = document.getElementById('tm-email')?.value?.trim() || null;
+            const todoLabel = tenant || name || 'Customer';
+
             if (!trackedModalId) {
                 // New manual customer
-                const name = document.getElementById('tm-name')?.value?.trim();
-                if (!name) { if (statusEl) statusEl.textContent = ''; alert('Name is required.'); return; }
-                const org = document.getElementById('tm-org')?.value?.trim() || null;
-                const tenant = document.getElementById('tm-tenant')?.value?.trim() || null;
-                const email = document.getElementById('tm-email')?.value?.trim() || null;
                 try {
-                    todos = await syncCustomerTodos(name, todos);
+                    todos = await syncCustomerTodos(todoLabel, todos);
                     const response = await fetch('/api/tracked', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, organization: org, tenantName: tenant, email, health, stage, notes, nextFollowUp, customFields, todos })
+                        body: JSON.stringify({ name, organization: org, tenantName: tenant, email, health, stage, plan, signedUpAt, notes, nextFollowUp, customFields, todos })
                     });
                     if (!response.ok) throw new Error('Failed');
                     const data = await response.json();
@@ -609,25 +662,20 @@
                     closeTrackedModal();
                 } catch (err) { if (statusEl) statusEl.textContent = 'Save failed'; else alert('Failed to save.'); }
             } else {
-                const name = document.getElementById('tm-name')?.value?.trim();
-                if (!name) { if (statusEl) statusEl.textContent = ''; alert('Name is required.'); return; }
-                const org = document.getElementById('tm-org')?.value?.trim() || null;
-                const tenant = document.getElementById('tm-tenant')?.value?.trim() || null;
-                const email = document.getElementById('tm-email')?.value?.trim() || null;
                 try {
-                    todos = await syncCustomerTodos(name, todos);
+                    todos = await syncCustomerTodos(todoLabel, todos);
                     const response = await fetch(`/api/tracked/${trackedModalId}`, {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ name, organization: org, tenantName: tenant, email, health, stage, notes, nextFollowUp: nextFollowUp || null, customFields, todos })
+                        body: JSON.stringify({ name, organization: org, tenantName: tenant, email, health, stage, plan, signedUpAt, notes, nextFollowUp: nextFollowUp || null, customFields, todos })
                     });
                     if (!response.ok) throw new Error('Failed');
                     const idx = trackedCustomers.findIndex(c => c.id === trackedModalId);
                     if (idx !== -1) {
-                        trackedCustomers[idx] = { ...trackedCustomers[idx], name, organization: org, tenantName: tenant, email, health, stage, notes, nextFollowUp: nextFollowUp || null, customFields, todos };
+                        trackedCustomers[idx] = { ...trackedCustomers[idx], name, organization: org, tenantName: tenant, email, health, stage, plan, signedUpAt, notes, nextFollowUp: nextFollowUp || null, customFields, todos };
                     }
-                    document.getElementById('tracked-modal-title').textContent = name;
-                    document.getElementById('tracked-modal-subtitle').textContent = [org, tenant, email].filter(Boolean).join(' · ');
+                    document.getElementById('tracked-modal-title').textContent = tenant || name || 'Customer';
+                    document.getElementById('tracked-modal-subtitle').textContent = [name, org, email].filter(Boolean).join(' · ');
                     document.getElementById('tracked-count').textContent = trackedCustomers.length;
                     renderTrackedGrid();
                     if (closeAfter) {

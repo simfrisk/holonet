@@ -7,6 +7,7 @@
         let customersLoaded = false;
         let videosLoaded = false;
         let videosData = [];
+        let supportLoaded = false;
 
         function switchSection(sectionName, skipHash) {
             activeSection = sectionName;
@@ -59,6 +60,10 @@
                 if (sectionName === 'videos' && !videosLoaded) {
                     loadVideosTab();
                 }
+                if (sectionName === 'support') {
+                    loadSupportTab();
+                    supportLoaded = true;
+                }
                 if (sectionName === 'customers') {
                     if (!customersLoaded) {
                         customersLoaded = true;
@@ -98,7 +103,7 @@
         function restoreNavFromHash() {
             const hash = window.location.hash.slice(1);
             const CONTACT_SUB_TABS = ['active', 'archived', 'later', 'skip', 'all'];
-            const TOP_SECTIONS = ['drafts', 'todos', 'tracked', 'stats', 'links', 'monitor', 'brief', 'customers', 'videos'];
+            const TOP_SECTIONS = ['drafts', 'todos', 'tracked', 'stats', 'links', 'monitor', 'brief', 'customers', 'videos', 'support'];
 
             if (TOP_SECTIONS.includes(hash)) {
                 switchSection(hash, true);

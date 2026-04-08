@@ -67,4 +67,5 @@
             initDarkMode();
             loadContacts().then(() => restoreNavFromHash());
             preloadCounts();
+            preloadSupportCount();
         });

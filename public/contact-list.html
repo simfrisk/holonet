@@ -53,6 +53,10 @@
                 <span class="pnav-icon"><i class="ti ti-calendar-check"></i></span> Brief
                 <span class="pnav-count" id="brief-count"></span>
             </button>
+            <button class="primary-nav-btn" data-section="support" onclick="switchSection('support')" id="support-nav-btn">
+                <span class="pnav-icon"><i class="ti ti-headset"></i></span> Liivo Support
+                <span class="pnav-count" id="support-count"></span>
+            </button>
         </div>
 
         <!-- Sub Navigation (contact list sub-tabs) -->
@@ -584,6 +588,15 @@
         <div id="videos-archive-view" style="display:none;">
             <div id="video-archive-list"></div>
         </div>
+    </div>
+
+    <!-- Liivo Support Tab -->
+    <div id="support-tab" class="tab-content">
+        <div id="support-status" class="support-status">
+            <div class="support-status-icon" id="support-status-icon"></div>
+            <div class="support-status-text" id="support-status-text">Checking support inbox...</div>
+        </div>
+        <div id="support-conversations" class="support-conversations"></div>
     </div>
 
     </div><!-- end .container -->
@@ -1190,6 +1203,7 @@
     <script src="js/briefs.js"></script>
     <script src="js/customers.js"></script>
     <script src="js/videos.js"></script>
+    <script src="js/support.js"></script>
     <script src="js/init.js"></script>
 </body>
 </html>

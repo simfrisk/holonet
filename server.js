@@ -1786,10 +1786,10 @@ app.get('/api/tracked', async (req, res) => {
 // Create tracked customer (optionally from a contact)
 app.post('/api/tracked', async (req, res) => {
     try {
-        const { contactId, name, organization, tenantName, email, health, stage, notes, nextFollowUp, customFields, todos } = req.body;
+        const { contactId, name, organization, tenantName, email, health, stage, notes, nextFollowUp, customFields, todos, plan, signedUpAt } = req.body;
 
-        if (!name) {
-            return res.status(400).json({ error: 'name is required' });
+        if (!tenantName) {
+            return res.status(400).json({ error: 'tenantName is required' });
         }
 
         const id = `tracked-${Date.now()}`;
@@ -1797,12 +1797,14 @@ app.post('/api/tracked', async (req, res) => {
             _id: id,
             type: 'tracked_customer',
             contactId: contactId || null,
-            name,
+            name: name || null,
             organization: organization || null,
-            tenantName: tenantName || null,
+            tenantName,
             email: email || null,
             health: health || 'unknown',
             stage: stage || 'Onboarding',
+            plan: plan || null,
+            signedUpAt: signedUpAt || null,
             notes: notes || '',
             nextFollowUp: nextFollowUp || null,
             customFields: customFields || [],
@@ -1833,7 +1835,7 @@ app.post('/api/tracked', async (req, res) => {
 app.patch('/api/tracked/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, organization, tenantName, email, health, stage, notes, nextFollowUp, customFields, todos } = req.body;
+        const { name, organization, tenantName, email, health, stage, notes, nextFollowUp, customFields, todos, plan, signedUpAt } = req.body;
 
         const docUrl = `${dbUrl}/${id}`;
         const getResponse = await couchFetch(docUrl);
@@ -1850,6 +1852,8 @@ app.patch('/api/tracked/:id', async (req, res) => {
         if (email !== undefined) doc.email = email;
         if (health !== undefined) doc.health = health;
         if (stage !== undefined) doc.stage = stage;
+        if (plan !== undefined) doc.plan = plan;
+        if (signedUpAt !== undefined) doc.signedUpAt = signedUpAt;
         if (notes !== undefined) doc.notes = notes;
         if (nextFollowUp !== undefined) doc.nextFollowUp = nextFollowUp;
         if (customFields !== undefined) doc.customFields = customFields;
@@ -2530,6 +2534,44 @@ function mergeAndDedupEvents(guiEvents, signupEvents, planEvents, mcpEvents) {
         return true;
     });
 }
+
+// =========================================
+// LIIVO SUPPORT (Chatwoot proxy)
+// =========================================
+const CHATWOOT_BASE = 'https://eyevinn-liivo.chatwoot-chatwoot.auto.prod.osaas.io';
+const CHATWOOT_TOKEN = process.env.CHATWOOT_TOKEN || 'scFdA3CqLgNDRYTWNYRoQHhZ';
+const CHATWOOT_ACCOUNT_ID = 1;
+
+app.get('/api/support/status', requireAuth, async (req, res) => {
+    try {
+        const url = `${CHATWOOT_BASE}/api/v1/accounts/${CHATWOOT_ACCOUNT_ID}/conversations?status=open&status=pending`;
+        const resp = await fetch(url, {
+            headers: { 'api_access_token': CHATWOOT_TOKEN }
+        });
+        if (!resp.ok) throw new Error(`Chatwoot responded ${resp.status}`);
+        const data = await resp.json();
+
+        const conversations = (data.data?.payload || []).map(conv => {
+            const lastMsg = conv.messages?.[0];
+            const isAgentReply = lastMsg?.message_type === 1; // 1 = outgoing (agent)
+            const needsAttention = !isAgentReply && conv.status !== 'resolved';
+            return {
+                id: conv.id,
+                status: conv.status,
+                contactName: conv.meta?.sender?.name || 'Unknown',
+                lastMessage: lastMsg?.content || '',
+                lastActivityAt: conv.last_activity_at || conv.created_at,
+                needsAttention,
+                url: `${CHATWOOT_BASE}/app/accounts/${CHATWOOT_ACCOUNT_ID}/conversations/${conv.id}`
+            };
+        });
+
+        res.json({ conversations });
+    } catch (err) {
+        console.error('Chatwoot fetch error:', err.message);
+        res.status(502).json({ error: err.message });
+    }
+});
 
 // GET /api/monitor/events
 // Params: since (ISO timestamp), before (ISO timestamp), page (int, default 0)
