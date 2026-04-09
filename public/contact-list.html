@@ -736,6 +736,7 @@
                         <span class="vm-section-icon">&#9660;</span>
                         <span>Manuscript</span>
                         <span class="vm-section-hint" id="vm-hint-manuscript"></span>
+                        <button class="vm-teleprompter-btn" onclick="event.stopPropagation();openTeleprompter()" title="Teleprompter mode"><i class="ti ti-presentation"></i> Teleprompter</button>
                     </div>
                     <div class="vm-section-body">
                         <textarea id="video-manuscript" rows="10" placeholder="0:00 -- Face cam hook&#10;&quot;Stop accepting the first thing AI gives you.&quot;&#10;&#10;0:03 -- Cut to screen recording&#10;&quot;Instead of asking for one design...&quot;" class="vm-input vm-mono" style="resize: vertical;"></textarea>
@@ -825,6 +826,25 @@
                     <button class="save-button" onclick="saveVideo()">Save</button>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Teleprompter Overlay -->
+    <div id="teleprompterOverlay" style="display:none;">
+        <div class="tp-header">
+            <div class="tp-title" id="tp-video-title"></div>
+            <div class="tp-controls">
+                <span class="tp-counter" id="tp-counter"></span>
+                <button class="tp-nav-btn" id="tp-prev" onclick="tpNavigate(-1)" title="Previous section (↑)"><i class="ti ti-chevron-up"></i></button>
+                <button class="tp-nav-btn" id="tp-next" onclick="tpNavigate(1)" title="Next section (↓)"><i class="ti ti-chevron-down"></i></button>
+                <button class="tp-close-btn" onclick="closeTeleprompter()" title="Close (Esc)"><i class="ti ti-x"></i></button>
+            </div>
+        </div>
+        <div class="tp-body" id="tp-body">
+            <div class="tp-sections" id="tp-sections"></div>
+        </div>
+        <div class="tp-footer">
+            <span class="tp-hint"><i class="ti ti-arrow-up"></i> <i class="ti ti-arrow-down"></i> navigate &nbsp;·&nbsp; Esc close</span>
         </div>
     </div>
 

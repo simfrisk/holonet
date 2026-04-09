@@ -600,3 +600,82 @@
                 '</div>';
             // Re-init click handlers (drag not needed for archived)
         }
+
+        // ---- Teleprompter ----
+
+        let tpBlocks = [];
+        let tpActiveIndex = 0;
+
+        function parseTeleprompterBlocks(text) {
+            // Split on blank lines, keeping timestamp-prefixed lines as section headers
+            const rawBlocks = text.split(/\n{2,}/);
+            return rawBlocks.map(block => {
+                const lines = block.trim().split('\n');
+                // Detect a timestamp line at the start (e.g. "0:00", "0:00 --", "0:00-0:03")
+                const tsMatch = lines[0].match(/^(\d+:\d+(?:-\d+:\d+)?)\s*(?:--|—|:)?\s*(.*)/);
+                if (tsMatch) {
+                    const rest = [tsMatch[2], ...lines.slice(1)].join('\n').trim();
+                    return { timestamp: tsMatch[1], text: rest };
+                }
+                return { timestamp: '', text: block.trim() };
+            }).filter(b => b.text || b.timestamp);
+        }
+
+        function openTeleprompter() {
+            const manuscript = document.getElementById('video-manuscript').value.trim();
+            if (!manuscript) return;
+
+            const videoId = document.getElementById('video-edit-id').value;
+            const video = videoId ? videosData.find(v => v.id === videoId) : null;
+
+            tpBlocks = parseTeleprompterBlocks(manuscript);
+            tpActiveIndex = 0;
+
+            // Set title
+            document.getElementById('tp-video-title').textContent = video ? video.title : 'Manuscript';
+
+            renderTeleprompterBlocks();
+            document.getElementById('teleprompterOverlay').style.display = 'flex';
+            document.addEventListener('keydown', tpKeyHandler);
+            tpScrollToActive();
+        }
+
+        function closeTeleprompter() {
+            document.getElementById('teleprompterOverlay').style.display = 'none';
+            document.removeEventListener('keydown', tpKeyHandler);
+        }
+
+        function renderTeleprompterBlocks() {
+            const container = document.getElementById('tp-sections');
+            container.innerHTML = tpBlocks.map((block, i) => {
+                const stateClass = i === tpActiveIndex ? 'tp-active' : i < tpActiveIndex ? 'tp-past' : '';
+                return `<div class="tp-block ${stateClass}" data-tp-index="${i}" onclick="tpSetActive(${i})">
+                    ${block.timestamp ? `<div class="tp-block-timestamp">${escapeHtml(block.timestamp)}</div>` : ''}
+                    <div class="tp-block-text">${escapeHtml(block.text)}</div>
+                </div>`;
+            }).join('');
+            document.getElementById('tp-counter').textContent = `${tpActiveIndex + 1} / ${tpBlocks.length}`;
+        }
+
+        function tpSetActive(index) {
+            tpActiveIndex = Math.max(0, Math.min(tpBlocks.length - 1, index));
+            renderTeleprompterBlocks();
+            tpScrollToActive();
+        }
+
+        function tpNavigate(direction) {
+            tpSetActive(tpActiveIndex + direction);
+        }
+
+        function tpScrollToActive() {
+            requestAnimationFrame(() => {
+                const el = document.querySelector(`.tp-block[data-tp-index="${tpActiveIndex}"]`);
+                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            });
+        }
+
+        function tpKeyHandler(e) {
+            if (e.key === 'Escape') { closeTeleprompter(); return; }
+            if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); tpNavigate(1); }
+            if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); tpNavigate(-1); }
+        }
