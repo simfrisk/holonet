@@ -20,11 +20,10 @@
         // =========================================
         async function preloadCounts() {
             try {
-                const [draftsRes, todosRes, trackedRes, briefsRes] = await Promise.all([
+                const [draftsRes, todosRes, trackedRes] = await Promise.all([
                     fetch('/api/drafts'),
                     fetch('/api/todos'),
-                    fetch('/api/tracked'),
-                    fetch('/api/briefs')
+                    fetch('/api/tracked')
                 ]);
                 if (draftsRes.ok) {
                     const d = await draftsRes.json();
@@ -45,16 +44,6 @@
                         syncTrackButtons();
                     }
                 }
-                if (briefsRes.ok) {
-                    const d = await briefsRes.json();
-                    const todayStr = new Date().toISOString().split('T')[0];
-                    const todayBrief = (d.briefs || []).find(b => b.date === todayStr && !b.archived);
-                    if (todayBrief && todayBrief.totalItems > 0) {
-                        const incomplete = todayBrief.totalItems - (todayBrief.completedItems || 0);
-                        const el = document.getElementById('brief-count');
-                        if (el && incomplete > 0) el.textContent = incomplete;
-                    }
-                }
             } catch (e) {
                 // Silently ignore — counts will update when tabs are visited
             }
@@ -67,5 +56,4 @@
             initDarkMode();
             loadContacts().then(() => restoreNavFromHash());
             preloadCounts();
-            preloadSupportCount();
         });

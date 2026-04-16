@@ -46,11 +46,9 @@
         let activeContactTab = 'active';
         let trackedLoaded = false;
         let trackedCustomers = []; // in-memory cache
-        let statsLoaded = false;
         let customersLoaded = false;
         let videosLoaded = false;
         let videosData = [];
-        let supportLoaded = false;
 
         function switchSection(sectionName, skipHash) {
             activeSection = sectionName;
@@ -88,26 +86,14 @@
                 if (sectionName === 'tracked' && !trackedLoaded) {
                     loadTrackedTab();
                 }
-                if (sectionName === 'stats') {
-                    initStatsWeeklyCounter();
-                    updateStats(); // refresh pipeline counts
-                    statsLoaded = true;
-                }
                 if (sectionName === 'links') {
                     renderLinksGrid();
                 }
                 if (sectionName === 'monitor') {
                     loadChartJs(function() { initMonitor(); });
                 }
-                if (sectionName === 'brief') {
-                    loadBriefTab();
-                }
                 if (sectionName === 'videos' && !videosLoaded) {
                     loadVideosTab();
-                }
-                if (sectionName === 'support') {
-                    loadSupportTab();
-                    supportLoaded = true;
                 }
                 if (sectionName === 'customers') {
                     if (!customersLoaded) {
@@ -148,7 +134,7 @@
         function restoreNavFromHash() {
             const hash = window.location.hash.slice(1);
             const CONTACT_SUB_TABS = ['active', 'archived', 'later', 'skip', 'all'];
-            const TOP_SECTIONS = ['drafts', 'todos', 'tracked', 'stats', 'links', 'monitor', 'brief', 'customers', 'videos', 'support'];
+            const TOP_SECTIONS = ['drafts', 'todos', 'tracked', 'links', 'monitor', 'customers', 'videos'];
 
             if (TOP_SECTIONS.includes(hash)) {
                 switchSection(hash, true);

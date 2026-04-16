@@ -61,17 +61,6 @@
                 <button class="primary-nav-btn" data-section="links" onclick="switchSection('links')">
                     <span class="pnav-icon"><i class="ti ti-link"></i></span> Quick Links
                 </button>
-                <button class="primary-nav-btn" data-section="stats" onclick="switchSection('stats')">
-                    <span class="pnav-icon"><i class="ti ti-chart-bar"></i></span> Stats
-                </button>
-                <button class="primary-nav-btn" data-section="brief" onclick="switchSection('brief')">
-                    <span class="pnav-icon"><i class="ti ti-calendar-check"></i></span> Brief
-                    <span class="pnav-count" id="brief-count"></span>
-                </button>
-                <button class="primary-nav-btn" data-section="support" onclick="switchSection('support')" id="support-nav-btn">
-                    <span class="pnav-icon"><i class="ti ti-headset"></i></span> Liivo Support
-                    <span class="pnav-count" id="support-count"></span>
-                </button>
             </div>
         </nav>
 
@@ -285,67 +274,6 @@
             </div>
         </div>
 
-        <!-- Stats Tab -->
-        <div id="stats-tab" class="tab-content">
-            <div class="stats-page">
-
-                <!-- This Week section -->
-                <section class="stats-section">
-                    <h2 class="stats-section-title"><i class="ti ti-calendar-week"></i> This Week</h2>
-                    <div class="stats-grid">
-                        <div class="stat-card stat-contacted stats-page-card">
-                            <span class="stats-page-label">Customers Contacted</span>
-                            <div class="weekly-counter">
-                                <button class="weekly-counter-btn" onclick="adjustWeeklyContacted(-1)" title="Decrease">
-                                    <i class="ti ti-minus"></i>
-                                </button>
-                                <strong id="weekly-contacted-count">0</strong>
-                                <button class="weekly-counter-btn weekly-counter-btn-add" onclick="adjustWeeklyContacted(1)" title="Increase">
-                                    <i class="ti ti-plus"></i>
-                                </button>
-                            </div>
-                            <span class="stats-page-sublabel" id="weekly-counter-week-label"></span>
-                        </div>
-                    </div>
-                </section>
-
-                <!-- Contact Pipeline section -->
-                <section class="stats-section">
-                    <h2 class="stats-section-title"><i class="ti ti-users"></i> Contact Pipeline</h2>
-                    <div class="stats-grid">
-                        <div class="stat-card stats-page-card">
-                            <span class="stats-page-label">Total Contacts</span>
-                            <strong id="stat-total">0</strong>
-                        </div>
-                        <div class="stat-card stat-focus stats-page-card">
-                            <span class="stats-page-label">In Focus</span>
-                            <strong id="stat-focus">0</strong>
-                        </div>
-                        <div class="stat-card stats-page-card">
-                            <span class="stats-page-label">Active</span>
-                            <strong id="stat-pending">0</strong>
-                        </div>
-                        <div class="stat-card stat-contacted stats-page-card">
-                            <span class="stats-page-label">Contacted</span>
-                            <strong id="stat-contacted">0</strong>
-                        </div>
-                        <div class="stat-card stat-later stats-page-card">
-                            <span class="stats-page-label">Later</span>
-                            <strong id="stat-later">0</strong>
-                        </div>
-                        <div class="stat-card stat-skip stats-page-card">
-                            <span class="stats-page-label">Skipped</span>
-                            <strong id="stat-skip">0</strong>
-                        </div>
-                        <div class="stat-card stats-page-card">
-                            <span class="stats-page-label">Last Check (Local)</span>
-                            <strong id="stat-last-check" style="font-size:16px;">Loading...</strong>
-                        </div>
-                    </div>
-                </section>
-
-            </div>
-        </div>
 
         <!-- Email Drafts Tab -->
         <div id="drafts-tab" class="tab-content">
@@ -484,20 +412,6 @@
         <iframe src="https://oscstats.apps.osaas.io" class="monitor-iframe" frameborder="0" allowfullscreen></iframe>
     </div>
 
-    <!-- Daily Brief Tab -->
-    <div id="brief-tab" class="tab-content">
-        <div class="brief-subnav">
-            <button class="tab-button active" data-brief-view="today" onclick="switchBriefView('today')">Today</button>
-            <button class="tab-button" data-brief-view="archive" onclick="switchBriefView('archive')">Archive</button>
-            <div class="brief-subnav-actions" id="brief-subnav-actions"></div>
-        </div>
-        <div id="brief-today-view">
-            <div id="brief-today-content"></div>
-        </div>
-        <div id="brief-archive-view" style="display:none;">
-            <div id="brief-archive-list"></div>
-        </div>
-    </div>
 
     <!-- Customers Tab -->
     <div id="customers-tab" class="tab-content">
@@ -609,14 +523,6 @@
         </div>
     </div>
 
-    <!-- Liivo Support Tab -->
-    <div id="support-tab" class="tab-content">
-        <div id="support-status" class="support-status">
-            <div class="support-status-icon" id="support-status-icon"></div>
-            <div class="support-status-text" id="support-status-text">Checking support inbox...</div>
-        </div>
-        <div id="support-conversations" class="support-conversations"></div>
-    </div>
 
         </div><!-- end .main-content -->
         </div><!-- end .app-body -->
@@ -1031,46 +937,6 @@
         </div>
     </div>
 
-    <!-- Brief Item Add/Edit Modal -->
-    <div id="briefItemModal" class="modal" onclick="if(event.target===this)closeBriefItemModal()">
-        <div class="modal-content" style="max-width:520px;min-height:unset;">
-            <div class="modal-header">
-                <h2 id="briefItemModalTitle">Add Action Item</h2>
-                <button class="close-button" onclick="closeBriefItemModal()">&#x2715;</button>
-            </div>
-            <div class="modal-body" style="padding:20px 24px;">
-                <input type="hidden" id="briefItemEditId">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="briefItemPriority">Priority</label>
-                        <select id="briefItemPriority">
-                            <option value="URGENT">URGENT</option>
-                            <option value="HIGH" selected>HIGH</option>
-                            <option value="MEDIUM">MEDIUM</option>
-                            <option value="LOW">LOW</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="briefItemSource">Source</label>
-                        <input type="text" id="briefItemSource" placeholder="Slack #sales-osaas">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="briefItemTitle">Title <span style="color:var(--color-danger)">*</span></label>
-                    <input type="text" id="briefItemTitle" placeholder="Action to take...">
-                </div>
-                <div class="form-group">
-                    <label for="briefItemDesc">Description</label>
-                    <textarea id="briefItemDesc" rows="4" placeholder="Additional context..."></textarea>
-                </div>
-                <p id="briefItemError" class="load-error" style="display:none;"></p>
-            </div>
-            <div class="modal-footer">
-                <button class="cancel-button" onclick="closeBriefItemModal()">Cancel</button>
-                <button class="save-button" id="briefItemSubmitBtn" onclick="submitBriefItem()">Add Item</button>
-            </div>
-        </div>
-    </div>
 
     <!-- Todo Detail Modal -->
     <div id="todoDetailModal" class="modal" onclick="if(event.target===this)closeTodoDetailModal()">
@@ -1239,12 +1105,9 @@
     <script src="js/todos.js"></script>
     <script src="js/email-drafts.js"></script>
     <script src="js/tracked-customers.js"></script>
-    <script src="js/stats.js"></script>
     <script src="js/links.js"></script>
-    <script src="js/briefs.js"></script>
     <script src="js/customers.js"></script>
     <script src="js/videos.js"></script>
-    <script src="js/support.js"></script>
     <script src="js/init.js"></script>
 </body>
 </html>
