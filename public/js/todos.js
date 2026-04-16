@@ -535,7 +535,6 @@
             // Set title
             const titleEl = document.getElementById('todo-modal-title');
             titleEl.value = todo.text || '';
-            autoResizeTodoTitle(titleEl);
 
             // Set priority and date
             document.getElementById('todo-modal-priority').value = todo.priority || '';
@@ -549,6 +548,9 @@
 
             // Show modal
             document.getElementById('todoDetailModal').style.display = 'block';
+
+            // Resize title after modal is visible so scrollHeight is accurate
+            autoResizeTodoTitle(titleEl);
 
             // Wire up title auto-save
             titleEl.oninput = () => {
