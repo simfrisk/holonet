@@ -100,6 +100,8 @@ app.use((req, res, next) => {
     if (exempt.includes(req.path)) return next();
     // Video API endpoints use their own dual auth (API key OR cookie)
     if (req.path.startsWith('/api/videos')) return next();
+    // Outputs POST uses API key OR cookie auth (handled in route)
+    if (req.path === '/api/outputs' && req.method === 'POST') return next();
     return requireAuth(req, res, next);
 });
 
