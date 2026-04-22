@@ -3400,12 +3400,12 @@ app.get('/api/outputs', requireAuth, async (req, res) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 selector: { type: 'output' },
-                sort: [{ runAt: 'desc' }],
                 limit: 100
             })
         });
         const data = await response.json();
-        res.json({ outputs: data.docs || [] });
+        const outputs = (data.docs || []).sort((a, b) => (b.runAt || '').localeCompare(a.runAt || ''));
+        res.json({ outputs });
     } catch (error) {
         console.error('Error fetching outputs:', error);
         res.status(500).json({ error: 'Failed to fetch outputs' });
