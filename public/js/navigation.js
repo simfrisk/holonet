@@ -49,7 +49,6 @@
         let customersLoaded = false;
         let videosLoaded = false;
         let videosData = [];
-        let outputsLoaded = false;
 
         function switchSection(sectionName, skipHash) {
             activeSection = sectionName;
