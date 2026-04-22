@@ -49,6 +49,7 @@
         let customersLoaded = false;
         let videosLoaded = false;
         let videosData = [];
+        let outputsLoaded = false;
 
         function switchSection(sectionName, skipHash) {
             activeSection = sectionName;
@@ -102,6 +103,9 @@
                     }
                     loadCustomers();
                 }
+                if (sectionName === 'outputs' && !outputsLoaded) {
+                    loadOutputsTab();
+                }
             }
 
             // Pause monitor polling when leaving the monitor tab
@@ -134,7 +138,7 @@
         function restoreNavFromHash() {
             const hash = window.location.hash.slice(1);
             const CONTACT_SUB_TABS = ['active', 'archived', 'later', 'skip', 'all'];
-            const TOP_SECTIONS = ['drafts', 'todos', 'tracked', 'links', 'monitor', 'customers', 'videos'];
+            const TOP_SECTIONS = ['drafts', 'todos', 'tracked', 'links', 'monitor', 'customers', 'videos', 'outputs'];
 
             if (TOP_SECTIONS.includes(hash)) {
                 switchSection(hash, true);

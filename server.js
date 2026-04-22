@@ -3386,6 +3386,83 @@ app.delete('/api/videos/:id', async (req, res) => {
     }
 });
 
+// =========================================
+// OUTPUTS API
+// =========================================
+
+app.get('/api/outputs', requireAuth, async (req, res) => {
+    try {
+        const url = `${couchBaseUrl}/${DB_NAME}/_find`;
+        const response = await couchFetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                selector: { type: 'output' },
+                sort: [{ runAt: 'desc' }],
+                limit: 100
+            })
+        });
+        const data = await response.json();
+        res.json({ outputs: data.docs || [] });
+    } catch (error) {
+        console.error('Error fetching outputs:', error);
+        res.status(500).json({ error: 'Failed to fetch outputs' });
+    }
+});
+
+app.post('/api/outputs', async (req, res) => {
+    const apiKeyValid = !API_KEY || (req.headers['x-api-key'] === API_KEY || req.query.apiKey === API_KEY);
+    const cookieAuth = isAuthenticated(req);
+    if (!apiKeyValid && !cookieAuth) return res.status(401).json({ error: 'Unauthorized' });
+    try {
+        const { title, runAt, content, agentTask, actionItems } = req.body;
+        if (!title || !content) return res.status(400).json({ error: 'title and content are required' });
+        const id = `output-${(runAt || new Date().toISOString()).replace(/[:.]/g, '-')}`;
+        const doc = { _id: id, type: 'output', title, runAt: runAt || new Date().toISOString(), content, agentTask: agentTask || 'unknown', actionItems: actionItems || 0, createdAt: new Date().toISOString() };
+        const url = `${couchBaseUrl}/${DB_NAME}/${encodeURIComponent(id)}`;
+        const existingResp = await couchFetch(url);
+        let putBody = doc;
+        if (existingResp.ok) {
+            const existing = await existingResp.json();
+            putBody = { ...doc, _rev: existing._rev };
+        }
+        const putResp = await couchFetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(putBody) });
+        if (!putResp.ok) throw new Error('Failed to save');
+        const result = await putResp.json();
+        res.json({ success: true, id: result.id });
+    } catch (error) {
+        console.error('Error saving output:', error);
+        res.status(500).json({ error: 'Failed to save output' });
+    }
+});
+
+app.get('/api/outputs/:id/content', requireAuth, async (req, res) => {
+    try {
+        const url = `${couchBaseUrl}/${DB_NAME}/${encodeURIComponent(req.params.id)}`;
+        const response = await couchFetch(url);
+        if (!response.ok) return res.status(404).send('Not found');
+        const doc = await response.json();
+        res.setHeader('Content-Type', 'text/html');
+        res.send(doc.content);
+    } catch (error) {
+        res.status(500).send('Failed to fetch content');
+    }
+});
+
+app.delete('/api/outputs/:id', requireAuth, async (req, res) => {
+    try {
+        const url = `${couchBaseUrl}/${DB_NAME}/${encodeURIComponent(req.params.id)}`;
+        const getResp = await couchFetch(url);
+        if (!getResp.ok) return res.status(404).json({ error: 'Not found' });
+        const doc = await getResp.json();
+        const delResp = await couchFetch(`${url}?rev=${doc._rev}`, { method: 'DELETE' });
+        if (!delResp.ok) throw new Error('Failed to delete');
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete output' });
+    }
+});
+
 // Serve HTML files from public directory
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'contact-list.html'));

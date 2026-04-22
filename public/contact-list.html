@@ -61,6 +61,9 @@
                 <button class="primary-nav-btn" data-section="links" onclick="switchSection('links')">
                     <span class="pnav-icon"><i class="ti ti-link"></i></span> Quick Links
                 </button>
+                <button class="primary-nav-btn" data-section="outputs" onclick="switchSection('outputs')">
+                    <span class="pnav-icon"><i class="ti ti-file-analytics"></i></span> Outputs
+                </button>
             </div>
         </nav>
 
@@ -523,6 +526,14 @@
         </div>
     </div>
 
+
+    <!-- Outputs Tab -->
+    <div id="outputs-tab" class="tab-content">
+        <div class="outputs-header">
+            <h3>Agent Outputs</h3>
+        </div>
+        <div id="outputs-list-container"></div>
+    </div>
 
         </div><!-- end .main-content -->
         </div><!-- end .app-body -->
@@ -1108,6 +1119,7 @@
     <script src="js/links.js"></script>
     <script src="js/customers.js"></script>
     <script src="js/videos.js"></script>
+    <script src="js/outputs.js"></script>
     <script src="js/init.js"></script>
 </body>
 </html>
