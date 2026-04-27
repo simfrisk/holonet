@@ -89,16 +89,19 @@
                 const response = await fetch('/api/contacts');
                 if (!response.ok) throw new Error('Failed to load contacts data');
                 contactsData = await response.json();
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('active-tab').classList.add('active');
+                const loadingEl = document.getElementById('loading');
+                if (loadingEl) loadingEl.style.display = 'none';
                 renderContacts();
             } catch (error) {
                 console.error('Error loading contacts:', error);
-                document.getElementById('loading').innerHTML =
-                    '<p class="load-error">Failed to load contacts. Check that the server is running and try refreshing.</p>';
-                document.getElementById('stat-last-check').textContent = '—';
-                document.getElementById('active-tab').classList.add('active');
-                document.getElementById('active-empty').style.display = 'block';
+                const loadingEl = document.getElementById('loading');
+                if (loadingEl) {
+                    loadingEl.innerHTML = '<p class="load-error">Failed to load contacts. Check that the server is running and try refreshing.</p>';
+                }
+                const statEl = document.getElementById('stat-last-check');
+                if (statEl) statEl.textContent = '—';
+                const emptyEl = document.getElementById('active-empty');
+                if (emptyEl) emptyEl.style.display = 'block';
             }
         }
 

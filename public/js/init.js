@@ -54,6 +54,9 @@
         // =========================================
         window.addEventListener('DOMContentLoaded', () => {
             initDarkMode();
-            loadContacts().then(() => restoreNavFromHash());
+            // Restore nav synchronously so the right tab is shown even if loadContacts errors.
+            // Nav restore only manipulates DOM that already exists in the initial HTML.
+            try { restoreNavFromHash(); } catch (e) { console.error('Nav restore failed:', e); }
+            loadContacts();
             preloadCounts();
         });
