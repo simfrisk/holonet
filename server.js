@@ -184,7 +184,7 @@ async function createDesignDocuments() {
         if (checkResponse.ok) {
             existingDoc = await checkResponse.json();
             // All required views present — nothing to do
-            const required = ['all_contacts', 'by_email', 'by_tenant', 'all_drafts', 'all_todos', 'all_tracked', 'all_todolists', 'all_briefs', 'all_brief_items', 'all_videos'];
+            const required = ['all_contacts', 'by_email', 'by_tenant', 'all_drafts', 'all_todos', 'all_tracked', 'all_todolists', 'all_briefs', 'all_brief_items', 'all_videos', 'all_links'];
             if (existingDoc.views && required.every(v => existingDoc.views[v])) {
                 return;
             }
@@ -262,6 +262,13 @@ async function createDesignDocuments() {
                     map: function(doc) {
                         if (doc.type === 'brief_item') {
                             emit([doc.briefId, doc.sortOrder != null ? doc.sortOrder : 9999], doc);
+                        }
+                    }.toString()
+                },
+                all_links: {
+                    map: function(doc) {
+                        if (doc.type === 'link') {
+                            emit(doc.sortOrder != null ? doc.sortOrder : doc.createdAt, doc);
                         }
                     }.toString()
                 }
@@ -1742,6 +1749,127 @@ app.post('/api/todolists/reorder', async (req, res) => {
     } catch (error) {
         console.error('Error reordering todo lists:', error);
         res.status(500).json({ error: 'Failed to reorder todo lists' });
+    }
+});
+
+// ================================
+// QUICK LINKS API
+// ================================
+
+// Get all links
+app.get('/api/links', async (req, res) => {
+    try {
+        const viewUrl = `${dbUrl}/_design/contacts/_view/all_links`;
+        const viewResponse = await couchFetch(viewUrl);
+
+        if (!viewResponse.ok) {
+            return res.json({ links: [] });
+        }
+
+        const viewData = await viewResponse.json();
+        const links = viewData.rows.map(row => {
+            const { _id, _rev, type, ...link } = row.value;
+            return { id: _id, ...link };
+        });
+
+        links.sort((a, b) => {
+            if (a.sortOrder != null && b.sortOrder != null) return a.sortOrder - b.sortOrder;
+            if (a.sortOrder != null) return -1;
+            if (b.sortOrder != null) return 1;
+            return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+        });
+
+        res.json({ links });
+    } catch (error) {
+        console.error('Error fetching links:', error);
+        res.status(500).json({ error: 'Failed to fetch links' });
+    }
+});
+
+// Create link
+app.post('/api/links', async (req, res) => {
+    try {
+        const { name, url, username, password } = req.body;
+        if (!name || !name.trim()) {
+            return res.status(400).json({ error: 'name is required' });
+        }
+
+        const id = `link-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const doc = {
+            _id: id,
+            type: 'link',
+            name: name.trim(),
+            url: (url || '').trim(),
+            username: (username || '').trim(),
+            password: (password || '').trim(),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            sortOrder: null
+        };
+
+        const docUrl = `${dbUrl}/${id}`;
+        const response = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+        if (!response.ok) throw new Error('Failed to create link');
+
+        res.json({ success: true, id, link: { id, ...doc } });
+    } catch (error) {
+        console.error('Error creating link:', error);
+        res.status(500).json({ error: 'Failed to create link' });
+    }
+});
+
+// Update link
+app.patch('/api/links/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, url, username, password, sortOrder } = req.body;
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+        if (!getResponse.ok) return res.status(404).json({ error: 'Link not found' });
+
+        const doc = await getResponse.json();
+        if (name !== undefined) doc.name = (name || '').trim();
+        if (url !== undefined) doc.url = (url || '').trim();
+        if (username !== undefined) doc.username = (username || '').trim();
+        if (password !== undefined) doc.password = (password || '').trim();
+        if (sortOrder !== undefined) doc.sortOrder = sortOrder;
+        doc.updatedAt = new Date().toISOString();
+
+        const updateResponse = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+        if (!updateResponse.ok) throw new Error('Failed to update link');
+
+        res.json({ success: true, link: { id, ...doc } });
+    } catch (error) {
+        console.error('Error updating link:', error);
+        res.status(500).json({ error: 'Failed to update link' });
+    }
+});
+
+// Delete link
+app.delete('/api/links/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const docUrl = `${dbUrl}/${id}`;
+        const getResponse = await couchFetch(docUrl);
+        if (!getResponse.ok) return res.status(404).json({ error: 'Link not found' });
+
+        const doc = await getResponse.json();
+        const deleteResponse = await couchFetch(`${docUrl}?rev=${doc._rev}`, { method: 'DELETE' });
+        if (!deleteResponse.ok) throw new Error('Failed to delete link');
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting link:', error);
+        res.status(500).json({ error: 'Failed to delete link' });
     }
 });
 

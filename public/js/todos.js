@@ -435,6 +435,11 @@
                 item.addEventListener('dragleave', onTodoDragLeave);
                 item.addEventListener('drop',      onTodoDrop);
             });
+
+            // Column-level handlers for dropping on empty space / below items / cross-list
+            listEl.addEventListener('dragover', onTodoListDragOver);
+            listEl.addEventListener('dragleave', onTodoListDragLeave);
+            listEl.addEventListener('drop', onTodoListDrop);
         }
 
         // Legacy aliases so other files calling the old function names still work
@@ -458,6 +463,9 @@
             document.querySelectorAll('.todo-item').forEach(i => {
                 i.classList.remove('todo-item-dragging', 'todo-item-drag-over');
             });
+            document.querySelectorAll('.todo-column-drag-over').forEach(c => {
+                c.classList.remove('todo-column-drag-over');
+            });
         }
 
         function onTodoDragOver(e) {
@@ -474,48 +482,114 @@
 
         async function onTodoDrop(e) {
             e.preventDefault();
+            e.stopPropagation();
             this.classList.remove('todo-item-drag-over');
 
             const targetId = this.dataset.todoId;
             if (!todoDragSrcId || todoDragSrcId === targetId) return;
 
-            // Determine which list this drop is in
             const srcTodo = todosData.find(t => t.id === todoDragSrcId);
             if (!srcTodo) return;
-            const listId = srcTodo.listId || 'todolist-default';
-            const filter = todoFilters[listId] || 'active';
 
-            // Work only on todos in the current list + filter
-            const listTodos = todosData.filter(t => (t.listId || 'todolist-default') === listId);
-            let filtered;
-            if (filter === 'active') filtered = listTodos.filter(t => !t.done);
-            else if (filter === 'done') filtered = listTodos.filter(t => t.done);
-            else filtered = [...listTodos];
+            const targetListEl = this.closest('.todo-list');
+            if (!targetListEl) return;
+            const targetListId = targetListEl.id.replace('todo-list-', '');
 
-            const srcIdx = filtered.findIndex(t => t.id === todoDragSrcId);
-            const tgtIdx = filtered.findIndex(t => t.id === targetId);
-            if (srcIdx === -1 || tgtIdx === -1) return;
+            await moveTodoTo(srcTodo, targetListId, targetId);
+        }
 
-            const moved = filtered.splice(srcIdx, 1)[0];
-            filtered.splice(tgtIdx, 0, moved);
+        function onTodoListDragOver(e) {
+            if (!todoDragSrcId) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            const col = this.closest('.todo-column');
+            if (col) col.classList.add('todo-column-drag-over');
+        }
 
-            // Assign new sortOrder values
-            const order = filtered.map((t, i) => ({ id: t.id, sortOrder: i * 10 }));
+        function onTodoListDragLeave(e) {
+            const col = this.closest('.todo-column');
+            if (!col) return;
+            // Only clear when truly leaving the column (relatedTarget is outside)
+            if (!e.relatedTarget || !col.contains(e.relatedTarget)) {
+                col.classList.remove('todo-column-drag-over');
+            }
+        }
+
+        async function onTodoListDrop(e) {
+            const col = this.closest('.todo-column');
+            if (col) col.classList.remove('todo-column-drag-over');
+
+            // If the drop landed on an item, the item handler already ran (stopPropagation)
+            if (e.target.closest('.todo-item[draggable]')) return;
+
+            e.preventDefault();
+            if (!todoDragSrcId) return;
+
+            const srcTodo = todosData.find(t => t.id === todoDragSrcId);
+            if (!srcTodo) return;
+
+            const targetListId = this.id.replace('todo-list-', '');
+            await moveTodoTo(srcTodo, targetListId, null);
+        }
+
+        // Move srcTodo into targetListId, inserting before beforeId (or at end if null).
+        // Reorders the target list and persists listId + new sort order.
+        async function moveTodoTo(srcTodo, targetListId, beforeId) {
+            const srcListId = srcTodo.listId || 'todolist-default';
+            const sameList = srcListId === targetListId;
+            const filter = todoFilters[targetListId] || 'active';
+
+            // Build the visible list of the target column (excluding src)
+            const targetTodos = todosData
+                .filter(t => t.id !== srcTodo.id && (t.listId || 'todolist-default') === targetListId);
+            let visible;
+            if (filter === 'active') visible = targetTodos.filter(t => !t.done);
+            else if (filter === 'done') visible = targetTodos.filter(t => t.done);
+            else visible = [...targetTodos];
+
+            visible.sort((a, b) => {
+                const aSort = a.sortOrder != null ? a.sortOrder : Infinity;
+                const bSort = b.sortOrder != null ? b.sortOrder : Infinity;
+                if (aSort !== bSort) return aSort - bSort;
+                return (a.createdAt || '').localeCompare(b.createdAt || '');
+            });
+
+            // If the source is in a different list and currently archived (done) but target column is showing 'active',
+            // moving still works — we just place by listId; filter only affects visible ordering.
+            const insertIdx = beforeId ? visible.findIndex(t => t.id === beforeId) : -1;
+            if (insertIdx === -1) visible.push(srcTodo);
+            else visible.splice(insertIdx, 0, srcTodo);
+
+            // Update src in memory
+            srcTodo.listId = targetListId;
+
+            // Reassign sort orders for the visible target column
+            const order = visible.map((t, i) => ({ id: t.id, sortOrder: i * 10 }));
             order.forEach(({ id, sortOrder }) => {
                 const t = todosData.find(x => x.id === id);
                 if (t) t.sortOrder = sortOrder;
             });
 
-            rerenderTodoListDiv(listId);
+            // Re-render affected columns
+            if (!sameList) rerenderTodoListDiv(srcListId);
+            rerenderTodoListDiv(targetListId);
+            updateTodosCount();
 
             try {
+                if (!sameList) {
+                    await fetch(`/api/todos/${srcTodo.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ listId: targetListId })
+                    });
+                }
                 await fetch('/api/todos/reorder', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ order })
                 });
             } catch (err) {
-                console.error('Failed to persist todo order:', err);
+                console.error('Failed to persist todo move:', err);
             }
         }
 
@@ -540,14 +614,14 @@
             document.getElementById('todo-modal-priority').value = todo.priority || '';
             document.getElementById('todo-modal-duedate').value = todo.dueDate || '';
 
-            // Render content blocks
-            renderTodoDetailBlocks(todo.content || []);
-
             // Clear save status
             updateTodoModalSaveStatus('');
 
-            // Show modal
+            // Show modal first so scrollHeight is accurate when sizing textareas
             document.getElementById('todoDetailModal').style.display = 'block';
+
+            // Render content blocks (textareas auto-size to fit full content)
+            renderTodoDetailBlocks(todo.content || []);
 
             // Resize title after modal is visible so scrollHeight is accurate
             autoResizeTodoTitle(titleEl);

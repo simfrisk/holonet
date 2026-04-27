@@ -1,4 +1,6 @@
         const CONTACT_TABS = ['active', 'archived', 'later', 'skip', 'all'];
+        const NAV_SECTION_KEY = 'osc_active_section';
+        const NAV_CONTACT_TAB_KEY = 'osc_active_contact_tab';
 
         // ---- Sidebar toggle ----
         let sidebarOpen = true; // desktop: starts open
@@ -52,6 +54,7 @@
 
         function switchSection(sectionName, skipHash) {
             activeSection = sectionName;
+            try { localStorage.setItem(NAV_SECTION_KEY, sectionName); } catch (e) {}
             // Auto-close sidebar on mobile after selecting a section
             if (window.innerWidth <= 600) closeSidebar();
             if (!skipHash) {
@@ -87,7 +90,11 @@
                     loadTrackedTab();
                 }
                 if (sectionName === 'links') {
-                    renderLinksGrid();
+                    if (!linksLoaded) {
+                        loadLinksData().then(() => renderLinksGrid());
+                    } else {
+                        renderLinksGrid();
+                    }
                 }
                 if (sectionName === 'monitor') {
                     loadChartJs(function() { initMonitor(); });
@@ -123,6 +130,7 @@
 
         function switchTab(tabName, skipHash) {
             activeContactTab = tabName;
+            try { localStorage.setItem(NAV_CONTACT_TAB_KEY, tabName); } catch (e) {}
             if (!skipHash) {
                 history.replaceState(null, '', `#contacts-${tabName}`);
             }
@@ -137,20 +145,47 @@
         function restoreNavFromHash() {
             const hash = window.location.hash.slice(1);
             const CONTACT_SUB_TABS = ['active', 'archived', 'later', 'skip', 'all'];
-            const TOP_SECTIONS = ['drafts', 'todos', 'tracked', 'links', 'monitor', 'customers', 'videos', 'outputs'];
+            const TOP_SECTIONS = ['drafts', 'todos', 'tracked', 'links', 'monitor', 'customers', 'videos', 'outputs', 'contacts'];
 
-            if (TOP_SECTIONS.includes(hash)) {
-                switchSection(hash, true);
-            } else if (hash.startsWith('contacts-')) {
-                const sub = hash.replace('contacts-', '');
-                if (CONTACT_SUB_TABS.includes(sub)) {
-                    activeContactTab = sub;
-                    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
-                    const btn = document.querySelector(`[data-tab="${sub}"]`);
-                    if (btn) btn.classList.add('active');
+            // Restore last contact sub-tab from localStorage so it persists even when arriving via plain "contacts" hash
+            try {
+                const savedSub = localStorage.getItem(NAV_CONTACT_TAB_KEY);
+                if (savedSub && CONTACT_SUB_TABS.includes(savedSub)) {
+                    activeContactTab = savedSub;
                 }
-                switchSection('contacts', true);
+            } catch (e) {}
+
+            // Hash takes priority
+            if (TOP_SECTIONS.includes(hash) && hash !== 'contacts') {
+                switchSection(hash, true);
+                return;
             }
-            // default (no hash or unknown): start on todos
-            else { switchSection('todos', true); }
+            if (hash === 'contacts' || hash.startsWith('contacts-')) {
+                if (hash.startsWith('contacts-')) {
+                    const sub = hash.replace('contacts-', '');
+                    if (CONTACT_SUB_TABS.includes(sub)) activeContactTab = sub;
+                }
+                document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                const btn = document.querySelector(`[data-tab="${activeContactTab}"]`);
+                if (btn) btn.classList.add('active');
+                switchSection('contacts', true);
+                return;
+            }
+
+            // No usable hash → fall back to localStorage
+            try {
+                const savedSection = localStorage.getItem(NAV_SECTION_KEY);
+                if (savedSection && TOP_SECTIONS.includes(savedSection)) {
+                    if (savedSection === 'contacts') {
+                        document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                        const btn = document.querySelector(`[data-tab="${activeContactTab}"]`);
+                        if (btn) btn.classList.add('active');
+                    }
+                    switchSection(savedSection, true);
+                    return;
+                }
+            } catch (e) {}
+
+            // Final default
+            switchSection('todos', true);
         }

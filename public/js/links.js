@@ -3,19 +3,59 @@
         // =========================================
 
         const LINKS_STORAGE_KEY = 'osc_quick_links';
+        const LINKS_MIGRATED_KEY = 'osc_quick_links_migrated_v1';
         let linksData = [];
+        let linksLoaded = false;
         let linkPendingDeleteId = null;
 
-        function loadLinksData() {
+        async function loadLinksData() {
+            let apiOk = false;
             try {
-                linksData = JSON.parse(localStorage.getItem(LINKS_STORAGE_KEY)) || [];
+                const res = await fetch('/api/links');
+                if (res.ok) {
+                    const data = await res.json();
+                    linksData = data.links || [];
+                    apiOk = true;
+                }
             } catch (e) {
                 linksData = [];
             }
-        }
 
-        function saveLinksData() {
-            localStorage.setItem(LINKS_STORAGE_KEY, JSON.stringify(linksData));
+            // One-time migration from localStorage → DB. Only run if API is reachable
+            // so we don't drop localStorage data when the server is down.
+            if (apiOk && !localStorage.getItem(LINKS_MIGRATED_KEY)) {
+                let local = [];
+                try { local = JSON.parse(localStorage.getItem(LINKS_STORAGE_KEY)) || []; } catch (e) {}
+                let allOk = true;
+                if (local.length > 0 && linksData.length === 0) {
+                    for (const link of local) {
+                        try {
+                            const res = await fetch('/api/links', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    name: link.name || 'Untitled',
+                                    url: link.url || '',
+                                    username: link.username || '',
+                                    password: link.password || ''
+                                })
+                            });
+                            if (res.ok) {
+                                const data = await res.json();
+                                linksData.push(data.link);
+                            } else {
+                                allOk = false;
+                            }
+                        } catch (e) { allOk = false; }
+                    }
+                }
+                if (allOk) {
+                    localStorage.setItem(LINKS_MIGRATED_KEY, '1');
+                    localStorage.removeItem(LINKS_STORAGE_KEY);
+                }
+            }
+
+            linksLoaded = true;
         }
 
         function renderLinksGrid() {
@@ -175,7 +215,7 @@
             document.getElementById('linkModal').style.display = 'none';
         }
 
-        function saveLinkCard() {
+        async function saveLinkCard() {
             const nameInput = document.getElementById('linkFieldName');
             const name = nameInput.value.trim();
             if (!name) {
@@ -186,24 +226,40 @@
             }
 
             const id = document.getElementById('linkEditId').value;
-            const data = {
-                id: id || Date.now().toString(36) + Math.random().toString(36).slice(2),
+            const payload = {
                 name,
                 url: document.getElementById('linkFieldUrl').value.trim(),
                 username: document.getElementById('linkFieldUsername').value.trim(),
                 password: document.getElementById('linkFieldPassword').value.trim(),
             };
 
-            if (id) {
-                const idx = linksData.findIndex(l => l.id === id);
-                if (idx !== -1) linksData[idx] = data;
-            } else {
-                linksData.push(data);
+            try {
+                if (id) {
+                    const res = await fetch(`/api/links/${id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!res.ok) throw new Error('Failed');
+                    const data = await res.json();
+                    const idx = linksData.findIndex(l => l.id === id);
+                    if (idx !== -1) linksData[idx] = data.link;
+                } else {
+                    const res = await fetch('/api/links', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (!res.ok) throw new Error('Failed');
+                    const data = await res.json();
+                    linksData.push(data.link);
+                }
+                renderLinksGrid();
+                closeLinkModal();
+            } catch (err) {
+                console.error('Failed to save link:', err);
+                alert('Could not save link. Check your connection and try again.');
             }
-
-            saveLinksData();
-            renderLinksGrid();
-            closeLinkModal();
         }
 
         // =========================================
@@ -222,13 +278,17 @@
             document.getElementById('linkConfirmModal').style.display = 'none';
         }
 
-        function confirmLinkDelete() {
+        async function confirmLinkDelete() {
             if (!linkPendingDeleteId) return;
-            linksData = linksData.filter(l => l.id !== linkPendingDeleteId);
-            saveLinksData();
-            renderLinksGrid();
-            closeLinkConfirmModal();
+            const id = linkPendingDeleteId;
+            try {
+                const res = await fetch(`/api/links/${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Failed');
+                linksData = linksData.filter(l => l.id !== id);
+                renderLinksGrid();
+                closeLinkConfirmModal();
+            } catch (err) {
+                console.error('Failed to delete link:', err);
+                alert('Could not delete link. Check your connection and try again.');
+            }
         }
-
-        // Load data on init
-        loadLinksData();

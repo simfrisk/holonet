@@ -1308,7 +1308,12 @@
         .todo-clear-done:hover { border-color: var(--color-danger); color: var(--color-danger); }
 
         /* Todo list */
-        .todo-list { display: flex; flex-direction: column; gap: 6px; }
+        .todo-list { display: flex; flex-direction: column; gap: 6px; min-height: 40px; }
+        .todo-column.todo-column-drag-over {
+            background: var(--color-bg-hover, rgba(85, 120, 245, 0.06));
+            outline: 2px dashed var(--color-primary);
+            outline-offset: -2px;
+        }
 
         .todo-item {
             display: flex;
@@ -2642,6 +2647,7 @@
             padding: 12px;
             border: none;
             resize: none;
+            overflow: hidden;
             font-size: 14px;
             font-family: inherit;
             line-height: 1.6;
