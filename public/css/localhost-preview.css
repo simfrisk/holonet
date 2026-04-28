@@ -266,45 +266,69 @@ html.local-modern-preview #monitor-tab iframe {
 }
 
 html.local-modern-preview .todo-lists-bar {
-    margin-bottom: 28px;
+    margin-bottom: 26px;
 }
 
 html.local-modern-preview .todo-list-name-input {
-    width: 240px;
-    height: 42px;
+    width: 300px;
+    height: 44px;
     padding: 0 16px;
-    border-radius: 14px;
-    border-color: transparent;
+    border-radius: 8px;
+    border-color: var(--color-border);
     background: var(--preview-soft-bg);
     box-shadow: none;
 }
 
 html.local-modern-preview .todo-list-add-btn {
-    width: 42px;
-    height: 42px;
-    border-radius: 14px;
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
     background: var(--preview-action);
     border-color: var(--preview-action);
     color: #ffffff;
 }
 
 html.local-modern-preview .todo-columns-grid {
-    gap: 22px;
+    gap: 24px;
     padding-bottom: 12px;
 }
 
 html.local-modern-preview .todo-column {
-    min-width: 420px;
-    padding: 24px;
-    border-radius: 18px;
+    flex: 0 0 min(380px, 100%);
+    min-width: 0;
+    padding: 22px;
+    border-radius: 8px;
     border-color: var(--color-border);
     background: var(--preview-panel-bg);
     box-shadow: var(--preview-card-shadow);
 }
 
+html.local-modern-preview .todo-column-header {
+    align-items: center;
+    margin-bottom: 18px;
+}
+
 html.local-modern-preview .todo-column-title {
-    font-size: 16px;
+    font-size: 17px;
     font-weight: 700;
+    line-height: 1.25;
+}
+
+html.local-modern-preview .todo-column-del-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    opacity: 0;
+}
+
+html.local-modern-preview .todo-column:hover .todo-column-del-btn,
+html.local-modern-preview .todo-column-del-btn:focus-visible {
+    opacity: 0.75;
+}
+
+html.local-modern-preview .todo-filters {
+    gap: 0;
+    margin-bottom: 18px;
 }
 
 html.local-modern-preview .todo-filter-btn,
@@ -314,45 +338,150 @@ html.local-modern-preview .todo-clear-done {
     background: var(--preview-panel-bg);
 }
 
-html.local-modern-preview .todo-item {
-    border-radius: 10px;
+html.local-modern-preview .todo-filter-btn {
+    height: 32px;
+    padding: 0 14px;
+    border-radius: 0;
+    background: transparent;
+}
+
+html.local-modern-preview .todo-filter-btn:first-child {
+    border-radius: 999px 0 0 999px;
+}
+
+html.local-modern-preview .todo-filter-btn + .todo-filter-btn {
+    margin-left: -1px;
+    border-radius: 0 999px 999px 0;
+}
+
+html.local-modern-preview .todo-filter-btn.active {
     background: var(--preview-soft-bg);
     border-color: var(--color-border);
+    color: var(--color-text);
+    font-weight: 700;
+}
+
+html.local-modern-preview .todo-filter-btn:hover {
+    border-color: var(--color-border);
+    color: var(--color-text);
+}
+
+html.local-modern-preview .todo-clear-done {
+    height: 32px;
+    padding: 0 12px;
+}
+
+html.local-modern-preview .todo-clear-done:disabled {
+    opacity: 0;
+    pointer-events: none;
+}
+
+html.local-modern-preview .todo-list {
+    gap: 10px;
+}
+
+html.local-modern-preview .todo-item {
+    gap: 12px;
+    padding: 13px 14px;
+    border-radius: 8px;
+    background: var(--preview-soft-bg);
+    border-color: var(--color-border);
+    border-left-width: 3px;
     box-shadow: none;
+    transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, opacity 0.2s ease;
 }
 
 html.local-modern-preview .todo-item:hover {
     background: var(--preview-panel-bg);
-    box-shadow: 0 8px 24px rgba(16, 24, 40, 0.08);
+    border-color: color-mix(in srgb, var(--color-border) 58%, var(--preview-action));
+    box-shadow: 0 10px 26px rgba(16, 24, 40, 0.08);
+    transform: translateY(-1px);
 }
 
 html.local-modern-preview .todo-item.priority-high {
-    background: rgba(226, 68, 92, 0.12);
-    border-color: rgba(226, 68, 92, 0.35);
+    background: var(--preview-soft-bg);
+    border-color: var(--color-border);
+    border-left-color: rgba(226, 68, 92, 0.85);
 }
 html.local-modern-preview .todo-item.priority-high:hover {
-    background: rgba(226, 68, 92, 0.18);
+    background: var(--preview-panel-bg);
 }
 
 html.local-modern-preview .todo-item.priority-medium {
-    background: rgba(253, 171, 61, 0.12);
-    border-color: rgba(253, 171, 61, 0.35);
+    background: var(--preview-soft-bg);
+    border-color: var(--color-border);
+    border-left-color: rgba(253, 171, 61, 0.85);
 }
 html.local-modern-preview .todo-item.priority-medium:hover {
-    background: rgba(253, 171, 61, 0.18);
+    background: var(--preview-panel-bg);
 }
 
 html.local-modern-preview .todo-item.priority-low {
-    background: rgba(0, 200, 117, 0.10);
-    border-color: rgba(0, 200, 117, 0.30);
+    background: var(--preview-soft-bg);
+    border-color: var(--color-border);
+    border-left-color: rgba(0, 200, 117, 0.75);
 }
 html.local-modern-preview .todo-item.priority-low:hover {
-    background: rgba(0, 200, 117, 0.16);
+    background: var(--preview-panel-bg);
+}
+
+html.local-modern-preview .todo-checkbox {
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+}
+
+html.local-modern-preview .todo-text {
+    font-size: 15px;
+    line-height: 1.35;
+}
+
+html.local-modern-preview .todo-meta {
+    gap: 8px;
+    margin-top: 8px;
+}
+
+html.local-modern-preview .todo-priority-badge {
+    padding: 2px 8px;
+    border-radius: 999px;
+    letter-spacing: 0;
+}
+
+html.local-modern-preview .todo-drag-handle {
+    width: 16px;
+    color: var(--color-text-subtle);
+}
+
+html.local-modern-preview .todo-actions {
+    margin-left: 4px;
+}
+
+html.local-modern-preview .todo-action-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+}
+
+html.local-modern-preview .content-toggle-btn {
+    border-radius: 6px;
+    background: rgba(129, 140, 248, 0.12);
+}
+
+html.local-modern-preview .content-inline-indicators {
+    gap: 8px;
+    margin-left: 0;
+}
+
+html.local-modern-preview .content-inline-indicator {
+    color: #8ea0ff;
 }
 
 html.local-modern-preview .todo-new-btn {
-    border-radius: 12px;
-    background: var(--preview-soft-bg);
+    height: 42px;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--color-text-muted);
+    margin-top: 12px;
 }
 
 html.local-modern-preview .dark-mode-btn,

@@ -73,6 +73,8 @@
             const listId = list.id;
             const filter = todoFilters[listId] || 'active';
             const isDefault = listId === 'todolist-default';
+            const listTodos = todosData.filter(t => (t.listId || 'todolist-default') === listId);
+            const doneCount = listTodos.filter(t => t.done).length;
 
             const deleteBtn = isDefault ? '' :
                 `<button class="todo-column-del-btn" title="Delete list"
@@ -93,7 +95,7 @@
                     <button class="todo-filter-btn ${filter === 'done' ? 'active' : ''}"
                             data-filter="done"
                             onclick="filterTodos('done', '${escapeAttr(listId)}')">Archived</button>
-                    <button class="todo-clear-done" onclick="clearDoneTodos('${escapeAttr(listId)}')">Clear done</button>
+                    <button class="todo-clear-done" onclick="clearDoneTodos('${escapeAttr(listId)}')" ${doneCount === 0 ? 'disabled' : ''}>Clear done</button>
                 </div>
 
                 <div class="todo-list" id="todo-list-${escapeHtml(listId)}">${itemsHtml}</div>
@@ -201,6 +203,29 @@
 
         function todoHasContent(todo) {
             return todo.content && Array.isArray(todo.content) && todo.content.length > 0;
+        }
+
+        function todoContentHasMeaningfulContent(contentBlocks) {
+            if (!contentBlocks || !Array.isArray(contentBlocks)) return false;
+            return contentBlocks.some(block => {
+                if (block.type === 'text') {
+                    return Boolean(todoBlockValueToPlainText(block.value).trim() || /<img\b/i.test(block.value || ''));
+                }
+                if (block.type === 'checklist') {
+                    return Array.isArray(block.items) && block.items.some(item => (item.text || '').trim());
+                }
+                return false;
+            });
+        }
+
+        function isEmptyDraftTodo(todo, title, contentBlocks) {
+            if (!todo || !todo._isDraft) return false;
+            const normalizedTitle = (title || '').trim();
+            const hasCustomTitle = normalizedTitle && normalizedTitle !== 'Untitled';
+            return !hasCustomTitle
+                && !todo.priority
+                && !todo.dueDate
+                && !todoContentHasMeaningfulContent(contentBlocks);
         }
 
         // Strip HTML tags + markdown image syntax to a plain-text preview.
@@ -343,6 +368,7 @@
                 });
                 if (!res.ok) throw new Error('Failed');
                 const data = await res.json();
+                data.todo._isDraft = true;
                 todosData.unshift(data.todo);
                 updateTodosCount();
                 rerenderTodoListDiv(listId);
@@ -660,32 +686,61 @@
             };
         }
 
-        function closeTodoDetailModal() {
-            // Flush any pending saves
+        async function closeTodoDetailModal() {
+            const closingId = todoModalCurrentId;
+            const todo = todosData.find(t => t.id === closingId);
+            const titleEl = document.getElementById('todo-modal-title');
+            const newText = titleEl ? titleEl.value.trim() : '';
+            const content = collectContentBlocksFromDOM();
+
+            // Stop pending auto-saves so close can decide whether this is a real todo.
             if (todoModalSaveTimer) {
                 clearTimeout(todoModalSaveTimer);
-                saveTodoModalContentNow();
+                todoModalSaveTimer = null;
             }
             if (todoModalTitleTimer) {
                 clearTimeout(todoModalTitleTimer);
-                const titleEl = document.getElementById('todo-modal-title');
-                const todo = todosData.find(t => t.id === todoModalCurrentId);
-                if (todo && titleEl) {
-                    const newText = titleEl.value.trim();
-                    if (newText && newText !== todo.text) {
-                        saveTodoText(todoModalCurrentId, newText);
-                        todo.text = newText;
-                    }
+                todoModalTitleTimer = null;
+            }
+
+            if (isEmptyDraftTodo(todo, newText, content)) {
+                await discardEmptyDraftTodo(closingId);
+                document.getElementById('todoDetailModal').style.display = 'none';
+                todoModalCurrentId = null;
+                return;
+            }
+
+            if (todo) {
+                if (newText && newText !== todo.text) {
+                    await saveTodoText(closingId, newText);
+                    todo.text = newText;
                 }
+                if (todo._isDraft) delete todo._isDraft;
+            }
+
+            if (closingId) {
+                await saveTodoModalContentNow();
             }
 
             document.getElementById('todoDetailModal').style.display = 'none';
 
             // Re-render the list to show updated content indicators
-            const todo = todosData.find(t => t.id === todoModalCurrentId);
             if (todo) rerenderTodoListDiv(todo.listId || 'todolist-default');
 
             todoModalCurrentId = null;
+        }
+
+        async function discardEmptyDraftTodo(id) {
+            const todo = todosData.find(t => t.id === id);
+            const listId = todo ? (todo.listId || 'todolist-default') : null;
+            try {
+                await fetch(`/api/todos/${id}`, { method: 'DELETE' });
+            } catch (err) {
+                console.error('Failed to discard empty draft todo:', err);
+            }
+            todosData = todosData.filter(t => t.id !== id);
+            updateTodosCount();
+            if (listId) rerenderTodoListDiv(listId);
         }
 
         function updateTodoModalSaveStatus(text) {
