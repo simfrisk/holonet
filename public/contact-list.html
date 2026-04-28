@@ -14,6 +14,9 @@
         if (['localhost', '127.0.0.1', '::1', 'holonet.apps.osaas.io'].includes(window.location.hostname)) {
             document.documentElement.classList.add('localhost-preview');
         }
+        if (['localhost', '127.0.0.1', '::1'].includes(window.location.hostname)) {
+            document.documentElement.classList.add('local-modern-preview');
+        }
     </script>
 </head>
 <body>
