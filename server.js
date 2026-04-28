@@ -181,7 +181,7 @@ const loginLimiter = rateLimit({
 
 // Auth gate: runs before static files so HTML pages are also protected
 app.use((req, res, next) => {
-    const exempt = ['/login.html', '/api/login', '/api/health'];
+    const exempt = ['/login.html', '/js/login.js', '/api/login', '/api/health'];
     if (exempt.includes(req.path)) return next();
     // Video API endpoints use their own dual auth (API key OR cookie)
     if (req.path.startsWith('/api/videos')) return next();
