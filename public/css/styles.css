@@ -3375,6 +3375,132 @@
                 justify-content: center;
                 margin: 0;
             }
+
+            /* Compact contact cards, closer to Tracked Customers */
+            tr:not(.group-header) {
+                display: flex !important;
+                flex-wrap: wrap;
+                gap: 0;
+                padding: 12px 14px;
+                border-radius: 10px;
+                cursor: pointer;
+            }
+            tr:not(.group-header) td[data-label] {
+                padding: 0;
+                border: 0;
+            }
+            tr:not(.group-header) td[data-label]::before {
+                display: none;
+            }
+            .status-td,
+            .priority-td {
+                display: inline-flex !important;
+                width: auto !important;
+                padding: 0 !important;
+                border: 0 !important;
+                background: transparent !important;
+            }
+            tr:not(.group-header) .status-td {
+                order: 1;
+                margin: 0 6px 10px 0;
+            }
+            tr:not(.group-header) .priority-td {
+                order: 2;
+                margin: 0 0 10px;
+            }
+            td.status-td[data-status="active"],
+            td.status-td[data-status="contacted"],
+            td.status-td[data-status="later"],
+            td.status-td[data-status="skip"],
+            td.priority-td[data-priority] {
+                background: transparent !important;
+            }
+            .status-btn,
+            .priority-btn {
+                width: auto;
+                min-height: 28px;
+                max-width: 46vw;
+                padding: 4px 8px;
+                border-radius: 999px;
+                font-size: 11px;
+                line-height: 1;
+                background: var(--color-surface-elevated);
+                border: 1px solid var(--color-border);
+                color: var(--color-text-muted);
+                gap: 5px;
+            }
+            td.status-td[data-status="active"] .status-btn { color: #66b2ff; border-color: color-mix(in srgb, #0073ea 40%, var(--color-border)); }
+            td.status-td[data-status="contacted"] .status-btn { color: var(--color-success); border-color: color-mix(in srgb, var(--color-success) 40%, var(--color-border)); }
+            td.status-td[data-status="later"] .status-btn { color: var(--color-warning); border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border)); }
+            td.status-td[data-status="skip"] .status-btn { color: var(--color-danger); border-color: color-mix(in srgb, var(--color-danger) 40%, var(--color-border)); }
+            td.priority-td[data-priority="focus"] .priority-btn { color: #a25afd; border-color: color-mix(in srgb, #a25afd 45%, var(--color-border)); }
+            td.priority-td[data-priority="high"] .priority-btn { color: var(--color-danger); border-color: color-mix(in srgb, var(--color-danger) 40%, var(--color-border)); }
+            td.priority-td[data-priority="medium"] .priority-btn { color: var(--color-warning); border-color: color-mix(in srgb, var(--color-warning) 45%, var(--color-border)); }
+            td.priority-td[data-priority="low"] .priority-btn { color: var(--color-success); border-color: color-mix(in srgb, var(--color-success) 40%, var(--color-border)); }
+            .status-btn-label,
+            .priority-btn-label {
+                text-transform: none;
+                font-weight: 700;
+            }
+            .status-btn-chevron {
+                font-size: 11px;
+            }
+            .priority-td .new-badge {
+                position: absolute;
+                top: 12px;
+                right: 14px;
+                margin: 0;
+            }
+            tr:not(.group-header) td[data-label="Name"] {
+                order: 3;
+                flex: 1 0 100%;
+                padding: 0 0 7px;
+            }
+            td[data-label="Name"] strong {
+                font-size: 16px;
+                margin-bottom: 2px;
+            }
+            .tenant-name {
+                display: block;
+                color: var(--color-text-muted);
+                font-size: 13px;
+            }
+            tr:not(.group-header) td[data-label="Email"] {
+                order: 4;
+                flex: 1 0 100%;
+                color: var(--color-text-muted);
+                padding: 0 0 7px;
+            }
+            tr:not(.group-header) td[data-label="Activity"] {
+                order: 5;
+                flex: 1 0 100%;
+                color: var(--color-text-muted);
+                padding: 0 0 10px;
+                display: -webkit-box;
+                -webkit-line-clamp: 2;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+            }
+            tr:not(.group-header) td[data-label="Links"] {
+                order: 6;
+                flex: 1 0 100%;
+                padding-top: 2px;
+                gap: 6px;
+            }
+            td[data-label="Links"]::before {
+                display: none;
+            }
+            .slack-link,
+            .edit-row-btn,
+            .track-btn {
+                min-height: 30px;
+                padding: 4px 9px;
+                border-radius: 7px;
+                font-size: 13px;
+            }
+            .track-btn {
+                margin-left: 0;
+            }
             .todo-drag-handle,
             .draft-drag-handle,
             .tracked-card-drag-handle,

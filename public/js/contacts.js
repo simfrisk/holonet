@@ -229,6 +229,11 @@
             const row = document.createElement('tr');
             row.className = `priority-${contact.priority}`;
             row.dataset.contactId = contact.id;
+            row.addEventListener('click', event => {
+                if (window.innerWidth > 900) return;
+                if (event.target.closest('a, button, input, select, textarea, .drag-handle, .status-dropdown, .priority-dropdown, .status-option')) return;
+                openEditModal(contact.id);
+            });
 
             const tenantLink = `https://app.osaas.io/admin/tenant/${contact.tenantName}`;
             const grafanaLink = `https://ops-ui.osaas.io/d/45a4f896-1072-4957-ad18-9b4f0c1e77ef/tenant?orgId=1&from=now-24h&to=now&timezone=browser&var-tenant=${encodeURIComponent(contact.tenantName || '')}&refresh=5m`;
@@ -836,4 +841,3 @@
 
             updateAllEmptyStates();
         }
-
