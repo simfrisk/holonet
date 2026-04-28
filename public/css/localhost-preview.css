@@ -1,0 +1,24 @@
+html.localhost-preview,
+html.localhost-preview body {
+    min-height: 100%;
+}
+
+html.localhost-preview body {
+    padding: 0;
+}
+
+html.localhost-preview .container {
+    min-height: 100vh;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+@media (max-width: 600px) {
+    html.localhost-preview body {
+        padding: 0;
+    }
+
+    html.localhost-preview .container {
+        border-radius: 0;
+    }
+}
