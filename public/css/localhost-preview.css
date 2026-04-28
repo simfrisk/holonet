@@ -326,6 +326,30 @@ html.local-modern-preview .todo-item:hover {
     box-shadow: 0 8px 24px rgba(16, 24, 40, 0.08);
 }
 
+html.local-modern-preview .todo-item.priority-high {
+    background: rgba(226, 68, 92, 0.12);
+    border-color: rgba(226, 68, 92, 0.35);
+}
+html.local-modern-preview .todo-item.priority-high:hover {
+    background: rgba(226, 68, 92, 0.18);
+}
+
+html.local-modern-preview .todo-item.priority-medium {
+    background: rgba(253, 171, 61, 0.12);
+    border-color: rgba(253, 171, 61, 0.35);
+}
+html.local-modern-preview .todo-item.priority-medium:hover {
+    background: rgba(253, 171, 61, 0.18);
+}
+
+html.local-modern-preview .todo-item.priority-low {
+    background: rgba(0, 200, 117, 0.10);
+    border-color: rgba(0, 200, 117, 0.30);
+}
+html.local-modern-preview .todo-item.priority-low:hover {
+    background: rgba(0, 200, 117, 0.16);
+}
+
 html.local-modern-preview .todo-new-btn {
     border-radius: 12px;
     background: var(--preview-soft-bg);
