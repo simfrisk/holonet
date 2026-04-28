@@ -99,7 +99,7 @@
             return `<div class="video-card${campaignClass}" draggable="true" data-video-id="${v.id}" onclick="openVideoModal('${v.id}')">
                 <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;margin-bottom:2px;">
                     <div class="video-card-title" style="margin-bottom:0;">${escapeHtml(v.title)}</div>
-                    <div style="display:flex;gap:4px;flex-shrink:0;">${brandBadge}${weekBadge}</div>
+                    <div style="display:flex;gap:4px;flex-shrink:0;align-items:center;">${brandBadge}${weekBadge}<button class="video-card-drag-handle" type="button" title="Drag to move"><i class="ti ti-grip-vertical"></i></button></div>
                 </div>
                 <div class="video-card-platforms">${platformBadges || '<span class="video-card-no-platforms">No platforms</span>'}</div>
             </div>`;
@@ -150,6 +150,38 @@
                     }
                 });
             });
+
+            if (typeof initMobileCardDrag === 'function') {
+                initMobileCardDrag({
+                    handleSelector: '.video-card-drag-handle',
+                    itemSelector: '.video-card',
+                    containerSelector: '.kanban-cards',
+                    itemOverClass: 'video-card-drag-over',
+                    containerOverClass: 'kanban-drop-over',
+                    onDrop: onVideoMobileDrop
+                });
+            }
+        }
+
+        async function onVideoMobileDrop({ source, targetContainer }) {
+            if (!source || !targetContainer) return;
+            const videoId = source.dataset.videoId;
+            const newStatus = targetContainer.closest('.kanban-column')?.dataset.status;
+            const video = videosData.find(v => v.id === videoId);
+            if (!video || !newStatus || video.status === newStatus) return;
+
+            video.status = newStatus;
+            renderVideoKanban();
+
+            try {
+                await fetch(`/api/videos/${videoId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+            } catch (err) {
+                console.error('Failed to update video status:', err);
+            }
         }
 
         // ---- Collapsible sections ----

@@ -508,11 +508,52 @@ html.local-modern-preview .sidebar-toggle:hover {
 
     html.local-modern-preview header {
         display: block;
-        padding: 18px;
+        padding: 12px 14px;
     }
 
     html.local-modern-preview .app-body {
+        display: block;
+    }
+
+    html.local-modern-preview .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100% !important;
+        height: 100vh;
+        min-height: 100vh;
+        padding: 24px 20px;
+        padding-right: 20px !important;
+        border-right: none;
+        background: var(--preview-sidebar-bg);
+        box-shadow: 0 18px 60px rgba(0, 0, 0, 0.18);
+        overflow-y: auto;
+        transform: translateX(-100%);
+        opacity: 1;
+        pointer-events: none;
+        z-index: 1000;
+    }
+
+    html.local-modern-preview .sidebar.open {
+        transform: translateX(0);
+        pointer-events: auto;
+    }
+
+    html.local-modern-preview .sidebar.collapsed {
+        width: 100% !important;
+        padding: 24px 20px;
+        padding-right: 20px !important;
+        opacity: 1;
+        transform: translateX(-100%);
+        pointer-events: none;
+    }
+
+    html.local-modern-preview .sidebar-close {
         display: flex;
+    }
+
+    html.local-modern-preview .sidebar-overlay {
+        z-index: 999;
     }
 
     html.local-modern-preview .main-content {

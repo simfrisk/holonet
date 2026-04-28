@@ -1,13 +1,14 @@
         const CONTACT_TABS = ['active', 'archived', 'later', 'skip', 'all'];
         const NAV_SECTION_KEY = 'osc_active_section';
         const NAV_CONTACT_TAB_KEY = 'osc_active_contact_tab';
+        const MOBILE_NAV_BREAKPOINT = 900;
 
         // ---- Sidebar toggle ----
         let sidebarOpen = true; // desktop: starts open
 
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
-            const isMobile = window.innerWidth <= 600;
+            const isMobile = window.innerWidth <= MOBILE_NAV_BREAKPOINT;
             if (isMobile) {
                 if (sidebar.classList.contains('open')) {
                     closeSidebar();
@@ -23,6 +24,7 @@
         function openSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
+            if (!sidebar || !overlay) return;
             sidebar.classList.add('open');
             sidebar.classList.remove('collapsed');
             overlay.style.display = 'block';
@@ -33,9 +35,11 @@
         function closeSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('sidebarOverlay');
-            const isMobile = window.innerWidth <= 600;
+            if (!sidebar || !overlay) return;
+            const isMobile = window.innerWidth <= MOBILE_NAV_BREAKPOINT;
             if (isMobile) {
                 sidebar.classList.remove('open');
+                sidebar.classList.add('collapsed');
                 overlay.classList.remove('visible');
                 document.body.style.overflow = '';
                 setTimeout(() => { overlay.style.display = 'none'; }, 250);
@@ -56,7 +60,7 @@
             activeSection = sectionName;
             try { localStorage.setItem(NAV_SECTION_KEY, sectionName); } catch (e) {}
             // Auto-close sidebar on mobile after selecting a section
-            if (window.innerWidth <= 600) closeSidebar();
+            if (window.innerWidth <= MOBILE_NAV_BREAKPOINT) closeSidebar();
             if (!skipHash) {
                 const hash = sectionName === 'contacts' ? `contacts-${activeContactTab}` : sectionName;
                 history.replaceState(null, '', `#${hash}`);
@@ -115,7 +119,7 @@
             }
 
             // Pause monitor polling when leaving the monitor tab
-            if (sectionName !== 'monitor') {
+            if (sectionName !== 'monitor' && typeof pauseMonitor === 'function') {
                 pauseMonitor();
             }
         }
@@ -189,3 +193,27 @@
             // Final default
             switchSection('todos', true);
         }
+
+        window.addEventListener('resize', () => {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (!sidebar || !overlay) return;
+
+            if (window.innerWidth > MOBILE_NAV_BREAKPOINT) {
+                sidebar.classList.remove('open');
+                overlay.classList.remove('visible');
+                overlay.style.display = 'none';
+                document.body.style.overflow = '';
+            } else if (!sidebar.classList.contains('open')) {
+                sidebar.classList.add('collapsed');
+                overlay.classList.remove('visible');
+                overlay.style.display = 'none';
+                document.body.style.overflow = '';
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && window.innerWidth <= MOBILE_NAV_BREAKPOINT) {
+                closeSidebar();
+            }
+        });

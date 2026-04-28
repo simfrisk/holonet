@@ -149,7 +149,10 @@
                             </span>
                             ${planBadgeHtml}
                         </div>
-                        <button class="tracked-card-remove" title="Remove from tracking" onclick="event.stopPropagation();removeTracked('${c.id}')">×</button>
+                        <div class="tracked-card-controls">
+                            <button class="tracked-card-drag-handle" type="button" title="Drag to move"><i class="ti ti-grip-vertical"></i></button>
+                            <button class="tracked-card-remove" title="Remove from tracking" onclick="event.stopPropagation();removeTracked('${c.id}')">×</button>
+                        </div>
                     </div>
                     <div class="tracked-card-identity">
                         <div class="tracked-card-primary">
@@ -890,6 +893,68 @@
                 zone.addEventListener('dragleave', onZoneDragLeave);
                 zone.addEventListener('drop',      onZoneDrop);
             });
+
+            if (typeof initMobileCardDrag === 'function') {
+                initMobileCardDrag({
+                    handleSelector: '.tracked-card-drag-handle',
+                    itemSelector: '.tracked-card',
+                    containerSelector: '#tracked-focus-zone, #tracked-paying-zone, #tracked-trial-zone, #tracked-grid',
+                    itemOverClass: 'tracked-card-drag-over',
+                    containerOverClass: 'tracked-zone-over',
+                    onDrop: onTrackedMobileDrop
+                });
+            }
+        }
+
+        async function onTrackedMobileDrop({ source, targetItem, targetContainer, position }) {
+            const sourceId = source.dataset.trackedId;
+            if (!sourceId || !targetContainer) return;
+
+            const srcCustomer = trackedCustomers.find(c => c.id === sourceId);
+            if (!srcCustomer) return;
+
+            const oldCategory = srcCustomer.category || null;
+            const newCategory = targetItem
+                ? (trackedCustomers.find(c => c.id === targetItem.dataset.trackedId)?.category || null)
+                : ZONE_TO_CATEGORY[targetContainer.id];
+
+            const srcIdx = trackedCustomers.findIndex(c => c.id === sourceId);
+            const moved = trackedCustomers.splice(srcIdx, 1)[0];
+            moved.category = newCategory;
+
+            if (targetItem && targetItem.dataset.trackedId !== sourceId) {
+                const targetId = targetItem.dataset.trackedId;
+                const targetIdx = trackedCustomers.findIndex(c => c.id === targetId);
+                const insertIdx = position === 'after' ? targetIdx + 1 : targetIdx;
+                trackedCustomers.splice(Math.max(insertIdx, 0), 0, moved);
+            } else {
+                const lastInCategory = [...trackedCustomers].reverse().findIndex(c => (c.category || null) === newCategory);
+                if (lastInCategory === -1) {
+                    const categoryOrder = ['focus', 'paying', 'trial', null];
+                    const newRank = categoryOrder.indexOf(newCategory);
+                    const insertBefore = trackedCustomers.findIndex(c => categoryOrder.indexOf(c.category || null) > newRank);
+                    if (insertBefore === -1) trackedCustomers.push(moved);
+                    else trackedCustomers.splice(insertBefore, 0, moved);
+                } else {
+                    trackedCustomers.splice(trackedCustomers.length - lastInCategory, 0, moved);
+                }
+            }
+
+            renderTrackedGrid();
+
+            if (oldCategory !== newCategory) {
+                try {
+                    await fetch(`/api/tracked/${moved.id}/category`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ category: newCategory })
+                    });
+                } catch (err) {
+                    console.error('Failed to persist category:', err);
+                }
+            }
+
+            await persistTrackedOrder();
         }
 
         function onTrackedDragStart(e) {

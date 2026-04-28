@@ -483,6 +483,24 @@
             listEl.addEventListener('dragover', onTodoListDragOver);
             listEl.addEventListener('dragleave', onTodoListDragLeave);
             listEl.addEventListener('drop', onTodoListDrop);
+
+            if (typeof initMobileCardDrag === 'function') {
+                initMobileCardDrag({
+                    handleSelector: `#todo-list-${CSS.escape(listId)} .todo-drag-handle`,
+                    itemSelector: '.todo-item',
+                    containerSelector: '.todo-list',
+                    containerHighlightSelector: '.todo-column',
+                    itemOverClass: 'todo-item-drag-over',
+                    containerOverClass: 'todo-column-drag-over',
+                    onDrop: async ({ source, targetItem, targetContainer, position }) => {
+                        const srcTodo = todosData.find(t => t.id === source.dataset.todoId);
+                        if (!srcTodo || !targetContainer) return;
+                        const targetListId = targetContainer.id.replace('todo-list-', '');
+                        const beforeId = getMobileBeforeId(targetContainer, targetItem, source, 'todoId', position);
+                        await moveTodoTo(srcTodo, targetListId, beforeId);
+                    }
+                });
+            }
         }
 
         // Legacy aliases so other files calling the old function names still work

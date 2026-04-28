@@ -148,6 +148,7 @@
             return `<div class="draft-tile" draggable="true" data-draft-id="${escapeHtml(draft.id)}" style="border-top:3px solid ${topBorderColor};">
                 <div class="draft-tile-top">
                     <span class="draft-topic-badge" style="${badgeStyle}">${escapeHtml(draft.topic || 'General')}</span>
+                    <button class="draft-drag-handle" type="button" title="Drag to reorder"><i class="ti ti-grip-vertical"></i></button>
                 </div>
                 <p class="draft-tile-subject">${escapeHtml(draft.subject)}</p>
                 <div class="draft-tile-body">${escapeHtml(draft.body || '')}</div>
@@ -350,6 +351,17 @@
                 tile.addEventListener('dragleave', onDraftDragLeave);
                 tile.addEventListener('drop',      onDraftDrop);
             });
+
+            if (typeof initMobileCardDrag === 'function') {
+                initMobileCardDrag({
+                    handleSelector: '#drafts-grid .draft-drag-handle',
+                    itemSelector: '.draft-tile',
+                    containerSelector: '#drafts-grid',
+                    itemOverClass: 'draft-drag-over',
+                    containerOverClass: 'drafts-grid-drag-over',
+                    onDrop: onDraftMobileDrop
+                });
+            }
         }
 
         function onDraftDragStart(e) {
@@ -405,6 +417,42 @@
             }
 
             // Persist order
+            const order = draftsData.map((d, i) => ({ id: d.id, sortOrder: i }));
+            try {
+                await fetch('/api/drafts/reorder', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ order })
+                });
+            } catch (err) {
+                console.error('Failed to save draft order:', err);
+            }
+        }
+
+        async function onDraftMobileDrop({ source, targetItem, targetContainer, position }) {
+            if (!source || !targetContainer) return;
+            const sourceId = source.dataset.draftId;
+            if (!sourceId) return;
+
+            const srcIdx = draftsData.findIndex(d => d.id === sourceId);
+            if (srcIdx === -1) return;
+
+            const moved = draftsData.splice(srcIdx, 1)[0];
+            let insertIdx = draftsData.length;
+            if (targetItem && targetItem.dataset.draftId !== sourceId) {
+                const targetIdx = draftsData.findIndex(d => d.id === targetItem.dataset.draftId);
+                if (targetIdx !== -1) insertIdx = position === 'after' ? targetIdx + 1 : targetIdx;
+            }
+            draftsData.splice(insertIdx, 0, moved);
+
+            const targetEl = targetItem;
+            if (targetEl) {
+                if (position === 'after') targetEl.after(source);
+                else targetEl.before(source);
+            } else {
+                targetContainer.appendChild(source);
+            }
+
             const order = draftsData.map((d, i) => ({ id: d.id, sortOrder: i }));
             try {
                 await fetch('/api/drafts/reorder', {
