@@ -2,6 +2,8 @@
 
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 const crypto = require('crypto');
 
@@ -13,13 +15,26 @@ if (!COUCHDB_URL) {
     process.exit(1);
 }
 const DB_NAME = 'osc_contacts';
-const API_KEY = process.env.API_KEY || ''; // Optional API key for sync endpoint
-const LOGIN_PASSWORD = process.env.LOGIN_PASSWORD || ''; // If set, enables login protection
+const API_KEY = process.env.API_KEY;
+if (!API_KEY) {
+    console.error('❌ API_KEY environment variable is required');
+    process.exit(1);
+}
+const LOGIN_PASSWORD = process.env.LOGIN_PASSWORD;
+if (!LOGIN_PASSWORD) {
+    console.error('❌ LOGIN_PASSWORD environment variable is required');
+    process.exit(1);
+}
 const SESSION_SECRET = process.env.SESSION_SECRET;
 if (!SESSION_SECRET) {
     console.error('❌ SESSION_SECRET environment variable is required');
     process.exit(1);
 }
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || 'https://holonet.apps.osaas.io';
+
+// Express is behind a proxy in production (e.g. OSC ingress), trust it so
+// rate limiting and req.ip work correctly.
+app.set('trust proxy', 1);
 
 // Valid contact statuses
 const VALID_STATUSES = [null, 'contacted', 'later', 'skip'];
@@ -77,7 +92,7 @@ function generateAuthToken() {
 }
 
 function isAuthenticated(req) {
-    if (!LOGIN_PASSWORD) return true; // no password configured = open access
+    // LOGIN_PASSWORD is required at startup, so we always enforce auth.
     const cookies = parseCookies(req);
     return cookies['auth_token'] === generateAuthToken();
 }
@@ -91,8 +106,64 @@ function requireAuth(req, res, next) {
 }
 
 // Middleware
-app.use(cors());
+
+// Helmet security headers. Skip CSP for the agent-posted HTML route
+// since that content is rendered as a standalone HTML document and may
+// contain inline styles/scripts the agents emit.
+app.use((req, res, next) => {
+    if (req.path.startsWith('/api/outputs/') && req.path.endsWith('/content')) {
+        return helmet({ contentSecurityPolicy: false })(req, res, next);
+    }
+    return helmet()(req, res, next);
+});
+
+// CORS: lock to the configured allowed origin (default = the Holonet host).
+app.use(cors({
+    origin: ALLOWED_ORIGIN,
+    credentials: true
+}));
+
 app.use(express.json({ limit: '10mb' }));
+
+// Origin/Referer check for state-changing requests using cookie auth.
+// API-key authenticated agents are skipped (they may not send Origin).
+const STATE_CHANGING_METHODS = new Set(['POST', 'PATCH', 'PUT', 'DELETE']);
+app.use((req, res, next) => {
+    if (!STATE_CHANGING_METHODS.has(req.method)) return next();
+
+    // Skip if request is using API key auth.
+    const providedKey = req.headers['x-api-key'] || req.query.apiKey;
+    if (providedKey && providedKey === API_KEY) return next();
+
+    // Only enforce for cookie-bearing requests (i.e. browser sessions).
+    const cookies = parseCookies(req);
+    if (!cookies['auth_token']) return next();
+
+    const origin = req.headers.origin || req.headers.referer;
+    if (!origin) {
+        return res.status(403).json({ error: 'Missing Origin/Referer' });
+    }
+    let originHost;
+    try {
+        originHost = new URL(origin).host;
+    } catch {
+        return res.status(403).json({ error: 'Invalid Origin/Referer' });
+    }
+    const expectedHost = req.headers.host;
+    if (originHost !== expectedHost) {
+        return res.status(403).json({ error: 'Cross-origin request blocked' });
+    }
+    return next();
+});
+
+// Rate limiter: 5 attempts per 15 min per IP on /api/login.
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many login attempts. Please try again in 15 minutes.' }
+});
 
 // Auth gate: runs before static files so HTML pages are also protected
 app.use((req, res, next) => {
@@ -107,11 +178,8 @@ app.use((req, res, next) => {
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Login endpoint
-app.post('/api/login', (req, res) => {
-    if (!LOGIN_PASSWORD) {
-        return res.json({ success: true }); // no password = always succeed
-    }
+// Login endpoint (rate limited)
+app.post('/api/login', loginLimiter, (req, res) => {
     const { password } = req.body || {};
     if (password === LOGIN_PASSWORD) {
         const token = generateAuthToken();
@@ -462,17 +530,13 @@ async function ensureDefaultTodoList() {
     }
 }
 
-// Middleware to verify API key for sync endpoint
+// Middleware to verify API key for sync endpoint.
+// API_KEY is required at startup, so no "auth-disabled" path here.
 function verifyApiKey(req, res, next) {
-    if (!API_KEY) {
-        return next();
-    }
-
     const providedKey = req.headers['x-api-key'] || req.query.apiKey;
     if (providedKey !== API_KEY) {
         return res.status(401).json({ error: 'Unauthorized' });
     }
-
     next();
 }
 
@@ -871,7 +935,7 @@ app.post('/api/contacts', async (req, res) => {
 // Sync endpoint - accepts full contact data from Slack agent
 // Accepts API key OR cookie auth
 app.post('/api/sync', async (req, res) => {
-    const apiKeyValid = !API_KEY || (req.headers['x-api-key'] === API_KEY || req.query.apiKey === API_KEY);
+    const apiKeyValid = req.headers['x-api-key'] === API_KEY || req.query.apiKey === API_KEY;
     const cookieAuth = isAuthenticated(req);
     if (!apiKeyValid && !cookieAuth) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -3034,8 +3098,8 @@ app.get('/api/briefs', async (req, res) => {
 // POST /api/briefs — create (or replace) a brief + its items
 // Accepts API key OR cookie auth
 app.post('/api/briefs', async (req, res) => {
-    // Allow API key auth (if no API_KEY configured, treat as open) OR cookie auth
-    const apiKeyValid = !API_KEY || (req.headers['x-api-key'] === API_KEY || req.query.apiKey === API_KEY);
+    // Allow API key auth OR cookie auth (dual auth for agents + UI)
+    const apiKeyValid = req.headers['x-api-key'] === API_KEY || req.query.apiKey === API_KEY;
     const cookieAuth = isAuthenticated(req);
     if (!apiKeyValid && !cookieAuth) {
         return res.status(401).json({ error: 'Unauthorized' });
@@ -3311,7 +3375,7 @@ app.delete('/api/brief-items/:id', async (req, res) => {
 
 // Helper: dual auth for video endpoints (API key OR cookie)
 function requireVideoAuth(req, res) {
-    const apiKeyValid = !API_KEY || (req.headers['x-api-key'] === API_KEY || req.query.apiKey === API_KEY);
+    const apiKeyValid = req.headers['x-api-key'] === API_KEY || req.query.apiKey === API_KEY;
     const cookieAuth = isAuthenticated(req);
     if (!apiKeyValid && !cookieAuth) {
         res.status(401).json({ error: 'Unauthorized' });
@@ -3541,7 +3605,7 @@ app.get('/api/outputs', requireAuth, async (req, res) => {
 });
 
 app.post('/api/outputs', async (req, res) => {
-    const apiKeyValid = !API_KEY || (req.headers['x-api-key'] === API_KEY || req.query.apiKey === API_KEY);
+    const apiKeyValid = req.headers['x-api-key'] === API_KEY || req.query.apiKey === API_KEY;
     const cookieAuth = isAuthenticated(req);
     if (!apiKeyValid && !cookieAuth) return res.status(401).json({ error: 'Unauthorized' });
     try {
