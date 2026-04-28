@@ -103,11 +103,13 @@
             --color-status-skip-border: #7a2020;
         }
 
+        html, body {
+            min-height: 100vh;
+        }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
-            max-width: 1920px;
-            margin: 0 auto;
+            margin: 0;
             padding: 20px;
             background-color: var(--color-bg);
             color: var(--color-text);
