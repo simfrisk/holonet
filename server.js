@@ -109,12 +109,26 @@ function requireAuth(req, res, next) {
 
 // Helmet security headers. Skip CSP for the agent-posted HTML route
 // since that content is rendered as a standalone HTML document and may
-// contain inline styles/scripts the agents emit.
+// contain inline styles/scripts the agents emit. The default CSP is
+// also relaxed to allow inline scripts and event handlers used by the
+// existing static pages (login form, contact list, etc.).
+const helmetWithRelaxedCsp = helmet({
+    contentSecurityPolicy: {
+        useDefaults: true,
+        directives: {
+            'script-src': ["'self'", "'unsafe-inline'"],
+            'script-src-attr': ["'unsafe-inline'"],
+            'img-src': ["'self'", 'data:', 'https:'],
+            'connect-src': ["'self'", 'https:'],
+        },
+    },
+});
+
 app.use((req, res, next) => {
     if (req.path.startsWith('/api/outputs/') && req.path.endsWith('/content')) {
         return helmet({ contentSecurityPolicy: false })(req, res, next);
     }
-    return helmet()(req, res, next);
+    return helmetWithRelaxedCsp(req, res, next);
 });
 
 // CORS: lock to the configured allowed origin (default = the Holonet host).
