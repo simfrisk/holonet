@@ -231,14 +231,7 @@ html.local-modern-preview .pnav-icon {
 }
 
 html.local-modern-preview .pnav-count {
-    margin-left: auto;
-    background: var(--color-border);
-    color: var(--color-text-muted);
-}
-
-html.local-modern-preview .primary-nav-btn.active .pnav-count {
-    background: var(--preview-accent);
-    color: #ffffff;
+    display: none;
 }
 
 html.local-modern-preview .main-content {
