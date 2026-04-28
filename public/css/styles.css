@@ -2518,7 +2518,7 @@
            TODO DETAIL MODAL
            ========================================= */
         .todo-detail-modal-content {
-            max-width: 720px;
+            max-width: 1440px;
             min-height: unset;
             max-height: 85vh;
             display: flex;
