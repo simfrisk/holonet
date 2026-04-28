@@ -3162,23 +3162,61 @@
 
             /* --- Sub-nav: scrollable --- */
             .sub-nav {
-                flex-wrap: nowrap;
-                overflow-x: auto;
+                flex-wrap: wrap;
+                overflow-x: visible;
                 -webkit-overflow-scrolling: touch;
-                gap: 2px;
+                gap: 4px;
                 scrollbar-width: none;
                 align-items: center;
+                margin: 0 -14px 18px;
+                padding: 8px 14px 10px;
+                background: var(--color-surface);
+                border-top: 1px solid var(--color-border);
             }
             .sub-nav::-webkit-scrollbar { display: none; }
             .tab-button {
                 white-space: nowrap;
-                flex-shrink: 0;
-                padding: 6px 10px;
+                flex: 1 1 auto;
+                padding: 9px 8px;
                 font-size: 12px;
+                text-align: center;
+                min-width: max-content;
             }
-            .contact-search-wrap { flex-shrink: 0; }
-            .contact-search-input { width: 140px; }
-            .contact-search-input:focus { width: 160px; }
+            .sub-nav-actions {
+                flex: 1 0 100%;
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto auto auto;
+                gap: 6px;
+                align-items: center;
+                margin-left: 0;
+                padding-top: 6px;
+                min-width: 0;
+            }
+            .contact-search-wrap { flex-shrink: 1; min-width: 0; }
+            .contact-search-input,
+            .contact-search-input:focus {
+                width: 100%;
+                min-width: 0;
+                box-sizing: border-box;
+            }
+            .followup-filter-btn,
+            .add-contact-btn,
+            .select-mode-btn {
+                min-width: 38px;
+                max-width: 44px;
+                height: 38px;
+                padding: 0;
+                justify-content: center;
+                overflow: hidden;
+                white-space: nowrap;
+                font-size: 0;
+            }
+            .followup-filter-btn i,
+            .add-contact-btn i,
+            .select-mode-btn i {
+                margin: 0;
+                font-size: 17px;
+            }
 
             /* --- Stats: 2 columns --- */
             .stats {
@@ -3197,9 +3235,7 @@
                 overflow-wrap: anywhere;
             }
 
-            /* --- Contact table: card layout ---
-               Works WITH the existing display:block card layout (set above).
-               Uses float for status+priority side-by-side (tr has overflow:hidden = clearfix). */
+            /* --- Contact table: mobile lead cards --- */
 
             /* Override the global td height:42px for mobile cards —
                cells must grow with content, not clip */
@@ -3215,22 +3251,129 @@
             /* Hide Notes cell — notes accessible via Edit modal on mobile */
             td[data-label="Notes"] { display: none !important; }
 
-            /* Status + Priority: float side by side at 50% each.
-               tr already has overflow:hidden which contains the floats. */
-            .status-td, .priority-td {
-                float: left !important;
-                display: block !important;
-                width: 50% !important;
-                box-sizing: border-box;
-                border-bottom: none !important;
+            table,
+            tbody {
+                display: block;
+                width: 100%;
             }
-            .priority-td {
-                border-bottom: 1px solid var(--color-surface-elevated) !important;
+            tbody {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+            tr:not(.group-header) {
+                display: grid !important;
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+                overflow: hidden;
+                width: 100%;
+                margin: 0;
+                border: 1px solid var(--color-border);
+                border-radius: 12px;
+                background: var(--color-surface);
+                box-shadow: 0 10px 26px rgba(0, 0, 0, 0.08);
+            }
+            tr.priority-focus:not(.group-header) { border-left: 4px solid #a25afd; }
+            tr.priority-high:not(.group-header) { border-left: 4px solid var(--color-danger); }
+            tr.priority-medium:not(.group-header) { border-left: 4px solid var(--color-warning); }
+            tr.priority-low:not(.group-header) { border-left: 4px solid var(--color-success); }
+            tr:not(.group-header):hover > td {
+                background: transparent;
+            }
+            tr:not(.group-header) td[data-label] {
+                display: block;
+                width: auto !important;
+                min-width: 0 !important;
+                padding: 12px 14px;
+                border-right: 0;
+                border-bottom: 1px solid var(--color-border);
+                box-sizing: border-box;
+                overflow-wrap: anywhere;
+            }
+            tr:not(.group-header) td[data-label="Name"],
+            tr:not(.group-header) td[data-label="Email"],
+            tr:not(.group-header) td[data-label="Activity"],
+            tr:not(.group-header) td[data-label="Links"] {
+                grid-column: 1 / -1;
+            }
+            tr:not(.group-header) td[data-label="Name"] {
+                padding-top: 14px;
+            }
+            tr:not(.group-header) td[data-label="Links"] {
+                border-bottom: 0;
+                padding-bottom: 14px;
+            }
+            tr:not(.group-header) td[data-label]::before {
+                margin: 0 0 6px;
+                color: var(--color-text-subtle);
+                font-size: 11px;
+                letter-spacing: 0.08em;
+            }
+            .status-td, .priority-td {
+                display: block !important;
+                float: none !important;
+                background: var(--color-surface-elevated) !important;
+                border-bottom: 1px solid var(--color-border) !important;
+                padding: 10px 12px !important;
+            }
+            td.status-td[data-status="active"],
+            td.status-td[data-status="contacted"],
+            td.status-td[data-status="later"],
+            td.status-td[data-status="skip"],
+            td.priority-td[data-priority] {
+                background: var(--color-surface-elevated) !important;
             }
             .status-btn, .priority-btn {
-                font-size: 12px;
-                padding: 5px 8px;
+                min-height: 36px;
                 width: 100%;
+                justify-content: space-between;
+                border-radius: 8px;
+                font-size: 13px;
+                letter-spacing: 0.02em;
+                padding: 7px 9px;
+            }
+            .status-btn-label,
+            .priority-btn-label {
+                min-width: 0;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .priority-td .new-badge {
+                display: inline-flex;
+                margin: 8px 0 0;
+                padding: 2px 8px;
+                border-radius: 999px;
+                font-size: 10px;
+            }
+            .tenant-name,
+            .activity-summary,
+            td[data-label="Email"] {
+                font-size: 14px;
+                line-height: 1.45;
+            }
+            td[data-label="Name"] strong {
+                display: block;
+                font-size: 16px;
+                line-height: 1.35;
+                margin-bottom: 4px;
+            }
+            td[data-label="Links"] {
+                display: flex !important;
+                flex-wrap: wrap;
+                gap: 8px;
+                align-items: center;
+            }
+            td[data-label="Links"]::before {
+                flex: 1 0 100%;
+            }
+            .slack-link,
+            .edit-row-btn,
+            .track-btn {
+                min-height: 34px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0;
             }
             .todo-drag-handle,
             .draft-drag-handle,
