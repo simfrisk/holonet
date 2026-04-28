@@ -120,6 +120,7 @@ const helmetWithRelaxedCsp = helmet({
             'script-src-attr': ["'unsafe-inline'"],
             'img-src': ["'self'", 'data:', 'https:'],
             'connect-src': ["'self'", 'https:'],
+            'frame-src': ["'self'", 'https://oscstats.apps.osaas.io'],
         },
     },
 });
