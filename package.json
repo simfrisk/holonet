@@ -1,5 +1,5 @@
 {
-  "name": "osc-contact-list-server",
+  "name": "holonet",
   "version": "1.0.0",
   "description": "OSC Sales Contact List with CouchDB backend",
   "main": "server.js",

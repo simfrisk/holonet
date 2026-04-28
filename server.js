@@ -3593,6 +3593,142 @@ app.delete('/api/outputs/:id', requireAuth, async (req, res) => {
     }
 });
 
+// ====================================================================
+// Image uploads (used by todo modal — paste / drop / file picker)
+// Stored as CouchDB attachments on a single doc (holonet:uploads),
+// served back through GET /api/uploads/:filename so the frontend can
+// reference them with a stable URL embedded in markdown.
+// ====================================================================
+
+const UPLOADS_DOC_ID = 'holonet:uploads';
+const ALLOWED_IMAGE_MIME = new Set([
+    'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'
+]);
+const MAX_UPLOAD_BYTES = 8 * 1024 * 1024; // 8 MB
+
+function extForMime(mime) {
+    switch (mime) {
+        case 'image/png': return 'png';
+        case 'image/jpeg': return 'jpg';
+        case 'image/gif': return 'gif';
+        case 'image/webp': return 'webp';
+        case 'image/svg+xml': return 'svg';
+        default: return 'bin';
+    }
+}
+
+async function ensureUploadsDoc() {
+    const url = `${dbUrl}/${UPLOADS_DOC_ID}`;
+    const resp = await couchFetch(url);
+    if (resp.ok) return resp.json();
+    if (resp.status === 404) {
+        const createResp = await couchFetch(url, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ _id: UPLOADS_DOC_ID, type: 'uploads_index' })
+        });
+        if (!createResp.ok) throw new Error('Failed to create uploads doc');
+        const created = await createResp.json();
+        return { _id: UPLOADS_DOC_ID, _rev: created.rev, type: 'uploads_index' };
+    }
+    throw new Error(`Failed to load uploads doc: ${resp.status}`);
+}
+
+// POST /api/uploads
+// Body: { filename: string, contentType: string, data: string (base64, no data: prefix) }
+// Response: { url: string, filename: string, markdown: string }
+app.post('/api/uploads', requireAuth, async (req, res) => {
+    try {
+        const { filename, contentType, data } = req.body || {};
+        if (!data || typeof data !== 'string') {
+            return res.status(400).json({ error: 'Missing data (base64 string)' });
+        }
+        if (!contentType || !ALLOWED_IMAGE_MIME.has(contentType)) {
+            return res.status(400).json({ error: 'Unsupported content type' });
+        }
+
+        const buffer = Buffer.from(data, 'base64');
+        if (buffer.length === 0) {
+            return res.status(400).json({ error: 'Empty file' });
+        }
+        if (buffer.length > MAX_UPLOAD_BYTES) {
+            return res.status(413).json({ error: 'File too large (max 8 MB)' });
+        }
+
+        // Sanitize incoming filename. We always store under a UUID to avoid
+        // collisions but keep a slugged hint of the original name for clarity.
+        const ext = extForMime(contentType);
+        const slugBase = (filename || 'image')
+            .replace(/\.[^.]+$/, '')
+            .replace(/[^a-zA-Z0-9_-]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .toLowerCase()
+            .slice(0, 40) || 'image';
+        const uuid = crypto.randomUUID();
+        const storedName = `${slugBase}-${uuid}.${ext}`;
+
+        // Attach to the uploads doc (with retry on 409 conflict).
+        let attempt = 0;
+        let lastErr = null;
+        while (attempt < 3) {
+            attempt++;
+            const doc = await ensureUploadsDoc();
+            const attachUrl = `${dbUrl}/${UPLOADS_DOC_ID}/${encodeURIComponent(storedName)}?rev=${doc._rev}`;
+            const attachResp = await couchFetch(attachUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': contentType },
+                body: buffer
+            });
+            if (attachResp.ok) {
+                const url = `/api/uploads/${encodeURIComponent(storedName)}`;
+                const altText = (filename || 'image').replace(/\]/g, '');
+                return res.json({
+                    url,
+                    filename: storedName,
+                    markdown: `![${altText}](${url})`
+                });
+            }
+            if (attachResp.status === 409) {
+                lastErr = 'conflict';
+                continue; // refetch doc and retry
+            }
+            const text = await attachResp.text();
+            console.error('Upload attach failed:', attachResp.status, text);
+            return res.status(500).json({ error: 'Failed to store upload' });
+        }
+        console.error('Upload attach gave up after retries:', lastErr);
+        return res.status(500).json({ error: 'Failed to store upload (conflict)' });
+    } catch (error) {
+        console.error('Upload error:', error);
+        res.status(500).json({ error: 'Failed to upload image' });
+    }
+});
+
+// GET /api/uploads/:filename — proxies the CouchDB attachment.
+app.get('/api/uploads/:filename', requireAuth, async (req, res) => {
+    try {
+        const filename = req.params.filename;
+        // Defense in depth: refuse anything that could escape the attachment scope.
+        if (!filename || filename.includes('/') || filename.includes('..')) {
+            return res.status(400).json({ error: 'Invalid filename' });
+        }
+        const attachUrl = `${dbUrl}/${UPLOADS_DOC_ID}/${encodeURIComponent(filename)}`;
+        const resp = await couchFetch(attachUrl);
+        if (!resp.ok) {
+            return res.status(resp.status === 404 ? 404 : 500)
+                .json({ error: resp.status === 404 ? 'Not found' : 'Failed to fetch' });
+        }
+        const ct = resp.headers.get('content-type') || 'application/octet-stream';
+        const buf = Buffer.from(await resp.arrayBuffer());
+        res.setHeader('Content-Type', ct);
+        res.setHeader('Cache-Control', 'private, max-age=3600');
+        res.send(buf);
+    } catch (error) {
+        console.error('Upload fetch error:', error);
+        res.status(500).json({ error: 'Failed to fetch upload' });
+    }
+});
+
 // Serve HTML files from public directory
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'contact-list.html'));

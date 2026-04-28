@@ -719,16 +719,32 @@
 
             // Auto-resize all textareas
             blocksEl.querySelectorAll('.todo-block-textarea').forEach(autoResizeTextarea);
+
+            // Render any embedded image markdown into preview thumbnails
+            content.forEach((block, idx) => {
+                if (block.type === 'text') renderTodoBlockImagePreview(idx);
+            });
         }
 
         function buildTextBlockHtml(block, idx) {
             return `<div class="todo-content-block todo-block-text" data-block-idx="${idx}">
                 <div class="todo-block-header">
                     <span class="todo-block-type-label"><i class="ti ti-text-size"></i> Text</span>
-                    <button class="todo-block-delete" onclick="deleteTodoContentBlock(${idx})" title="Remove block">&#x2715;</button>
+                    <div class="todo-block-header-actions">
+                        <button class="todo-block-image-btn" onclick="openImagePickerForBlock(${idx})" title="Attach image">
+                            <i class="ti ti-photo"></i>
+                        </button>
+                        <button class="todo-block-delete" onclick="deleteTodoContentBlock(${idx})" title="Remove block">&#x2715;</button>
+                    </div>
                 </div>
-                <textarea class="todo-block-textarea" placeholder="Write something..."
-                    oninput="autoResizeTextarea(this); scheduleTodoModalSave();">${escapeHtml(block.value || '')}</textarea>
+                <textarea class="todo-block-textarea" placeholder="Write something... (paste, drop, or attach an image)"
+                    onpaste="handleTodoTextareaPaste(event, ${idx})"
+                    ondragenter="handleTodoTextareaDragEnter(event)"
+                    ondragover="handleTodoTextareaDragOver(event)"
+                    ondragleave="handleTodoTextareaDragLeave(event)"
+                    ondrop="handleTodoTextareaDrop(event, ${idx})"
+                    oninput="autoResizeTextarea(this); renderTodoBlockImagePreview(${idx}); scheduleTodoModalSave();">${escapeHtml(block.value || '')}</textarea>
+                <div class="todo-block-image-preview" data-preview-for="${idx}"></div>
             </div>`;
         }
 
@@ -915,3 +931,178 @@
                 closeTodoDetailModal();
             }
         });
+
+        // =========================================
+        // TODO TEXT BLOCK — IMAGE UPLOAD (paste / drop / picker)
+        // =========================================
+
+        const TODO_IMAGE_MIME = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'];
+
+        function getTodoBlockTextarea(blockIdx) {
+            const blockEl = document.querySelector(`.todo-content-block[data-block-idx="${blockIdx}"]`);
+            return blockEl ? blockEl.querySelector('.todo-block-textarea') : null;
+        }
+
+        function insertAtCursor(textarea, insertText) {
+            const start = textarea.selectionStart || 0;
+            const end = textarea.selectionEnd || 0;
+            const before = textarea.value.slice(0, start);
+            const after = textarea.value.slice(end);
+            // If we're not at the start of a line, prefix with a newline so the
+            // image renders cleanly, mirroring GitHub's paste behaviour.
+            const needsLeadingNewline = before.length > 0 && !before.endsWith('\n');
+            const needsTrailingNewline = after.length > 0 && !after.startsWith('\n');
+            const prefix = needsLeadingNewline ? '\n' : '';
+            const suffix = needsTrailingNewline ? '\n' : '';
+            const finalInsert = prefix + insertText + suffix;
+            textarea.value = before + finalInsert + after;
+            const cursorPos = start + finalInsert.length;
+            textarea.selectionStart = textarea.selectionEnd = cursorPos;
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const result = reader.result || '';
+                    const commaIdx = String(result).indexOf(',');
+                    resolve(commaIdx >= 0 ? String(result).slice(commaIdx + 1) : '');
+                };
+                reader.onerror = () => reject(new Error('Failed to read file'));
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function uploadTodoImageFile(file, blockIdx) {
+            if (!TODO_IMAGE_MIME.includes(file.type)) {
+                console.warn('Skipping non-image file:', file.type);
+                return;
+            }
+            const textarea = getTodoBlockTextarea(blockIdx);
+            if (!textarea) return;
+
+            // Show a temporary placeholder so the user knows something is happening.
+            const placeholder = `![Uploading ${file.name || 'image'}...]()`;
+            insertAtCursor(textarea, placeholder);
+            autoResizeTextarea(textarea);
+
+            try {
+                const data = await fileToBase64(file);
+                const resp = await fetch('/api/uploads', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        filename: file.name || 'image',
+                        contentType: file.type,
+                        data
+                    })
+                });
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({}));
+                    throw new Error(err.error || `Upload failed (${resp.status})`);
+                }
+                const json = await resp.json();
+                // Replace the placeholder with the real markdown link.
+                textarea.value = textarea.value.replace(placeholder, json.markdown);
+                autoResizeTextarea(textarea);
+                renderTodoBlockImagePreview(blockIdx);
+                scheduleTodoModalSave();
+            } catch (err) {
+                console.error('Image upload failed:', err);
+                textarea.value = textarea.value.replace(placeholder, `![upload failed: ${file.name || 'image'}]()`);
+                autoResizeTextarea(textarea);
+                updateTodoModalSaveStatus('Upload failed');
+            }
+        }
+
+        function handleTodoTextareaPaste(event, blockIdx) {
+            const items = event.clipboardData && event.clipboardData.items;
+            if (!items) return;
+            const imageFiles = [];
+            for (const item of items) {
+                if (item.kind === 'file') {
+                    const file = item.getAsFile();
+                    if (file && TODO_IMAGE_MIME.includes(file.type)) imageFiles.push(file);
+                }
+            }
+            if (imageFiles.length === 0) return; // let normal text paste through
+            event.preventDefault();
+            imageFiles.forEach(file => uploadTodoImageFile(file, blockIdx));
+        }
+
+        function handleTodoTextareaDragEnter(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('todo-block-textarea-dragover');
+        }
+
+        function handleTodoTextareaDragOver(event) {
+            // Required to allow drop
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+        }
+
+        function handleTodoTextareaDragLeave(event) {
+            event.currentTarget.classList.remove('todo-block-textarea-dragover');
+        }
+
+        function handleTodoTextareaDrop(event, blockIdx) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('todo-block-textarea-dragover');
+            const files = event.dataTransfer && event.dataTransfer.files;
+            if (!files || files.length === 0) return;
+            for (const file of files) {
+                if (TODO_IMAGE_MIME.includes(file.type)) {
+                    uploadTodoImageFile(file, blockIdx);
+                }
+            }
+        }
+
+        function openImagePickerForBlock(blockIdx) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = TODO_IMAGE_MIME.join(',');
+            input.multiple = true;
+            input.style.display = 'none';
+            input.onchange = () => {
+                const files = Array.from(input.files || []);
+                files.forEach(file => uploadTodoImageFile(file, blockIdx));
+                input.remove();
+            };
+            document.body.appendChild(input);
+            input.click();
+        }
+
+        // ---- Image preview rendering inside text blocks ----
+
+        function extractMarkdownImageUrls(text) {
+            // Matches ![alt](url) — alt may be empty, url cannot contain whitespace or close-paren.
+            const re = /!\[([^\]]*)\]\(([^\s)]+)\)/g;
+            const found = [];
+            let m;
+            while ((m = re.exec(text)) !== null) {
+                found.push({ alt: m[1], url: m[2] });
+            }
+            return found;
+        }
+
+        function renderTodoBlockImagePreview(blockIdx) {
+            const previewEl = document.querySelector(`.todo-block-image-preview[data-preview-for="${blockIdx}"]`);
+            const textarea = getTodoBlockTextarea(blockIdx);
+            if (!previewEl || !textarea) return;
+            const images = extractMarkdownImageUrls(textarea.value);
+            if (images.length === 0) {
+                previewEl.innerHTML = '';
+                previewEl.style.display = 'none';
+                return;
+            }
+            previewEl.style.display = '';
+            previewEl.innerHTML = images.map(img => {
+                // Only show http(s) or same-origin uploads — never javascript: or data: from
+                // user input, even though we control the upload endpoint.
+                const safe = /^(\/api\/uploads\/|https?:\/\/)/i.test(img.url);
+                if (!safe) return '';
+                return `<a class="todo-block-image-thumb" href="${escapeHtml(img.url)}" target="_blank" rel="noopener">
+                    <img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.alt || '')}" loading="lazy">
+                </a>`;
+            }).join('');
+        }

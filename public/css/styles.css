@@ -106,7 +106,7 @@
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
-            max-width: 1600px;
+            max-width: 1920px;
             margin: 0 auto;
             padding: 20px;
             background-color: var(--color-bg);
@@ -5238,3 +5238,59 @@
         .output-task { font-weight: 500; }
         html[data-theme="dark"] .output-row { background: var(--bg-card); }
         html[data-theme="dark"] .output-badge { background: #1e3a5f; color: #93c5fd; }
+
+        /* ---- Todo block image upload (paste / drop / picker) ---- */
+        .todo-block-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .todo-block-image-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--color-text-muted, rgba(255,255,255,0.55));
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 14px;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .todo-block-image-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: var(--color-text, #fff);
+            border-color: var(--color-border, rgba(255,255,255,0.15));
+        }
+        .todo-block-textarea-dragover {
+            outline: 2px dashed var(--color-accent, #5578f5);
+            outline-offset: -2px;
+            background: rgba(85, 120, 245, 0.08);
+        }
+        .todo-block-image-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .todo-block-image-preview:empty { display: none; }
+        .todo-block-image-thumb {
+            display: inline-block;
+            border: 1px solid var(--color-border, rgba(255,255,255,0.12));
+            border-radius: 6px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.2);
+            line-height: 0;
+        }
+        .todo-block-image-thumb img {
+            display: block;
+            max-width: 220px;
+            max-height: 160px;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+        }
+        .todo-block-image-thumb:hover {
+            border-color: var(--color-accent, #5578f5);
+        }
