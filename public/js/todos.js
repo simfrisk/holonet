@@ -203,6 +203,20 @@
             return todo.content && Array.isArray(todo.content) && todo.content.length > 0;
         }
 
+        // Strip HTML tags + markdown image syntax to a plain-text preview.
+        function todoBlockValueToPlainText(value) {
+            if (!value) return '';
+            // Remove markdown image syntax first.
+            let s = String(value).replace(/!\[[^\]]*\]\([^\s)]+\)/g, '');
+            // If it looks like HTML, parse and read textContent.
+            if (/<[a-z][\s\S]*>/i.test(s)) {
+                const tpl = document.createElement('template');
+                tpl.innerHTML = s;
+                s = tpl.content.textContent || '';
+            }
+            return s.replace(/\s+/g, ' ').trim();
+        }
+
         function buildContentIndicatorsHtml(contentBlocks) {
             if (!contentBlocks || contentBlocks.length === 0) return '';
             let noteCount = 0;
@@ -210,7 +224,7 @@
             let checkTotal = 0;
 
             for (const block of contentBlocks) {
-                if (block.type === 'text' && block.value && block.value.trim()) {
+                if (block.type === 'text' && block.value && (todoBlockValueToPlainText(block.value).trim() || /<img\b/i.test(block.value))) {
                     noteCount++;
                 } else if (block.type === 'checklist' && block.items) {
                     checkTotal += block.items.length;
@@ -240,9 +254,12 @@
             for (const block of contentBlocks) {
                 if (lines.length >= MAX_ITEMS) break;
                 if (block.type === 'text' && block.value && block.value.trim()) {
-                    const truncated = block.value.length > 90
-                        ? escapeHtml(block.value.slice(0, 90)) + '…'
-                        : escapeHtml(block.value);
+                    // Strip HTML tags & markdown image syntax for the click-preview text.
+                    const plain = todoBlockValueToPlainText(block.value).trim();
+                    if (!plain) continue;
+                    const truncated = plain.length > 90
+                        ? escapeHtml(plain.slice(0, 90)) + '…'
+                        : escapeHtml(plain);
                     lines.push(`<div class="click-preview-text">${truncated}</div>`);
                 } else if (block.type === 'checklist' && block.items) {
                     for (const item of block.items) {
@@ -717,16 +734,19 @@
                 return '';
             }).join('');
 
-            // Auto-resize all textareas
+            // Auto-resize all textareas (legacy textarea blocks, if any)
             blocksEl.querySelectorAll('.todo-block-textarea').forEach(autoResizeTextarea);
 
-            // Render any embedded image markdown into preview thumbnails
+            // Initialize contenteditable text blocks (convert any legacy markdown images to <img>)
             content.forEach((block, idx) => {
-                if (block.type === 'text') renderTodoBlockImagePreview(idx);
+                if (block.type === 'text') initTodoBlockEditor(idx);
             });
         }
 
         function buildTextBlockHtml(block, idx) {
+            // Stored value may be either raw text/markdown (legacy) or HTML (new).
+            // We pass it through as data and let initTodoBlockEditor convert markdown -> <img>.
+            const storedValue = block.value || '';
             return `<div class="todo-content-block todo-block-text" data-block-idx="${idx}">
                 <div class="todo-block-header">
                     <span class="todo-block-type-label"><i class="ti ti-text-size"></i> Text</span>
@@ -737,14 +757,19 @@
                         <button class="todo-block-delete" onclick="deleteTodoContentBlock(${idx})" title="Remove block">&#x2715;</button>
                     </div>
                 </div>
-                <textarea class="todo-block-textarea" placeholder="Write something... (paste, drop, or attach an image)"
-                    onpaste="handleTodoTextareaPaste(event, ${idx})"
-                    ondragenter="handleTodoTextareaDragEnter(event)"
-                    ondragover="handleTodoTextareaDragOver(event)"
-                    ondragleave="handleTodoTextareaDragLeave(event)"
-                    ondrop="handleTodoTextareaDrop(event, ${idx})"
-                    oninput="autoResizeTextarea(this); renderTodoBlockImagePreview(${idx}); scheduleTodoModalSave();">${escapeHtml(block.value || '')}</textarea>
-                <div class="todo-block-image-preview" data-preview-for="${idx}"></div>
+                <div class="todo-block-editor"
+                    contenteditable="true"
+                    data-block-idx="${idx}"
+                    data-placeholder="Write something... (paste, drop, or attach an image)"
+                    onpaste="handleTodoEditorPaste(event, ${idx})"
+                    ondragenter="handleTodoEditorDragEnter(event)"
+                    ondragover="handleTodoEditorDragOver(event)"
+                    ondragleave="handleTodoEditorDragLeave(event)"
+                    ondrop="handleTodoEditorDrop(event, ${idx})"
+                    onclick="handleTodoEditorClick(event)"
+                    onkeydown="handleTodoEditorKeydown(event, ${idx})"
+                    oninput="handleTodoEditorInput(event, ${idx})"
+                    data-initial-value="${escapeHtml(storedValue)}"></div>
             </div>`;
         }
 
@@ -884,8 +909,17 @@
             blockEls.forEach(el => {
                 const idx = parseInt(el.dataset.blockIdx);
                 if (el.classList.contains('todo-block-text')) {
+                    const editor = el.querySelector('.todo-block-editor');
                     const textarea = el.querySelector('.todo-block-textarea');
-                    blocks.push({ type: 'text', id: 'block-' + idx, value: textarea ? textarea.value : '' });
+                    let value;
+                    if (editor) {
+                        value = serializeTodoEditor(editor);
+                    } else if (textarea) {
+                        value = textarea.value;
+                    } else {
+                        value = '';
+                    }
+                    blocks.push({ type: 'text', id: 'block-' + idx, value });
                 } else if (el.classList.contains('todo-block-checklist')) {
                     const items = [];
                     el.querySelectorAll('.todo-checklist-item').forEach(itemEl => {
@@ -933,32 +967,212 @@
         });
 
         // =========================================
-        // TODO TEXT BLOCK — IMAGE UPLOAD (paste / drop / picker)
+        // TODO TEXT BLOCK — INLINE IMAGE EDITOR (Notion-like)
         // =========================================
 
         const TODO_IMAGE_MIME = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml'];
+        const TODO_SAFE_URL_RE = /^(\/api\/uploads\/|https?:\/\/)/i;
 
-        function getTodoBlockTextarea(blockIdx) {
+        function getTodoBlockEditor(blockIdx) {
             const blockEl = document.querySelector(`.todo-content-block[data-block-idx="${blockIdx}"]`);
-            return blockEl ? blockEl.querySelector('.todo-block-textarea') : null;
+            return blockEl ? blockEl.querySelector('.todo-block-editor') : null;
         }
 
-        function insertAtCursor(textarea, insertText) {
-            const start = textarea.selectionStart || 0;
-            const end = textarea.selectionEnd || 0;
-            const before = textarea.value.slice(0, start);
-            const after = textarea.value.slice(end);
-            // If we're not at the start of a line, prefix with a newline so the
-            // image renders cleanly, mirroring GitHub's paste behaviour.
-            const needsLeadingNewline = before.length > 0 && !before.endsWith('\n');
-            const needsTrailingNewline = after.length > 0 && !after.startsWith('\n');
-            const prefix = needsLeadingNewline ? '\n' : '';
-            const suffix = needsTrailingNewline ? '\n' : '';
-            const finalInsert = prefix + insertText + suffix;
-            textarea.value = before + finalInsert + after;
-            const cursorPos = start + finalInsert.length;
-            textarea.selectionStart = textarea.selectionEnd = cursorPos;
+        // Convert legacy stored value (which may contain plain text + ![alt](url) markdown)
+        // into HTML safe to set as the editor's content. New stored values may already
+        // be HTML; we detect that and pass it through (with sanitization).
+        function todoStoredValueToHtml(value) {
+            if (!value) return '';
+            const looksLikeHtml = /<(img|p|div|br)\b/i.test(value);
+            if (looksLikeHtml) {
+                return sanitizeTodoEditorHtml(value);
+            }
+            // Plain text / markdown path: escape, then replace markdown image syntax with <img>.
+            // Also preserve newlines as <br> for visual continuity with old textarea content.
+            const escaped = escapeHtml(value);
+            const withImages = escaped.replace(/!\[([^\]]*)\]\(([^\s)]+)\)/g, (m, altRaw, urlRaw) => {
+                // altRaw and urlRaw are already escaped because we ran escapeHtml first.
+                // Validate the URL against the safe pattern (decode entities first).
+                const url = decodeHtmlEntities(urlRaw);
+                if (!TODO_SAFE_URL_RE.test(url)) return m; // leave as text if unsafe
+                const alt = decodeHtmlEntities(altRaw);
+                return buildInlineImageHtml(url, alt);
+            });
+            return withImages.replace(/\n/g, '<br>');
         }
+
+        function decodeHtmlEntities(s) {
+            const t = document.createElement('textarea');
+            t.innerHTML = s;
+            return t.value;
+        }
+
+        function buildInlineImageHtml(url, alt) {
+            // Wrapper makes it easier to attach a delete button + click-to-enlarge.
+            return `<span class="todo-inline-image-wrap" contenteditable="false" data-image-url="${escapeAttr(url)}">`
+                + `<img class="todo-inline-image" src="${escapeAttr(url)}" alt="${escapeAttr(alt || '')}" loading="lazy" draggable="false">`
+                + `<button type="button" class="todo-inline-image-delete" title="Remove image" tabindex="-1">&#x2715;</button>`
+                + `</span>`;
+        }
+
+        // Light DOM-based sanitizer: strip <script>, on* attributes, javascript: URLs,
+        // and only allow <img> tags whose src matches the safe pattern.
+        function sanitizeTodoEditorHtml(html) {
+            const tpl = document.createElement('template');
+            tpl.innerHTML = html;
+            const walk = (node) => {
+                // Snapshot children because we mutate during iteration.
+                Array.from(node.childNodes).forEach(child => {
+                    if (child.nodeType === 1) { // element
+                        const tag = child.tagName.toLowerCase();
+                        if (tag === 'script' || tag === 'style' || tag === 'iframe' || tag === 'object') {
+                            child.remove();
+                            return;
+                        }
+                        // Strip event handlers and dangerous attrs
+                        Array.from(child.attributes).forEach(attr => {
+                            const name = attr.name.toLowerCase();
+                            if (name.startsWith('on')) child.removeAttribute(attr.name);
+                            if ((name === 'src' || name === 'href') && /^\s*javascript:/i.test(attr.value)) {
+                                child.removeAttribute(attr.name);
+                            }
+                        });
+                        if (tag === 'img') {
+                            const src = child.getAttribute('src') || '';
+                            if (!TODO_SAFE_URL_RE.test(src)) {
+                                child.remove();
+                                return;
+                            }
+                            // Normalize: ensure it's wrapped in our inline-image-wrap so the
+                            // delete control + lightbox handlers work uniformly.
+                            if (!child.parentElement || !child.parentElement.classList.contains('todo-inline-image-wrap')) {
+                                const wrap = document.createElement('span');
+                                wrap.className = 'todo-inline-image-wrap';
+                                wrap.setAttribute('contenteditable', 'false');
+                                wrap.dataset.imageUrl = src;
+                                const newImg = document.createElement('img');
+                                newImg.className = 'todo-inline-image';
+                                newImg.src = src;
+                                newImg.alt = child.getAttribute('alt') || '';
+                                newImg.loading = 'lazy';
+                                newImg.draggable = false;
+                                const del = document.createElement('button');
+                                del.type = 'button';
+                                del.className = 'todo-inline-image-delete';
+                                del.title = 'Remove image';
+                                del.tabIndex = -1;
+                                del.innerHTML = '&#x2715;';
+                                wrap.appendChild(newImg);
+                                wrap.appendChild(del);
+                                child.replaceWith(wrap);
+                                return; // do not recurse into a removed node
+                            }
+                        }
+                        if (tag === 'span' && child.classList.contains('todo-inline-image-wrap')) {
+                            // Ensure it has the right structure.
+                            child.setAttribute('contenteditable', 'false');
+                        }
+                        walk(child);
+                    } else if (child.nodeType === 8) { // comment
+                        child.remove();
+                    }
+                });
+            };
+            walk(tpl.content);
+            return tpl.innerHTML;
+        }
+
+        // Serialize editor content for storage. We keep HTML (sanitized) as the value.
+        function serializeTodoEditor(editor) {
+            // Clone so we can strip transient classes (drag-over highlight, etc.) without affecting the live DOM.
+            const clone = editor.cloneNode(true);
+            // Remove any leftover transient elements
+            clone.querySelectorAll('.todo-inline-image-delete').forEach(b => b.remove());
+            // Sanitize again on output.
+            return sanitizeTodoEditorHtml(clone.innerHTML);
+        }
+
+        function initTodoBlockEditor(blockIdx) {
+            const editor = getTodoBlockEditor(blockIdx);
+            if (!editor) return;
+            const initial = editor.dataset.initialValue || '';
+            editor.removeAttribute('data-initial-value');
+            editor.innerHTML = todoStoredValueToHtml(initial);
+            updateTodoEditorEmptyState(editor);
+        }
+
+        function updateTodoEditorEmptyState(editor) {
+            // contenteditable doesn't honour the placeholder attribute natively;
+            // we expose an :empty / :only-child=<br> CSS hook via a class.
+            const isEmpty = editor.textContent.trim().length === 0
+                && editor.querySelectorAll('.todo-inline-image-wrap').length === 0;
+            editor.classList.toggle('is-empty', isEmpty);
+        }
+
+        // ---- Caret / selection helpers ----
+
+        function placeCaretAtCoords(x, y) {
+            // Try standard API first.
+            if (document.caretPositionFromPoint) {
+                const pos = document.caretPositionFromPoint(x, y);
+                if (pos) {
+                    const range = document.createRange();
+                    range.setStart(pos.offsetNode, pos.offset);
+                    range.collapse(true);
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                    return true;
+                }
+            }
+            if (document.caretRangeFromPoint) {
+                const range = document.caretRangeFromPoint(x, y);
+                if (range) {
+                    range.collapse(true);
+                    const sel = window.getSelection();
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function getEditorRange(editor) {
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) return null;
+            const range = sel.getRangeAt(0);
+            // Only honour the range if it's inside this editor.
+            if (!editor.contains(range.commonAncestorContainer)) return null;
+            return range;
+        }
+
+        function insertNodeAtCaret(editor, node) {
+            let range = getEditorRange(editor);
+            if (!range) {
+                // Fallback: append at end.
+                editor.appendChild(node);
+                // Place caret after node.
+                const newRange = document.createRange();
+                newRange.setStartAfter(node);
+                newRange.collapse(true);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(newRange);
+                return;
+            }
+            range.deleteContents();
+            range.insertNode(node);
+            // Move caret right after the inserted node.
+            const newRange = document.createRange();
+            newRange.setStartAfter(node);
+            newRange.collapse(true);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+        }
+
+        // ---- File upload ----
 
         function fileToBase64(file) {
             return new Promise((resolve, reject) => {
@@ -973,18 +1187,38 @@
             });
         }
 
-        async function uploadTodoImageFile(file, blockIdx) {
+        // Insert a placeholder span at the caret (or at a specific range) and return it.
+        function insertPlaceholderAtCaret(editor, range) {
+            const placeholder = document.createElement('span');
+            placeholder.className = 'todo-inline-image-placeholder';
+            placeholder.setAttribute('contenteditable', 'false');
+            placeholder.textContent = 'Uploading image…';
+            if (range) {
+                range.deleteContents();
+                range.insertNode(placeholder);
+            } else {
+                insertNodeAtCaret(editor, placeholder);
+            }
+            // Ensure caret moves after the placeholder.
+            const after = document.createRange();
+            after.setStartAfter(placeholder);
+            after.collapse(true);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(after);
+            return placeholder;
+        }
+
+        async function uploadTodoImageFile(file, blockIdx, range) {
             if (!TODO_IMAGE_MIME.includes(file.type)) {
                 console.warn('Skipping non-image file:', file.type);
                 return;
             }
-            const textarea = getTodoBlockTextarea(blockIdx);
-            if (!textarea) return;
+            const editor = getTodoBlockEditor(blockIdx);
+            if (!editor) return;
 
-            // Show a temporary placeholder so the user knows something is happening.
-            const placeholder = `![Uploading ${file.name || 'image'}...]()`;
-            insertAtCursor(textarea, placeholder);
-            autoResizeTextarea(textarea);
+            const placeholder = insertPlaceholderAtCaret(editor, range);
+            updateTodoEditorEmptyState(editor);
 
             try {
                 const data = await fileToBase64(file);
@@ -1002,20 +1236,119 @@
                     throw new Error(err.error || `Upload failed (${resp.status})`);
                 }
                 const json = await resp.json();
-                // Replace the placeholder with the real markdown link.
-                textarea.value = textarea.value.replace(placeholder, json.markdown);
-                autoResizeTextarea(textarea);
-                renderTodoBlockImagePreview(blockIdx);
+                const url = json.url || json.path || (json.markdown && json.markdown.match(/\(([^)]+)\)/) ? json.markdown.match(/\(([^)]+)\)/)[1] : null);
+                if (!url || !TODO_SAFE_URL_RE.test(url)) {
+                    throw new Error('Server returned an unsafe upload URL');
+                }
+                // Replace placeholder with real <img> wrapper.
+                const wrapper = document.createElement('span');
+                wrapper.innerHTML = buildInlineImageHtml(url, file.name || '');
+                const imgWrap = wrapper.firstChild;
+                placeholder.replaceWith(imgWrap);
+                // Place caret right after the inserted image.
+                const after = document.createRange();
+                after.setStartAfter(imgWrap);
+                after.collapse(true);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(after);
+
+                updateTodoEditorEmptyState(editor);
                 scheduleTodoModalSave();
             } catch (err) {
                 console.error('Image upload failed:', err);
-                textarea.value = textarea.value.replace(placeholder, `![upload failed: ${file.name || 'image'}]()`);
-                autoResizeTextarea(textarea);
+                placeholder.textContent = `Upload failed: ${file.name || 'image'}`;
+                placeholder.classList.add('todo-inline-image-placeholder-failed');
                 updateTodoModalSaveStatus('Upload failed');
             }
         }
 
-        function handleTodoTextareaPaste(event, blockIdx) {
+        // ---- Editor event handlers ----
+
+        function handleTodoEditorInput(event, blockIdx) {
+            const editor = event.currentTarget;
+            updateTodoEditorEmptyState(editor);
+            scheduleTodoModalSave();
+        }
+
+        function handleTodoEditorKeydown(event, blockIdx) {
+            // Allow Backspace/Delete to remove a selected image wrap as a whole.
+            const editor = event.currentTarget;
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) return;
+            const range = sel.getRangeAt(0);
+            if (!editor.contains(range.commonAncestorContainer)) return;
+
+            if ((event.key === 'Backspace' || event.key === 'Delete') && range.collapsed) {
+                // Find an adjacent image wrap to remove cleanly.
+                const node = event.key === 'Backspace'
+                    ? findPrevSiblingImage(range)
+                    : findNextSiblingImage(range);
+                if (node) {
+                    event.preventDefault();
+                    node.remove();
+                    updateTodoEditorEmptyState(editor);
+                    scheduleTodoModalSave();
+                }
+            }
+        }
+
+        function findPrevSiblingImage(range) {
+            const { startContainer, startOffset } = range;
+            if (startContainer.nodeType === 3) {
+                // Text node: only at offset 0 do we look at the previous sibling.
+                if (startOffset === 0) {
+                    let n = startContainer.previousSibling;
+                    while (n && n.nodeType === 3 && n.textContent.length === 0) n = n.previousSibling;
+                    if (n && n.nodeType === 1 && n.classList && n.classList.contains('todo-inline-image-wrap')) return n;
+                }
+                return null;
+            }
+            // Element container: look at the child immediately before startOffset.
+            const node = startContainer.childNodes[startOffset - 1];
+            if (node && node.nodeType === 1 && node.classList && node.classList.contains('todo-inline-image-wrap')) return node;
+            return null;
+        }
+
+        function findNextSiblingImage(range) {
+            const { startContainer, startOffset } = range;
+            if (startContainer.nodeType === 3) {
+                if (startOffset === startContainer.textContent.length) {
+                    let n = startContainer.nextSibling;
+                    while (n && n.nodeType === 3 && n.textContent.length === 0) n = n.nextSibling;
+                    if (n && n.nodeType === 1 && n.classList && n.classList.contains('todo-inline-image-wrap')) return n;
+                }
+                return null;
+            }
+            const node = startContainer.childNodes[startOffset];
+            if (node && node.nodeType === 1 && node.classList && node.classList.contains('todo-inline-image-wrap')) return node;
+            return null;
+        }
+
+        function handleTodoEditorClick(event) {
+            const editor = event.currentTarget;
+            const target = event.target;
+            // Click on the small × delete button on an inline image.
+            if (target.classList && target.classList.contains('todo-inline-image-delete')) {
+                event.preventDefault();
+                const wrap = target.closest('.todo-inline-image-wrap');
+                if (wrap) {
+                    wrap.remove();
+                    updateTodoEditorEmptyState(editor);
+                    scheduleTodoModalSave();
+                }
+                return;
+            }
+            // Click on the image itself: open lightbox.
+            if (target.classList && target.classList.contains('todo-inline-image')) {
+                event.preventDefault();
+                const url = target.getAttribute('src');
+                const alt = target.getAttribute('alt') || '';
+                if (url) openTodoImageLightbox(url, alt);
+            }
+        }
+
+        function handleTodoEditorPaste(event, blockIdx) {
             const items = event.clipboardData && event.clipboardData.items;
             if (!items) return;
             const imageFiles = [];
@@ -1025,39 +1358,74 @@
                     if (file && TODO_IMAGE_MIME.includes(file.type)) imageFiles.push(file);
                 }
             }
-            if (imageFiles.length === 0) return; // let normal text paste through
-            event.preventDefault();
-            imageFiles.forEach(file => uploadTodoImageFile(file, blockIdx));
+            if (imageFiles.length > 0) {
+                event.preventDefault();
+                imageFiles.forEach(file => uploadTodoImageFile(file, blockIdx));
+                return;
+            }
+            // For non-image pastes, force plain-text to avoid pulling in foreign HTML.
+            const text = event.clipboardData ? event.clipboardData.getData('text/plain') : '';
+            if (text) {
+                event.preventDefault();
+                const editor = event.currentTarget;
+                // Insert as text node (preserving newlines as <br>).
+                const range = getEditorRange(editor);
+                const frag = document.createDocumentFragment();
+                const lines = text.split(/\r?\n/);
+                lines.forEach((line, i) => {
+                    if (i > 0) frag.appendChild(document.createElement('br'));
+                    frag.appendChild(document.createTextNode(line));
+                });
+                if (range) {
+                    range.deleteContents();
+                    range.insertNode(frag);
+                    range.collapse(false);
+                } else {
+                    editor.appendChild(frag);
+                }
+                updateTodoEditorEmptyState(editor);
+                scheduleTodoModalSave();
+            }
         }
 
-        function handleTodoTextareaDragEnter(event) {
+        function handleTodoEditorDragEnter(event) {
             event.preventDefault();
-            event.currentTarget.classList.add('todo-block-textarea-dragover');
+            event.currentTarget.classList.add('todo-block-editor-dragover');
         }
 
-        function handleTodoTextareaDragOver(event) {
-            // Required to allow drop
+        function handleTodoEditorDragOver(event) {
             event.preventDefault();
             event.dataTransfer.dropEffect = 'copy';
+            // Live-update caret position so the drop lands where the cursor is hovering.
+            placeCaretAtCoords(event.clientX, event.clientY);
         }
 
-        function handleTodoTextareaDragLeave(event) {
-            event.currentTarget.classList.remove('todo-block-textarea-dragover');
+        function handleTodoEditorDragLeave(event) {
+            event.currentTarget.classList.remove('todo-block-editor-dragover');
         }
 
-        function handleTodoTextareaDrop(event, blockIdx) {
+        function handleTodoEditorDrop(event, blockIdx) {
             event.preventDefault();
-            event.currentTarget.classList.remove('todo-block-textarea-dragover');
+            event.currentTarget.classList.remove('todo-block-editor-dragover');
             const files = event.dataTransfer && event.dataTransfer.files;
             if (!files || files.length === 0) return;
+            // Drop the caret exactly where the user released the mouse.
+            placeCaretAtCoords(event.clientX, event.clientY);
+            const range = getEditorRange(event.currentTarget);
+            // Use the same range for each file so multiple drops stack correctly.
             for (const file of files) {
                 if (TODO_IMAGE_MIME.includes(file.type)) {
-                    uploadTodoImageFile(file, blockIdx);
+                    uploadTodoImageFile(file, blockIdx, range ? range.cloneRange() : null);
                 }
             }
         }
 
         function openImagePickerForBlock(blockIdx) {
+            const editor = getTodoBlockEditor(blockIdx);
+            // Capture the current caret range BEFORE the file dialog steals focus.
+            const savedRange = editor ? getEditorRange(editor) : null;
+            const savedRangeClone = savedRange ? savedRange.cloneRange() : null;
+
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = TODO_IMAGE_MIME.join(',');
@@ -1065,44 +1433,58 @@
             input.style.display = 'none';
             input.onchange = () => {
                 const files = Array.from(input.files || []);
-                files.forEach(file => uploadTodoImageFile(file, blockIdx));
+                files.forEach(file => uploadTodoImageFile(file, blockIdx, savedRangeClone ? savedRangeClone.cloneRange() : null));
                 input.remove();
             };
             document.body.appendChild(input);
             input.click();
         }
 
-        // ---- Image preview rendering inside text blocks ----
+        // =========================================
+        // TODO IMAGE LIGHTBOX
+        // =========================================
 
-        function extractMarkdownImageUrls(text) {
-            // Matches ![alt](url) — alt may be empty, url cannot contain whitespace or close-paren.
-            const re = /!\[([^\]]*)\]\(([^\s)]+)\)/g;
-            const found = [];
-            let m;
-            while ((m = re.exec(text)) !== null) {
-                found.push({ alt: m[1], url: m[2] });
+        function openTodoImageLightbox(url, alt) {
+            // Re-use a single overlay element if possible.
+            let overlay = document.getElementById('todo-image-lightbox');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'todo-image-lightbox';
+                overlay.className = 'todo-image-lightbox';
+                overlay.innerHTML = `
+                    <button type="button" class="todo-image-lightbox-close" title="Close (Esc)">&#x2715;</button>
+                    <img class="todo-image-lightbox-img" alt="">
+                `;
+                overlay.addEventListener('click', (e) => {
+                    if (e.target === overlay || e.target.classList.contains('todo-image-lightbox-close')) {
+                        closeTodoImageLightbox();
+                    }
+                });
+                document.body.appendChild(overlay);
             }
-            return found;
+            const img = overlay.querySelector('.todo-image-lightbox-img');
+            img.src = url;
+            img.alt = alt || '';
+            overlay.classList.add('open');
+            // Lock background scroll while open.
+            document.body.classList.add('todo-image-lightbox-open');
         }
 
-        function renderTodoBlockImagePreview(blockIdx) {
-            const previewEl = document.querySelector(`.todo-block-image-preview[data-preview-for="${blockIdx}"]`);
-            const textarea = getTodoBlockTextarea(blockIdx);
-            if (!previewEl || !textarea) return;
-            const images = extractMarkdownImageUrls(textarea.value);
-            if (images.length === 0) {
-                previewEl.innerHTML = '';
-                previewEl.style.display = 'none';
-                return;
-            }
-            previewEl.style.display = '';
-            previewEl.innerHTML = images.map(img => {
-                // Only show http(s) or same-origin uploads — never javascript: or data: from
-                // user input, even though we control the upload endpoint.
-                const safe = /^(\/api\/uploads\/|https?:\/\/)/i.test(img.url);
-                if (!safe) return '';
-                return `<a class="todo-block-image-thumb" href="${escapeHtml(img.url)}" target="_blank" rel="noopener">
-                    <img src="${escapeHtml(img.url)}" alt="${escapeHtml(img.alt || '')}" loading="lazy">
-                </a>`;
-            }).join('');
+        function closeTodoImageLightbox() {
+            const overlay = document.getElementById('todo-image-lightbox');
+            if (!overlay) return;
+            overlay.classList.remove('open');
+            document.body.classList.remove('todo-image-lightbox-open');
+            const img = overlay.querySelector('.todo-image-lightbox-img');
+            if (img) img.src = '';
         }
+
+        // Esc closes the lightbox (in addition to closing the modal when not in lightbox).
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            const overlay = document.getElementById('todo-image-lightbox');
+            if (overlay && overlay.classList.contains('open')) {
+                e.stopPropagation();
+                closeTodoImageLightbox();
+            }
+        }, true); // capture so we run before the modal-close handler
