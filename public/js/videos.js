@@ -82,14 +82,6 @@
         }
 
         function renderVideoCard(v) {
-            const platformBadges = (v.platforms || []).map(p => {
-                const isPosted = (v.postedOn || []).includes(p);
-                const postedClass = isPosted ? ' platform-badge-posted' : '';
-                return `<span class="platform-badge platform-badge-${p}${postedClass}" title="${p}${isPosted ? ' (posted)' : ' — click to mark posted'}" onclick="event.stopPropagation();togglePlatformPosted('${v.id}','${p}')">
-                    <i class="ti ${PLATFORM_ICONS[p]}"></i>${isPosted ? '<i class="ti ti-check" style="font-size:10px;margin-left:2px;"></i>' : ''}
-                </span>`;
-            }).join('');
-
             const isCampaign = v.notes && v.notes.startsWith('Campaign:');
             const campaignClass = isCampaign ? ' video-card-campaign' : '';
 
@@ -101,7 +93,6 @@
                 <button class="video-card-drag-handle" type="button" title="Drag to move"><i class="ti ti-grip-vertical"></i></button>
                 <div class="video-card-title">${escapeHtml(v.title)}</div>
                 ${metaRow}
-                <div class="video-card-platforms">${platformBadges || '<span class="video-card-no-platforms">No platforms</span>'}</div>
             </div>`;
         }
 

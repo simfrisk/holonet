@@ -5282,7 +5282,6 @@
             flex-wrap: wrap;
             gap: 4px;
             align-items: center;
-            margin-bottom: 8px;
         }
         .video-card:hover {
             box-shadow: 0 2px 12px var(--color-shadow);
