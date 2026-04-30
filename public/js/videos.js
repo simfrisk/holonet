@@ -96,11 +96,11 @@
             const brandBadge = v.brand ? `<span class="video-brand-badge video-brand-${v.brand}">${v.brand === 'liivo' ? 'Liivo' : 'OSC'}</span>` : '';
             const weekBadge = v.week ? `<span class="video-week-badge">${escapeHtml(v.week)}</span>` : '';
 
+            const metaRow = (brandBadge || weekBadge) ? `<div class="video-card-meta">${brandBadge}${weekBadge}</div>` : '';
             return `<div class="video-card${campaignClass}" draggable="true" data-video-id="${v.id}" onclick="openVideoModal('${v.id}')">
-                <div style="display:flex;justify-content:space-between;align-items:center;gap:4px;margin-bottom:2px;">
-                    <div class="video-card-title" style="margin-bottom:0;">${escapeHtml(v.title)}</div>
-                    <div style="display:flex;gap:4px;flex-shrink:0;align-items:center;">${brandBadge}${weekBadge}<button class="video-card-drag-handle" type="button" title="Drag to move"><i class="ti ti-grip-vertical"></i></button></div>
-                </div>
+                <button class="video-card-drag-handle" type="button" title="Drag to move"><i class="ti ti-grip-vertical"></i></button>
+                <div class="video-card-title">${escapeHtml(v.title)}</div>
+                ${metaRow}
                 <div class="video-card-platforms">${platformBadges || '<span class="video-card-no-platforms">No platforms</span>'}</div>
             </div>`;
         }
