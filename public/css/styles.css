@@ -5780,6 +5780,29 @@
             flex-wrap: wrap;
             justify-content: center;
             margin: 0;
+            width: 100%;
+        }
+        .outputs-filter-buttons {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .outputs-filter-select {
+            display: none;
+            width: 100%;
+            max-width: 280px;
+            padding: 7px 12px;
+            border-radius: 8px;
+            border: 1px solid var(--color-border, var(--border-color));
+            background: var(--color-surface-elevated, transparent);
+            color: var(--color-text, var(--text-primary));
+            font-size: 14px;
+            font-family: inherit;
+        }
+        @media (max-width: 600px) {
+            .outputs-filter-buttons { display: none; }
+            .outputs-filter-select { display: block; }
         }
         .output-unread-dot {
             display: inline-block;

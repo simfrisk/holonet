@@ -30,19 +30,40 @@ function populateOutputsTaskFilter() {
         `<button type="button" class="outputs-filter-btn${outputsTaskFilter === '' ? ' active' : ''}" data-task="">All jobs</button>`,
         ...tasks.map(t => `<button type="button" class="outputs-filter-btn${outputsTaskFilter === t ? ' active' : ''}" data-task="${t}">${labelFor(t)}</button>`)
     ];
-    container.innerHTML = buttons.join('');
+    const options = [
+        `<option value=""${outputsTaskFilter === '' ? ' selected' : ''}>All jobs</option>`,
+        ...tasks.map(t => `<option value="${t}"${outputsTaskFilter === t ? ' selected' : ''}>${labelFor(t)}</option>`)
+    ];
+    container.innerHTML = `
+        <div class="outputs-filter-buttons">${buttons.join('')}</div>
+        <select class="outputs-filter-select" aria-label="Filter outputs by job type">${options.join('')}</select>
+    `;
     if (!container.dataset.bound) {
         container.addEventListener('click', (e) => {
             const btn = e.target.closest('.outputs-filter-btn');
             if (!btn || !container.contains(btn)) return;
-            outputsTaskFilter = btn.dataset.task || '';
-            container.querySelectorAll('.outputs-filter-btn').forEach(b => {
-                b.classList.toggle('active', (b.dataset.task || '') === outputsTaskFilter);
-            });
-            renderOutputsList();
+            setTaskFilter(btn.dataset.task || '');
+        });
+        container.addEventListener('change', (e) => {
+            const sel = e.target.closest('.outputs-filter-select');
+            if (!sel) return;
+            setTaskFilter(sel.value || '');
         });
         container.dataset.bound = '1';
     }
+}
+
+function setTaskFilter(value) {
+    outputsTaskFilter = value;
+    const container = document.getElementById('outputs-filter-task');
+    if (container) {
+        container.querySelectorAll('.outputs-filter-btn').forEach(b => {
+            b.classList.toggle('active', (b.dataset.task || '') === outputsTaskFilter);
+        });
+        const sel = container.querySelector('.outputs-filter-select');
+        if (sel) sel.value = outputsTaskFilter;
+    }
+    renderOutputsList();
 }
 
 function escapeHtml(s) {
