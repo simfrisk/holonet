@@ -538,11 +538,11 @@
 
     <!-- Outputs Tab -->
     <div id="outputs-tab" class="tab-content">
-        <div class="outputs-filters outputs-filters-top" id="outputs-filter-task" role="group" aria-label="Filter outputs by job type" style="justify-content: flex-start; margin: 1.25rem 1.5rem 0.5rem;">
-            <button type="button" class="outputs-filter-btn active" data-task="">All jobs</button>
-        </div>
         <div class="outputs-header">
             <h3>Agent Outputs</h3>
+        </div>
+        <div class="outputs-filters" id="outputs-filter-task" role="group" aria-label="Filter outputs by job type" hidden>
+            <button type="button" class="outputs-filter-btn active" data-task="">All jobs</button>
         </div>
         <div id="outputs-list-container"></div>
     </div>

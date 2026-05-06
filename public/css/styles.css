@@ -5766,7 +5766,32 @@
             font-size: 13px;
             color: var(--color-text-muted, var(--text-secondary));
             cursor: pointer;
+            flex-shrink: 0;
         }
+        .outputs-toolbar-filters {
+            flex: 1 1 auto;
+            display: flex;
+            justify-content: center;
+            min-width: 0;
+        }
+        .outputs-toolbar-filters .outputs-filters {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 0;
+        }
+        .output-unread-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--color-primary, #6f4cff);
+            margin-right: 8px;
+            vertical-align: middle;
+            box-shadow: 0 0 0 2px rgba(111, 76, 255, 0.18);
+        }
+        .outputs-table tr.output-row.is-unread .output-task-cell { font-weight: 700; }
         .outputs-count {
             font-size: 12px;
             color: var(--color-text-muted, var(--text-secondary));
@@ -5804,48 +5829,46 @@
             text-decoration: line-through;
         }
 
-        /* Mobile: opt out of the global table->cards rule and hide secondary columns */
+        /* Always render outputs as a real table (opt out of global table->cards mobile rule).
+           Use #outputs-list-container to win specificity against `tr:not(.group-header) td:not([data-label])`. */
+        #outputs-list-container .outputs-table { display: table !important; width: 100% !important; min-width: 0 !important; table-layout: auto !important; }
+        #outputs-list-container .outputs-table thead { display: table-header-group !important; }
+        #outputs-list-container .outputs-table tbody { display: table-row-group !important; }
+        #outputs-list-container .outputs-table tr,
+        #outputs-list-container .outputs-table tr.output-row {
+            display: table-row !important;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            overflow: visible !important;
+            width: auto !important;
+        }
+        #outputs-list-container .outputs-table tr.output-row td {
+            border-bottom: 1px solid var(--color-border, var(--border-color)) !important;
+        }
+        #outputs-list-container .outputs-table td,
+        #outputs-list-container .outputs-table th {
+            display: table-cell !important;
+            width: auto !important;
+            white-space: normal;
+            word-break: break-word;
+            overflow: visible;
+        }
+
         @media (max-width: 600px) {
-            .outputs-table-wrapper { padding: 0 0.5rem 1rem; overflow-x: visible; width: 100%; }
-            .outputs-table { display: table !important; width: 100% !important; min-width: 0 !important; table-layout: fixed !important; font-size: 12px; }
-            .outputs-table thead { display: table-header-group !important; }
-            .outputs-table tbody { display: table-row-group !important; }
-            .outputs-table tr,
-            .outputs-table tr.output-row {
-                display: table-row !important;
-                margin: 0 !important;
-                border: none !important;
-                box-shadow: none !important;
-                border-radius: 0 !important;
-                overflow: visible !important;
-            }
-            .outputs-table tr.output-row td {
-                border-bottom: 1px solid var(--color-border, var(--border-color)) !important;
-            }
+            .outputs-table-wrapper { padding: 0 0.5rem 1rem; overflow-x: visible; }
+            .outputs-table { font-size: 12px; }
             .outputs-table td,
-            .outputs-table th {
-                display: table-cell !important;
-                width: auto !important;
-                padding: 6px 6px !important;
-                white-space: normal !important;
-                word-break: break-word !important;
-                overflow: visible !important;
-                color: inherit !important;
-            }
-            .outputs-table th:nth-child(3),
-            .outputs-table td.output-task-cell,
-            .outputs-table th:nth-child(4),
-            .outputs-table td.output-actions-cell { display: none !important; }
+            .outputs-table th { padding: 6px 6px !important; }
             .outputs-table .output-time { display: none; }
             .outputs-table .output-date-cell { white-space: nowrap !important; font-size: 11px; }
-            .outputs-table .output-title { font-size: 12px; }
             .outputs-toolbar { padding: 0.25rem 0.75rem 0.5rem; }
-            .outputs-table .output-open-btn,
-            .outputs-table .output-delete-btn { padding: 4px 6px; margin-left: 2px; }
+            .outputs-table .output-delete-btn { padding: 4px 6px; }
         }
         .outputs-table .output-done-cell { width: 36px; text-align: center; }
         .outputs-table .output-actions-cell { text-align: center; }
-        .outputs-table th:nth-child(4) { text-align: center; }
+        .outputs-table th:nth-child(3) { text-align: center; }
 
         /* Custom checkboxes for outputs (Done + Hide completed) */
         .outputs-hide-done input[type="checkbox"],

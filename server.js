@@ -3664,7 +3664,7 @@ app.patch('/api/outputs/:id', requireAuth, async (req, res) => {
         const getResp = await couchFetch(url);
         if (!getResp.ok) return res.status(404).json({ error: 'Not found' });
         const doc = await getResp.json();
-        const allowed = ['done', 'title', 'agentTask', 'actionItems'];
+        const allowed = ['done', 'read', 'title', 'agentTask', 'actionItems'];
         const updates = {};
         for (const k of allowed) {
             if (Object.prototype.hasOwnProperty.call(req.body || {}, k)) updates[k] = req.body[k];

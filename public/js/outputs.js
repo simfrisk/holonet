@@ -67,6 +67,7 @@ function renderOutputsList() {
                 <input type="checkbox" id="outputs-hide-done-cb" ${outputsHideDone ? 'checked' : ''}>
                 Hide completed
             </label>
+            <div class="outputs-toolbar-filters" id="outputs-toolbar-filters-slot"></div>
             <span class="outputs-count">${filtered.length} shown · ${doneCount}/${totalCount} done</span>
         </div>
     `;
@@ -76,6 +77,7 @@ function renderOutputsList() {
             ? `No outputs for "${outputsTaskFilter}".`
             : (outputsHideDone ? 'All outputs are marked done.' : 'No outputs yet. Agent reports will appear here after each run.');
         container.innerHTML = toolbar + `<div class="outputs-empty"><p>${msg}</p></div>`;
+        moveFilterIntoToolbar();
         bindOutputsToolbar();
         return;
     }
@@ -87,19 +89,18 @@ function renderOutputsList() {
         const taskLabel = (o.agentTask || 'agent').replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
         const actions = o.actionItems ? `<span class="output-badge">${o.actionItems}</span>` : '';
         const id = escapeHtml(o._id);
-        const title = escapeHtml(o.title || '(untitled)');
         const doneClass = o.done ? ' is-done' : '';
+        const unreadClass = o.read ? '' : ' is-unread';
+        const dot = o.read ? '' : '<span class="output-unread-dot" title="Unread"></span>';
         return `
-            <tr class="output-row${doneClass}" data-id="${id}">
+            <tr class="output-row${doneClass}${unreadClass}" data-id="${id}">
                 <td class="output-done-cell">
                     <input type="checkbox" class="output-done-cb" ${o.done ? 'checked' : ''} title="Mark done">
                 </td>
-                <td class="output-title-cell"><span class="output-title">${title}</span></td>
-                <td class="output-task-cell">${escapeHtml(taskLabel)}</td>
+                <td class="output-task-cell">${dot}${escapeHtml(taskLabel)}</td>
                 <td class="output-actions-cell">${actions}</td>
                 <td class="output-date-cell">${dateStr} <span class="output-time">${timeStr}</span></td>
                 <td class="output-row-actions">
-                    <button class="output-open-btn" title="Open"><i class="ti ti-external-link"></i></button>
                     <button class="output-delete-btn" title="Delete"><i class="ti ti-trash"></i></button>
                 </td>
             </tr>
@@ -112,19 +113,28 @@ function renderOutputsList() {
                 <thead>
                     <tr>
                         <th style="width:36px;"></th>
-                        <th>Title</th>
                         <th>Job</th>
                         <th style="width:80px;">Actions</th>
                         <th style="width:170px;">Run At</th>
-                        <th style="width:90px;"></th>
+                        <th style="width:48px;"></th>
                     </tr>
                 </thead>
                 <tbody>${rows}</tbody>
             </table>
         </div>
     `;
+    moveFilterIntoToolbar();
     bindOutputsToolbar();
     bindOutputsRowEvents();
+}
+
+function moveFilterIntoToolbar() {
+    const slot = document.getElementById('outputs-toolbar-filters-slot');
+    const filters = document.getElementById('outputs-filter-task');
+    if (slot && filters && filters.parentElement !== slot) {
+        slot.appendChild(filters);
+        filters.removeAttribute('hidden');
+    }
 }
 
 function bindOutputsToolbar() {
@@ -154,7 +164,7 @@ function bindOutputsRowEvents() {
             confirmDeleteOutput(id);
             return;
         }
-        if (e.target.closest('.output-open-btn') || e.target.closest('.output-title-cell') || e.target.closest('.output-task-cell') || e.target.closest('.output-date-cell')) {
+        if (e.target.closest('.output-task-cell') || e.target.closest('.output-date-cell')) {
             openOutput(id);
         }
     });
@@ -257,4 +267,26 @@ function confirmDeleteOutput(id) {
 
 function openOutput(id) {
     window.open(`/api/outputs/${encodeURIComponent(id)}/content`, '_blank');
+    markOutputRead(id);
+}
+
+async function markOutputRead(id) {
+    const out = outputsData.find(o => o._id === id);
+    if (!out || out.read) return;
+    out.read = true;
+    const row = document.querySelector(`.output-row[data-id="${CSS.escape(id)}"]`);
+    if (row) {
+        row.classList.remove('is-unread');
+        const dot = row.querySelector('.output-unread-dot');
+        if (dot) dot.remove();
+    }
+    try {
+        await fetch(`/api/outputs/${encodeURIComponent(id)}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ read: true })
+        });
+    } catch (err) {
+        out.read = false;
+    }
 }
