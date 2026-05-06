@@ -5745,16 +5745,224 @@
         .outputs-filter-btn.active { background: var(--color-primary, var(--accent)); color: #fff; border-color: var(--color-primary, var(--accent)); font-weight: 600; }
         .outputs-loading { padding: 2rem 1.5rem; color: var(--text-secondary); }
         .outputs-empty { padding: 2rem 1.5rem; color: var(--text-secondary); font-style: italic; }
-        .outputs-list { display: flex; flex-direction: column; gap: 0; padding: 0 1rem 1rem; }
-        .output-row { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 8px; padding: 0.9rem 1.1rem; margin-bottom: 0.5rem; cursor: pointer; transition: box-shadow 0.15s, border-color 0.15s; }
-        .output-row:hover { border-color: var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-        .output-row-main { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.3rem; }
         .output-title { font-weight: 600; font-size: 0.95rem; color: var(--text-primary); }
         .output-badge { background: #eff6ff; color: #2563eb; font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
-        .output-row-meta { display: flex; align-items: center; gap: 1rem; font-size: 0.8rem; color: var(--text-secondary); }
         .output-task { font-weight: 500; }
-        html[data-theme="dark"] .output-row { background: var(--bg-card); }
         html[data-theme="dark"] .output-badge { background: #1e3a5f; color: #93c5fd; }
+
+        /* ---- Outputs table ---- */
+        .outputs-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.25rem 1.5rem 0.75rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .outputs-hide-done {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--color-text-muted, var(--text-secondary));
+            cursor: pointer;
+        }
+        .outputs-count {
+            font-size: 12px;
+            color: var(--color-text-muted, var(--text-secondary));
+        }
+        .outputs-table-wrapper {
+            overflow-x: auto;
+            padding: 0 1rem 1rem;
+        }
+        .outputs-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .outputs-table th {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 2px solid var(--color-border, var(--border-color));
+            color: var(--color-text-muted, var(--text-secondary));
+            font-weight: 600;
+            white-space: nowrap;
+            background: var(--color-surface-elevated, transparent);
+        }
+        .outputs-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--color-border, var(--border-color));
+            vertical-align: middle;
+            color: var(--color-text, var(--text-primary));
+        }
+        .outputs-table tr.output-row { cursor: pointer; transition: background 0.1s; }
+        .outputs-table tr.output-row:hover { background: var(--color-surface-elevated, rgba(255,255,255,0.04)); }
+        .outputs-table tr.output-row.is-done .output-title,
+        .outputs-table tr.output-row.is-done .output-task-cell,
+        .outputs-table tr.output-row.is-done .output-date-cell {
+            opacity: 0.55;
+            text-decoration: line-through;
+        }
+
+        /* Mobile: opt out of the global table->cards rule and hide secondary columns */
+        @media (max-width: 600px) {
+            .outputs-table-wrapper { padding: 0 0.5rem 1rem; overflow-x: visible; width: 100%; }
+            .outputs-table { display: table !important; width: 100% !important; min-width: 0 !important; table-layout: fixed !important; font-size: 12px; }
+            .outputs-table thead { display: table-header-group !important; }
+            .outputs-table tbody { display: table-row-group !important; }
+            .outputs-table tr,
+            .outputs-table tr.output-row {
+                display: table-row !important;
+                margin: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+                border-radius: 0 !important;
+                overflow: visible !important;
+            }
+            .outputs-table tr.output-row td {
+                border-bottom: 1px solid var(--color-border, var(--border-color)) !important;
+            }
+            .outputs-table td,
+            .outputs-table th {
+                display: table-cell !important;
+                width: auto !important;
+                padding: 6px 6px !important;
+                white-space: normal !important;
+                word-break: break-word !important;
+                overflow: visible !important;
+                color: inherit !important;
+            }
+            .outputs-table th:nth-child(3),
+            .outputs-table td.output-task-cell,
+            .outputs-table th:nth-child(4),
+            .outputs-table td.output-actions-cell { display: none !important; }
+            .outputs-table .output-time { display: none; }
+            .outputs-table .output-date-cell { white-space: nowrap !important; font-size: 11px; }
+            .outputs-table .output-title { font-size: 12px; }
+            .outputs-toolbar { padding: 0.25rem 0.75rem 0.5rem; }
+            .outputs-table .output-open-btn,
+            .outputs-table .output-delete-btn { padding: 4px 6px; margin-left: 2px; }
+        }
+        .outputs-table .output-done-cell { width: 36px; text-align: center; }
+        .outputs-table .output-actions-cell { text-align: center; }
+        .outputs-table th:nth-child(4) { text-align: center; }
+
+        /* Custom checkboxes for outputs (Done + Hide completed) */
+        .outputs-hide-done input[type="checkbox"],
+        .outputs-table .output-done-cb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            border: 1.5px solid rgba(127,127,127,0.55);
+            border-radius: 4px;
+            background: transparent;
+            cursor: pointer;
+            position: relative;
+            vertical-align: middle;
+            transition: all 0.12s ease;
+            flex-shrink: 0;
+        }
+        .outputs-hide-done input[type="checkbox"]:hover,
+        .outputs-table .output-done-cb:hover {
+            border-color: var(--accent, #6366f1);
+        }
+        .outputs-hide-done input[type="checkbox"]:checked,
+        .outputs-table .output-done-cb:checked {
+            background: var(--accent, #6366f1);
+            border-color: var(--accent, #6366f1);
+        }
+        .outputs-hide-done input[type="checkbox"]:checked::after,
+        .outputs-table .output-done-cb:checked::after {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 1px;
+            width: 5px;
+            height: 10px;
+            border: solid #fff;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+        .outputs-hide-done input[type="checkbox"]:focus-visible,
+        .outputs-table .output-done-cb:focus-visible {
+            outline: 2px solid var(--accent, #6366f1);
+            outline-offset: 2px;
+        }
+        .outputs-table .output-done-cb { cursor: pointer; width: 16px; height: 16px; }
+        .outputs-table .output-title { font-weight: 600; color: var(--text-primary); }
+        .outputs-table .output-time { color: var(--color-text-muted, var(--text-secondary)); margin-left: 4px; font-size: 12px; }
+        .outputs-table .output-row-actions { white-space: nowrap; text-align: right; }
+        .outputs-table .output-open-btn,
+        .outputs-table .output-delete-btn {
+            background: transparent;
+            border: 1px solid var(--color-border, var(--border-color));
+            color: var(--color-text-muted, var(--text-secondary));
+            border-radius: 6px;
+            padding: 4px 8px;
+            margin-left: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.12s;
+        }
+        .outputs-table .output-open-btn:hover { color: var(--accent); border-color: var(--accent); }
+        .outputs-table .output-delete-btn:hover { color: #e2445c; border-color: #e2445c; }
+
+        /* Confirm modal */
+        .output-modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        .output-modal {
+            background: #ffffff;
+            color: #1f2937;
+            border-radius: 10px;
+            padding: 1.25rem 1.5rem;
+            min-width: 320px;
+            max-width: 480px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+        }
+        html[data-theme="dark"] .output-modal {
+            background: #1f2937;
+            color: #f3f4f6;
+        }
+        .output-modal h3 { margin: 0 0 0.5rem; font-size: 1.05rem; color: inherit; }
+        .output-modal-body { margin: 0 0 0.5rem; color: inherit; opacity: 0.85; word-break: break-word; }
+        .output-modal-warn { margin: 0 0 1rem; color: #e2445c; font-size: 12px; }
+        .output-modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+        .output-modal-actions button.output-modal-cancel,
+        .output-modal-actions button.output-modal-delete {
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-family: inherit;
+            font-weight: 500;
+            line-height: 1.2;
+        }
+        .output-modal-actions button.output-modal-cancel {
+            background: transparent;
+            color: inherit;
+            border: 1px solid rgba(127,127,127,0.4);
+        }
+        .output-modal-actions button.output-modal-cancel:hover {
+            background: rgba(127,127,127,0.12);
+        }
+        .output-modal-actions button.output-modal-delete {
+            background: #e2445c !important;
+            color: #ffffff !important;
+            border: 1px solid #e2445c !important;
+        }
+        .output-modal-actions button.output-modal-delete:hover {
+            background: #c93550 !important;
+            border-color: #c93550 !important;
+        }
+        .output-modal-actions button.output-modal-delete:disabled { opacity: 0.6; cursor: wait; }
 
         /* ---- Todo block image upload (paste / drop / picker) ---- */
         .todo-block-header-actions {

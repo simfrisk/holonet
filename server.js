@@ -3658,6 +3658,27 @@ app.get('/api/outputs/:id/content', requireAuth, async (req, res) => {
     }
 });
 
+app.patch('/api/outputs/:id', requireAuth, async (req, res) => {
+    try {
+        const url = `${couchBaseUrl}/${DB_NAME}/${encodeURIComponent(req.params.id)}`;
+        const getResp = await couchFetch(url);
+        if (!getResp.ok) return res.status(404).json({ error: 'Not found' });
+        const doc = await getResp.json();
+        const allowed = ['done', 'title', 'agentTask', 'actionItems'];
+        const updates = {};
+        for (const k of allowed) {
+            if (Object.prototype.hasOwnProperty.call(req.body || {}, k)) updates[k] = req.body[k];
+        }
+        const updated = { ...doc, ...updates, updatedAt: new Date().toISOString() };
+        const putResp = await couchFetch(url, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updated) });
+        if (!putResp.ok) throw new Error('Failed to update');
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error patching output:', error);
+        res.status(500).json({ error: 'Failed to update output' });
+    }
+});
+
 app.delete('/api/outputs/:id', requireAuth, async (req, res) => {
     try {
         const url = `${couchBaseUrl}/${DB_NAME}/${encodeURIComponent(req.params.id)}`;
