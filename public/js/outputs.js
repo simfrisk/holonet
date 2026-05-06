@@ -53,6 +53,12 @@ function escapeHtml(s) {
 
 function renderOutputsList() {
     const container = document.getElementById('outputs-list-container');
+    // Detach filter element before innerHTML wipes it (it gets re-attached via moveFilterIntoToolbar)
+    const filters = document.getElementById('outputs-filter-task');
+    if (filters && container.contains(filters)) {
+        document.getElementById('outputs-tab').appendChild(filters);
+        filters.setAttribute('hidden', '');
+    }
     let filtered = outputsTaskFilter
         ? outputsData.filter(o => o.agentTask === outputsTaskFilter)
         : outputsData.slice();
