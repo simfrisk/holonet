@@ -52,6 +52,9 @@
                 <button class="primary-nav-btn active" data-section="todos" onclick="switchSection('todos')">
                     <span class="pnav-icon"><i class="ti ti-circle-check"></i></span> To-do <span class="pnav-count" id="todos-count">0</span>
                 </button>
+                <button class="primary-nav-btn" data-section="privat" onclick="switchSection('privat')">
+                    <span class="pnav-icon"><i class="ti ti-mailbox"></i></span> Privat <span class="pnav-count" id="privat-count">0</span>
+                </button>
                 <button class="primary-nav-btn" data-section="videos" onclick="switchSection('videos')">
                     <span class="pnav-icon"><i class="ti ti-video"></i></span> Videos <span class="pnav-count" id="videos-count">0</span>
                 </button>
@@ -545,6 +548,17 @@
             <button type="button" class="outputs-filter-btn active" data-task="">All jobs</button>
         </div>
         <div id="outputs-list-container"></div>
+    </div>
+
+    <!-- Privat Tab -->
+    <div id="privat-tab" class="tab-content">
+        <div class="privat-header">
+            <div>
+                <h3>Privat</h3>
+                <p class="privat-subtitle" id="privat-last-checked">Last checked: never</p>
+            </div>
+        </div>
+        <div id="privat-items"></div>
     </div>
 
         </div><!-- end .main-content -->
@@ -1133,6 +1147,7 @@
     <script src="js/customers.js"></script>
     <script src="js/videos.js"></script>
     <script src="js/outputs.js"></script>
+    <script src="js/privat.js"></script>
     <script src="js/init.js"></script>
 </body>
 </html>

@@ -55,6 +55,7 @@
         let customersLoaded = false;
         let videosLoaded = false;
         let videosData = [];
+        let privatLoaded = false;
 
         function switchSection(sectionName, skipHash) {
             activeSection = sectionName;
@@ -116,6 +117,9 @@
                 if (sectionName === 'outputs' && !outputsLoaded) {
                     loadOutputsTab();
                 }
+                if (sectionName === 'privat' && !privatLoaded) {
+                    loadPrivatTab();
+                }
             }
 
             // Pause monitor polling when leaving the monitor tab
@@ -149,7 +153,7 @@
         function restoreNavFromHash() {
             const hash = window.location.hash.slice(1);
             const CONTACT_SUB_TABS = ['active', 'archived', 'later', 'skip', 'all'];
-            const TOP_SECTIONS = ['drafts', 'todos', 'tracked', 'links', 'monitor', 'customers', 'videos', 'outputs', 'contacts'];
+            const TOP_SECTIONS = ['drafts', 'todos', 'tracked', 'links', 'monitor', 'customers', 'videos', 'outputs', 'contacts', 'privat'];
 
             // Restore last contact sub-tab from localStorage so it persists even when arriving via plain "contacts" hash
             try {

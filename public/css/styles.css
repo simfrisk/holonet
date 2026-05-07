@@ -6178,3 +6178,165 @@
         body.todo-image-lightbox-open {
             overflow: hidden;
         }
+
+        /* ======= Privat tab ======= */
+        .privat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.25rem 1.5rem 0.75rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .privat-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--color-text);
+        }
+        .privat-subtitle {
+            margin: 4px 0 0;
+            font-size: 12px;
+            color: var(--color-text-muted);
+        }
+        .privat-group {
+            margin: 0 1.5rem 1.5rem;
+        }
+        .privat-group-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin: 0 0 8px 4px;
+        }
+        .privat-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .privat-item {
+            display: grid;
+            grid-template-columns: 28px auto 1fr auto;
+            gap: 12px;
+            align-items: start;
+            padding: 12px 14px;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 8px;
+            transition: background 120ms ease, border-color 120ms ease;
+        }
+        .privat-item:hover {
+            background: var(--color-surface-elevated);
+        }
+        .privat-item.priority-action {
+            border-left: 3px solid var(--color-danger);
+        }
+        .privat-item.priority-review {
+            border-left: 3px solid var(--color-warning);
+        }
+        .privat-item.priority-info {
+            border-left: 3px solid var(--color-neutral);
+        }
+        .privat-item.resolved {
+            opacity: 0.55;
+        }
+        .privat-checkbox {
+            width: 18px;
+            height: 18px;
+            margin: 4px 0 0 4px;
+            cursor: pointer;
+        }
+        .privat-priority-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 999px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            white-space: nowrap;
+            margin-top: 2px;
+        }
+        .privat-priority-badge.priority-action {
+            background: rgba(220, 53, 69, 0.12);
+            color: var(--color-danger);
+        }
+        .privat-priority-badge.priority-review {
+            background: rgba(255, 193, 7, 0.18);
+            color: #b07a00;
+        }
+        .privat-priority-badge.priority-info {
+            background: rgba(108, 117, 125, 0.15);
+            color: var(--color-text-muted);
+        }
+        .privat-body {
+            min-width: 0;
+        }
+        .privat-line1 {
+            display: flex;
+            gap: 8px;
+            align-items: baseline;
+            font-size: 12px;
+            color: var(--color-text-muted);
+            margin-bottom: 2px;
+        }
+        .privat-sender {
+            color: var(--color-text);
+            font-weight: 500;
+        }
+        .privat-subject {
+            font-weight: 600;
+            color: var(--color-text);
+            font-size: 14px;
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .privat-snippet {
+            color: var(--color-text-muted);
+            font-size: 13px;
+            margin-top: 4px;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        .privat-tags {
+            display: inline-flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+        .privat-tag {
+            font-size: 10px;
+            padding: 1px 6px;
+            border-radius: 999px;
+            background: var(--color-surface-elevated);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-muted);
+            font-weight: 500;
+        }
+        .privat-time {
+            font-size: 12px;
+            color: var(--color-text-subtle);
+            white-space: nowrap;
+            margin-top: 2px;
+        }
+        .privat-empty {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--color-text-muted);
+        }
+        .privat-resolved-toggle {
+            background: none;
+            border: 1px solid var(--color-border);
+            color: var(--color-text-muted);
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0 1.5rem 1rem;
+        }
+        .privat-resolved-toggle:hover {
+            background: var(--color-surface-elevated);
+        }

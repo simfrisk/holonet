@@ -186,6 +186,8 @@ app.use((req, res, next) => {
     if (exempt.includes(req.path)) return next();
     // Video API endpoints use their own dual auth (API key OR cookie)
     if (req.path.startsWith('/api/videos')) return next();
+    // Privat API endpoints use their own dual auth (API key OR cookie)
+    if (req.path.startsWith('/api/privat')) return next();
     // Outputs POST uses API key OR cookie auth (handled in route)
     if (req.path === '/api/outputs' && req.method === 'POST') return next();
     return requireAuth(req, res, next);
@@ -267,7 +269,7 @@ async function createDesignDocuments() {
         if (checkResponse.ok) {
             existingDoc = await checkResponse.json();
             // All required views present — nothing to do
-            const required = ['all_contacts', 'by_email', 'by_tenant', 'all_drafts', 'all_todos', 'all_tracked', 'all_todolists', 'all_briefs', 'all_brief_items', 'all_videos', 'all_links'];
+            const required = ['all_contacts', 'by_email', 'by_tenant', 'all_drafts', 'all_todos', 'all_tracked', 'all_todolists', 'all_briefs', 'all_brief_items', 'all_videos', 'all_links', 'all_privat_items', 'privat_by_thread'];
             if (existingDoc.views && required.every(v => existingDoc.views[v])) {
                 return;
             }
@@ -280,7 +282,7 @@ async function createDesignDocuments() {
             views: {
                 all_contacts: {
                     map: function(doc) {
-                        if (doc._id !== 'metadata' && doc.type !== 'email_draft' && doc._id !== 'email_topics' && doc.type !== 'todo') {
+                        if (doc._id !== 'metadata' && doc.type !== 'email_draft' && doc._id !== 'email_topics' && doc.type !== 'todo' && doc.type !== 'privat_item') {
                             emit(doc._id, doc);
                         }
                     }.toString()
@@ -352,6 +354,20 @@ async function createDesignDocuments() {
                     map: function(doc) {
                         if (doc.type === 'link') {
                             emit(doc.sortOrder != null ? doc.sortOrder : doc.createdAt, doc);
+                        }
+                    }.toString()
+                },
+                all_privat_items: {
+                    map: function(doc) {
+                        if (doc.type === 'privat_item') {
+                            emit(doc.receivedAt || doc.createdAt, doc);
+                        }
+                    }.toString()
+                },
+                privat_by_thread: {
+                    map: function(doc) {
+                        if (doc.type === 'privat_item' && doc.threadId) {
+                            emit(doc.threadId, doc);
                         }
                     }.toString()
                 }
@@ -3592,6 +3608,253 @@ app.delete('/api/videos/:id', async (req, res) => {
     } catch (error) {
         console.error('Error deleting video:', error);
         res.status(500).json({ error: 'Failed to delete video' });
+    }
+});
+
+// =========================================
+// PRIVAT API (personal Gmail items)
+// =========================================
+
+function requirePrivatAuth(req, res) {
+    const apiKeyValid = req.headers['x-api-key'] === API_KEY || req.query.apiKey === API_KEY;
+    const cookieAuth = isAuthenticated(req);
+    if (!apiKeyValid && !cookieAuth) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return false;
+    }
+    return true;
+}
+
+async function findPrivatByThreadId(threadId) {
+    if (!threadId) return null;
+    const viewUrl = `${dbUrl}/_design/contacts/_view/privat_by_thread?key=${encodeURIComponent(JSON.stringify(threadId))}`;
+    const resp = await couchFetch(viewUrl);
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    if (!data.rows || data.rows.length === 0) return null;
+    return data.rows[0].value;
+}
+
+// GET /api/privat-metadata — fetch only the privat-specific metadata fields
+app.get('/api/privat-metadata', async (req, res) => {
+    if (!requirePrivatAuth(req, res)) return;
+    try {
+        const metadataUrl = `${dbUrl}/metadata`;
+        const r = await couchFetch(metadataUrl);
+        const meta = r.ok ? await r.json() : {};
+        res.json({
+            lastGmailCheckAt: meta.lastGmailCheckAt || null
+        });
+    } catch (err) {
+        console.error('Error fetching privat metadata:', err);
+        res.status(500).json({ error: 'Failed to fetch privat metadata' });
+    }
+});
+
+// PATCH /api/privat-metadata — update lastGmailCheckAt on the metadata doc
+app.patch('/api/privat-metadata', async (req, res) => {
+    if (!requirePrivatAuth(req, res)) return;
+    try {
+        const { lastGmailCheckAt } = req.body || {};
+        const metadataUrl = `${dbUrl}/metadata`;
+        const getRes = await couchFetch(metadataUrl);
+        let doc = getRes.ok ? await getRes.json() : { _id: 'metadata' };
+        doc.lastGmailCheckAt = lastGmailCheckAt || new Date().toISOString();
+        const saveRes = await couchFetch(metadataUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+        if (!saveRes.ok) throw new Error('Failed to update metadata');
+        res.json({ success: true, lastGmailCheckAt: doc.lastGmailCheckAt });
+    } catch (err) {
+        console.error('Error updating privat metadata:', err);
+        res.status(500).json({ error: 'Failed to update privat metadata' });
+    }
+});
+
+// GET /api/privat — list all privat items, sorted by receivedAt desc
+app.get('/api/privat', async (req, res) => {
+    if (!requirePrivatAuth(req, res)) return;
+    try {
+        const viewUrl = `${dbUrl}/_design/contacts/_view/all_privat_items`;
+        const viewResponse = await couchFetch(viewUrl);
+
+        let items = [];
+        if (viewResponse.ok) {
+            const viewData = await viewResponse.json();
+            items = viewData.rows.map(row => {
+                const { _id, _rev, type, ...item } = row.value;
+                return { id: _id, ...item };
+            });
+            items.sort((a, b) => {
+                const aT = new Date(a.receivedAt || a.createdAt || 0).getTime();
+                const bT = new Date(b.receivedAt || b.createdAt || 0).getTime();
+                return bT - aT;
+            });
+        }
+
+        const metadataUrl = `${dbUrl}/metadata`;
+        const metaRes = await couchFetch(metadataUrl);
+        const meta = metaRes.ok ? await metaRes.json() : null;
+
+        res.json({
+            items,
+            lastGmailCheckAt: (meta && meta.lastGmailCheckAt) || null
+        });
+    } catch (err) {
+        console.error('Error fetching privat items:', err);
+        res.status(500).json({ error: 'Failed to fetch privat items' });
+    }
+});
+
+// POST /api/privat — create new item, idempotent on threadId
+app.post('/api/privat', async (req, res) => {
+    if (!requirePrivatAuth(req, res)) return;
+    try {
+        const { threadId, sender, senderName, subject, snippet, receivedAt, priority, tags } = req.body || {};
+        if (!subject && !threadId) {
+            return res.status(400).json({ error: 'subject or threadId is required' });
+        }
+
+        const now = new Date().toISOString();
+
+        if (threadId) {
+            const existing = await findPrivatByThreadId(threadId);
+            if (existing) {
+                if (existing.resolved) {
+                    return res.json({ success: true, id: existing._id, skipped: 'already_resolved' });
+                }
+                existing.subject = subject !== undefined ? subject : existing.subject;
+                existing.snippet = snippet !== undefined ? snippet : existing.snippet;
+                existing.receivedAt = receivedAt || existing.receivedAt;
+                existing.priority = priority || existing.priority;
+                existing.tags = Array.isArray(tags) ? tags : existing.tags;
+                existing.sender = sender !== undefined ? sender : existing.sender;
+                existing.senderName = senderName !== undefined ? senderName : existing.senderName;
+                existing.updatedAt = now;
+
+                const saveRes = await couchFetch(`${dbUrl}/${existing._id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(existing)
+                });
+                if (!saveRes.ok) throw new Error('Failed to update privat item');
+                const { _id, _rev, type, ...rest } = existing;
+                return res.json({ success: true, id: _id, item: { id: _id, ...rest }, updated: true });
+            }
+        }
+
+        const id = threadId
+            ? `privat-${threadId}`
+            : `privat-${Date.now()}`;
+
+        const doc = {
+            _id: id,
+            type: 'privat_item',
+            threadId: threadId || null,
+            sender: sender || '',
+            senderName: senderName || '',
+            subject: subject || '',
+            snippet: snippet || '',
+            receivedAt: receivedAt || now,
+            priority: priority || 'review',
+            tags: Array.isArray(tags) ? tags : [],
+            resolved: false,
+            resolvedAt: null,
+            createdAt: now,
+            updatedAt: now
+        };
+
+        const saveRes = await couchFetch(`${dbUrl}/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+        if (!saveRes.ok) {
+            if (saveRes.status === 409) {
+                return res.status(409).json({ error: 'Conflict: item already exists' });
+            }
+            throw new Error('Failed to create privat item');
+        }
+
+        res.json({ success: true, id, item: { id, ...doc } });
+    } catch (err) {
+        console.error('Error creating privat item:', err);
+        res.status(500).json({ error: 'Failed to create privat item' });
+    }
+});
+
+// PATCH /api/privat/:id — update fields (resolved, priority, tags, etc.)
+app.patch('/api/privat/:id', async (req, res) => {
+    if (!requirePrivatAuth(req, res)) return;
+    try {
+        const { id } = req.params;
+        const body = req.body || {};
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getRes = await couchFetch(docUrl);
+        if (!getRes.ok) {
+            return res.status(404).json({ error: 'Privat item not found' });
+        }
+
+        const doc = await getRes.json();
+        if (doc.type !== 'privat_item') {
+            return res.status(404).json({ error: 'Privat item not found' });
+        }
+
+        const patchableFields = ['sender', 'senderName', 'subject', 'snippet', 'priority', 'tags', 'receivedAt'];
+        for (const f of patchableFields) {
+            if (body[f] !== undefined) doc[f] = body[f];
+        }
+
+        if (body.resolved !== undefined) {
+            const wasResolved = doc.resolved === true;
+            doc.resolved = Boolean(body.resolved);
+            if (doc.resolved && !wasResolved) {
+                doc.resolvedAt = new Date().toISOString();
+            } else if (!doc.resolved) {
+                doc.resolvedAt = null;
+            }
+        }
+
+        doc.updatedAt = new Date().toISOString();
+
+        const saveRes = await couchFetch(docUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(doc)
+        });
+        if (!saveRes.ok) throw new Error('Failed to update privat item');
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error updating privat item:', err);
+        res.status(500).json({ error: 'Failed to update privat item' });
+    }
+});
+
+// DELETE /api/privat/:id — delete item
+app.delete('/api/privat/:id', async (req, res) => {
+    if (!requirePrivatAuth(req, res)) return;
+    try {
+        const { id } = req.params;
+
+        const docUrl = `${dbUrl}/${id}`;
+        const getRes = await couchFetch(docUrl);
+        if (!getRes.ok) {
+            return res.status(404).json({ error: 'Privat item not found' });
+        }
+
+        const doc = await getRes.json();
+        const rev = req.query.rev || doc._rev;
+        const deleteRes = await couchFetch(`${docUrl}?rev=${rev}`, { method: 'DELETE' });
+        if (!deleteRes.ok) throw new Error('Failed to delete privat item');
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error('Error deleting privat item:', err);
+        res.status(500).json({ error: 'Failed to delete privat item' });
     }
 });
 
