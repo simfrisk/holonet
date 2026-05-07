@@ -1,6 +1,9 @@
 let privatItemsData = [];
 let privatLastChecked = null;
 let privatShowResolved = false;
+let privatJobStatus = null;
+let privatJobError = null;
+let privatJobAt = null;
 
 async function loadPrivatTab() {
     const container = document.getElementById('privat-items');
@@ -11,6 +14,9 @@ async function loadPrivatTab() {
         const data = await res.json();
         privatItemsData = data.items || [];
         privatLastChecked = data.lastGmailCheckAt || null;
+        privatJobStatus = data.lastJobStatus || null;
+        privatJobError = data.lastJobError || null;
+        privatJobAt = data.lastJobAt || null;
         privatLoaded = true;
         updatePrivatCount();
         renderPrivat();
@@ -18,6 +24,29 @@ async function loadPrivatTab() {
         console.error('Failed to load privat items:', err);
         if (container) container.innerHTML = '<p class="privat-empty" style="color:var(--color-danger);">Failed to load privat items.</p>';
     }
+}
+
+function renderPrivatStatusBanner() {
+    const STALE_HOURS = 26;
+    let kind = null;
+    let message = '';
+    if (privatJobStatus === 'failed') {
+        kind = 'error';
+        const errMsg = privatJobError ? ` (${privatJobError})` : '';
+        const when = privatJobAt ? ` ${privatRelativeTime(privatJobAt)}` : '';
+        message = `Daily Gmail job failed${when}${errMsg}. The most likely cause is the 7-day OAuth refresh token expiring. Tell Claude "fix the Privat Gmail token" to remediate.`;
+    } else if (privatJobAt) {
+        const ageMs = Date.now() - new Date(privatJobAt).getTime();
+        if (ageMs > STALE_HOURS * 3600 * 1000) {
+            kind = 'warn';
+            message = `Daily Gmail job has not run since ${privatRelativeTime(privatJobAt)}. The cron may be paused or failing silently.`;
+        }
+    } else if (!privatLastChecked) {
+        kind = 'warn';
+        message = 'Daily Gmail job has not produced its first status yet. If the first scheduled run was over a day ago, something is wrong.';
+    }
+    if (!kind) return '';
+    return `<div class="privat-status-banner privat-status-${kind}">${escapePrivatHtml(message)}</div>`;
 }
 
 function updatePrivatCount() {
@@ -75,11 +104,12 @@ function renderPrivat() {
     }
     if (!container) return;
 
+    const banner = renderPrivatStatusBanner();
     const unresolved = privatItemsData.filter(i => !i.resolved);
     const resolved = privatItemsData.filter(i => i.resolved);
 
     if (unresolved.length === 0 && resolved.length === 0) {
-        container.innerHTML = '<p class="privat-empty">No privat items yet. The Gmail agent will push items here when something needs your attention.</p>';
+        container.innerHTML = banner + '<p class="privat-empty">No privat items yet. The Gmail agent will push items here when something needs your attention.</p>';
         return;
     }
 
@@ -126,7 +156,7 @@ function renderPrivat() {
         html = '<p class="privat-empty">All clear. No items need your attention.</p>';
     }
 
-    container.innerHTML = html;
+    container.innerHTML = banner + html;
 }
 
 function renderPrivatItem(item) {

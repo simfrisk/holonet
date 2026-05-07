@@ -3635,7 +3635,6 @@ async function findPrivatByThreadId(threadId) {
     return data.rows[0].value;
 }
 
-// GET /api/privat-metadata — fetch only the privat-specific metadata fields
 app.get('/api/privat-metadata', async (req, res) => {
     if (!requirePrivatAuth(req, res)) return;
     try {
@@ -3643,7 +3642,10 @@ app.get('/api/privat-metadata', async (req, res) => {
         const r = await couchFetch(metadataUrl);
         const meta = r.ok ? await r.json() : {};
         res.json({
-            lastGmailCheckAt: meta.lastGmailCheckAt || null
+            lastGmailCheckAt: meta.lastGmailCheckAt || null,
+            lastJobStatus: meta.lastJobStatus || null,
+            lastJobError: meta.lastJobError || null,
+            lastJobAt: meta.lastJobAt || null
         });
     } catch (err) {
         console.error('Error fetching privat metadata:', err);
@@ -3651,22 +3653,30 @@ app.get('/api/privat-metadata', async (req, res) => {
     }
 });
 
-// PATCH /api/privat-metadata — update lastGmailCheckAt on the metadata doc
 app.patch('/api/privat-metadata', async (req, res) => {
     if (!requirePrivatAuth(req, res)) return;
     try {
-        const { lastGmailCheckAt } = req.body || {};
+        const body = req.body || {};
         const metadataUrl = `${dbUrl}/metadata`;
         const getRes = await couchFetch(metadataUrl);
         let doc = getRes.ok ? await getRes.json() : { _id: 'metadata' };
-        doc.lastGmailCheckAt = lastGmailCheckAt || new Date().toISOString();
+        if (body.lastGmailCheckAt !== undefined) doc.lastGmailCheckAt = body.lastGmailCheckAt || new Date().toISOString();
+        if (body.lastJobStatus !== undefined) doc.lastJobStatus = body.lastJobStatus;
+        if (body.lastJobError !== undefined) doc.lastJobError = body.lastJobError;
+        if (body.lastJobAt !== undefined) doc.lastJobAt = body.lastJobAt || new Date().toISOString();
         const saveRes = await couchFetch(metadataUrl, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(doc)
         });
         if (!saveRes.ok) throw new Error('Failed to update metadata');
-        res.json({ success: true, lastGmailCheckAt: doc.lastGmailCheckAt });
+        res.json({
+            success: true,
+            lastGmailCheckAt: doc.lastGmailCheckAt,
+            lastJobStatus: doc.lastJobStatus || null,
+            lastJobError: doc.lastJobError || null,
+            lastJobAt: doc.lastJobAt || null
+        });
     } catch (err) {
         console.error('Error updating privat metadata:', err);
         res.status(500).json({ error: 'Failed to update privat metadata' });
@@ -3700,7 +3710,10 @@ app.get('/api/privat', async (req, res) => {
 
         res.json({
             items,
-            lastGmailCheckAt: (meta && meta.lastGmailCheckAt) || null
+            lastGmailCheckAt: (meta && meta.lastGmailCheckAt) || null,
+            lastJobStatus: (meta && meta.lastJobStatus) || null,
+            lastJobError: (meta && meta.lastJobError) || null,
+            lastJobAt: (meta && meta.lastJobAt) || null
         });
     } catch (err) {
         console.error('Error fetching privat items:', err);
